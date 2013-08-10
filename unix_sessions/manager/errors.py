@@ -25,3 +25,6 @@ class SessionCreationError(SessionError):
 
 class SessionLoadingError(SessionError):
     pass
+
+class SessionSuitesLoadingError(SessionError):
+    pass

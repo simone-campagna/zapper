@@ -34,11 +34,14 @@ class Manager(object):
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
     SESSION_INIT_FILE = ".session"
+    SUITES_DIR_NAME = 'suites'
     CURRENT_SESSION_NAME_VARNAME = "UXS_CURRENT_SESSION"
+    SUITES_DIR_VARNAME = "UXS_SUITE_DIR"
     def __init__(self):
         home_dir = os.path.expanduser('~')
         username = getpass.getuser()
         self.rc_dir = os.path.join(home_dir, self.RC_DIR_NAME)
+        self.user_suites_dir = os.path.join(self.rc_dir, self.SUITES_DIR_NAME)
         tmpdir = os.environ.get("TMPDIR", "/tmp")
         self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, username))
         self.persistent_sessions_dir = os.path.join(self.rc_dir, self.SESSIONS_DIR_NAME)
@@ -47,12 +50,39 @@ class Manager(object):
             self.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
             self.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
         }
-        for d in self.persistent_sessions_dir, self.temporary_sessions_dir:
+        for d in self.user_suites_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)
         self.current_session_name = None
         self.current_session_type = None
         self.load_current_session()
+
+    def _load_modules(self, module_dir):
+        modules = []
+        for module_path in glob.glob(os.path.join(module_dir, '*.py')):
+            modules.append(self._load_module(module_path))
+        return modules
+
+    def _load_module(self, module_path):
+        module_dirname, module_basename = os.path.split(module_path)
+        module_name = module_basename[:-3]
+        sys_path = sys.path[:]
+        try:
+            sys_path.insert(0, module_dirname)
+            module = __import__(module_name)
+            return module
+        finally:
+            sys.path = sys_path
+
+    def load_suites(self):
+        uxs_suite_dir = os.environ.get(self.SUITES_DIR_VARNAME, "")
+        self.uxs_suite_dirs = [self.user_suites_dir]
+        self.uxs_suite_dirs.extend(uxs_suite_dir.split(':'))
+        for suite_dir in self.uxs_suite_dirs:
+            try:
+                self._load_modules(suite_dir)
+            except ImportError as e:
+                raise SessionSuitesLoadingError("cannot import {0}: {1}: {2}".format(module_path, e.__class__.__name__, e))
 
     def load_current_session(self):
         current_session = os.environ.get(self.CURRENT_SESSION_NAME_VARNAME, None)
@@ -66,7 +96,7 @@ class Manager(object):
                     self.CURRENT_SESSION_NAME_VARNAME, current_session, self.current_session_type))
             self.current_session_name = tnl[1]
             try:
-                self.load(self.current_session_name, self.current_session_type)
+                self.load_session(self.current_session_name, self.current_session_type)
             except SessionError as e:
                 raise SessionLoadingError("inconsistent environment {0}={1!r}: {2}".format(
                     self.CURRENT_SESSION_NAME_VARNAME, current_session, e))
@@ -107,7 +137,7 @@ class Manager(object):
                     mark_current = ' '
                 print("  {0} {1}".format(mark_current, session_name))
 
-    def load(self, session_name, session_type=None):
+    def load_session(self, session_name, session_type=None):
         if session_type is None:
             session_types = self.SESSION_TYPES
         else:
