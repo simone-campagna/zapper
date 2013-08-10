@@ -45,6 +45,16 @@ Change the current session""",
 
     parser_list = subparsers.add_parser("list", aliases=['li'],
         help="list available sessions")
+    parser_list.add_argument("--persistent", "-p",
+        dest="persistent",
+        action="store_true",
+        default=None,
+        help="show persistent sessions")
+    parser_list.add_argument("--no-temporary", "-t",
+        dest="temporary",
+        action="store_true",
+        default=None,
+        help="show temporary sessions")
     parser_list.set_defaults(function=manager.list)
 
     parser_info = subparsers.add_parser("info", aliases=[],
@@ -53,9 +63,19 @@ Change the current session""",
 
     args = parser.parse_args()
 
+    if 'persistent' in args and 'temporary' in args:
+        if args.persistent is None:
+            if args.temporary is None:
+                args.persistent = True
+                args.temporary = True
+            else:
+                args.persistent = False
+        if args.temporary is None:
+            args.temporary = False
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
     del n_args['function']
+
 
     args.function(*p_args, **n_args)
 

@@ -24,6 +24,7 @@ import getpass
 import tempfile
 
 from .errors import *
+from ..session import *
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -31,7 +32,9 @@ class Manager(object):
     SESSIONS_DIR_NAME = 'sessions'
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
+    SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
     SESSION_INIT_FILE = ".session"
+    CURRENT_SESSION_NAME_VARNAME = "UXS_CURRENT_SESSION"
     def __init__(self):
         home_dir = os.path.expanduser('~')
         username = getpass.getuser()
@@ -40,9 +43,33 @@ class Manager(object):
         self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, username))
         self.persistent_sessions_dir = os.path.join(self.rc_dir, self.SESSIONS_DIR_NAME)
         self.temporary_sessions_dir = os.path.join(self.tmp_dir, self.SESSIONS_DIR_NAME)
+        self.sessions_dir = {
+            self.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
+            self.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
+        }
         for d in self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)
+        self.current_session_name = None
+        self.current_session_type = None
+        self.load_current_session()
+
+    def load_current_session(self):
+        current_session = os.environ.get(self.CURRENT_SESSION_NAME_VARNAME, None)
+        if current_session:
+            tnl = current_session.split(':', 1)
+            if len(tnl) != 2:
+                raise SessionLoadingError("inconsistent environment {0}={1!r}".format(self.CURRENT_SESSION_NAME_VARNAME, current_session))
+            self.current_session_type = tnl[0]
+            if not self.current_session_type in self.SESSION_TYPES:
+                raise SessionLoadingError("inconsistent environment {0}={1!r}: invalid session type {2}".format(
+                    self.CURRENT_SESSION_NAME_VARNAME, current_session, self.current_session_type))
+            self.current_session_name = tnl[1]
+            try:
+                self.load(self.current_session_name, self.current_session_type)
+            except SessionError as e:
+                raise SessionLoadingError("inconsistent environment {0}={1!r}: {2}".format(
+                    self.CURRENT_SESSION_NAME_VARNAME, current_session, e))
 
     def acquire_session_dir(self, session_type, session_name, session_dir):
         with open(os.path.join(session_dir, self.SESSION_INIT_FILE), "w") as f_out:
@@ -74,10 +101,29 @@ class Manager(object):
             print("=== Available {t} sessions:".format(t=session_type))
             for entry in glob.glob(os.path.join(sessions_dir, '*', self.SESSION_INIT_FILE)):
                 session_name = os.path.basename(os.path.dirname(entry))
-                print("  * {0}".format(session_name))
+                if session_name == self.current_session_name:
+                    mark_current = '*'
+                else:
+                    mark_current = ' '
+                print("  {0} {1}".format(mark_current, session_name))
+
+    def load(self, session_name, session_type=None):
+        if session_type is None:
+            session_types = self.SESSION_TYPES
+        else:
+            assert session_type in self.SESSION_TYPES
+            session_types = [session_type]
+        for session_type in session_types:
+            sessions_dir = self.sessions_dir[session_type]
+            session_dir = os.path.join(sessions_dir, session_name)
+            if os.path.isdir(session_dir) and os.path.lexists(os.path.join(session_dir, self.SESSION_INIT_FILE)):
+                self.current_session = Session(session_name, session_type)
+                break
+        else:
+            raise SessionLoadingError("cannot load {t} session {n!r}".format(t=session_type, n=session_name))
 
     def info(self):
-        print("... info")
+        print(self.current_session)
 
 #def _run(method_name, *p_args, **n_args):
 #    manager = Manager()

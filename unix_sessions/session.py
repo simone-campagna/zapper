@@ -21,7 +21,9 @@ from .environment import Environment
 from .component import Component
 
 class Session(object):
-    def __init__(self):
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
         self._environment = Environment()
 
     @property
@@ -29,5 +31,8 @@ class Session(object):
         return self._environment
 
 
+    def __repr__(self):
+        return "{c}(name={n!r}, type={t!r})".format(c=self.__class__.__name__, n=self.name, t=self.type)
+    __str__ = __repr__
     
 
