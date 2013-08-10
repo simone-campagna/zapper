@@ -19,6 +19,7 @@ __author__ = 'Simone Campagna'
 
 import os
 import sys
+import imp
 import glob
 import getpass
 import tempfile
@@ -53,11 +54,13 @@ class Manager(object):
         for d in self.user_suites_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)
+        self.load_suites()
         self.current_session_name = None
         self.current_session_type = None
         self.load_current_session()
 
     def _load_modules(self, module_dir):
+        #print("+++", module_dir)
         modules = []
         for module_path in glob.glob(os.path.join(module_dir, '*.py')):
             modules.append(self._load_module(module_path))
@@ -66,23 +69,20 @@ class Manager(object):
     def _load_module(self, module_path):
         module_dirname, module_basename = os.path.split(module_path)
         module_name = module_basename[:-3]
-        sys_path = sys.path[:]
-        try:
-            sys_path.insert(0, module_dirname)
-            module = __import__(module_name)
-            return module
-        finally:
-            sys.path = sys_path
+        #print("---", module_path, module_name)
+        sys_path = [module_dirname]
+        module_info = imp.find_module(module_name, sys_path)
+        if module_info:
+            module = imp.load_module(module_name, *module_info)
+        return module
 
     def load_suites(self):
         uxs_suite_dir = os.environ.get(self.SUITES_DIR_VARNAME, "")
         self.uxs_suite_dirs = [self.user_suites_dir]
         self.uxs_suite_dirs.extend(uxs_suite_dir.split(':'))
         for suite_dir in self.uxs_suite_dirs:
-            try:
-                self._load_modules(suite_dir)
-            except ImportError as e:
-                raise SessionSuitesLoadingError("cannot import {0}: {1}: {2}".format(module_path, e.__class__.__name__, e))
+            #print("===", suite_dir)
+            self._load_modules(suite_dir)
 
     def load_current_session(self):
         current_session = os.environ.get(self.CURRENT_SESSION_NAME_VARNAME, None)
