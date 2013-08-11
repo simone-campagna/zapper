@@ -17,23 +17,16 @@
 
 __author__ = 'Simone Campagna'
 
-from .component import Component
-from .package import Package
-
 import abc
 
-__all__ = ['Suite']
+__all__ = ['Registry']
 
-class Suite(Package):
-    def __init__(self, name, version, category):
-        super().__init__(name, version, category)
-        self._components = []
+class Registry(object):
+    def __init__(self):
+        self._reg = []
 
-    def add_component(self, component):
-        assert isinstance(component, Component)
-        self._components.append(component)
-        
-    def apply(self, session):
-        for component in self._components:
-            component.apply(session)
+    def register(self, instance):
+        self._reg.append(instance)
 
+    def __iter__(self):
+        return iter(self._reg)

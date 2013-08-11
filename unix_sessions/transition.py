@@ -18,9 +18,9 @@
 __author__ = 'Simone Campagna'
 
 __all__ = ['Transition',
-           'SetEnvironmentVariable',
-           'PrependEnvironmentVariable',
-           'AppendEnvironmentVariable',
+           'SetEnv',
+           'PrependPath',
+           'AppendPath',
 ]
 
 import abc
@@ -31,20 +31,22 @@ class Transition(object, metaclass=abc.ABCMeta):
         pass
 
 class EnvironmentTransition(Transition):
-    def __init__(self, var_name, var_value, separator=':'):
+    def __init__(self, var_name, var_value, separator=None):
         self.var_name = var_name
-        self.var_value = var_value
+        self.var_value = str(var_value)
+        if separator is None:
+            separator = ':'
         self.separator = separator
 
-class SetEnvironmentVariable(EnvironmentTransition):
+class SetEnv(EnvironmentTransition):
     def apply(self, session):
         session.environment.set_var(self.var_name, self.var_value, self.separator)
         
-class PrependEnvironmentVariable(EnvironmentTransition):
+class PrependPath(EnvironmentTransition):
     def apply(self, session):
         session.environment.prepend_var(self.var_name, self.var_value, self.separator)
         
-class AppendEnvironmentVariable(EnvironmentTransition):
+class AppendPath(EnvironmentTransition):
     def apply(self, session):
         session.environment.append_var(self.var_name, self.var_value, self.separator)
         

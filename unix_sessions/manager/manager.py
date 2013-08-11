@@ -35,14 +35,14 @@ class Manager(object):
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
     SESSION_INIT_FILE = ".session"
-    SUITES_DIR_NAME = 'suites'
+    COMPONENTS_DIR_NAME = 'components'
     CURRENT_SESSION_NAME_VARNAME = "UXS_CURRENT_SESSION"
-    SUITES_DIR_VARNAME = "UXS_SUITE_DIR"
+    COMPONENTS_DIR_VARNAME = "UXS_COMPONENT_DIR"
     def __init__(self):
         home_dir = os.path.expanduser('~')
         username = getpass.getuser()
         self.rc_dir = os.path.join(home_dir, self.RC_DIR_NAME)
-        self.user_suites_dir = os.path.join(self.rc_dir, self.SUITES_DIR_NAME)
+        self.user_components_dir = os.path.join(self.rc_dir, self.COMPONENTS_DIR_NAME)
         tmpdir = os.environ.get("TMPDIR", "/tmp")
         self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, username))
         self.persistent_sessions_dir = os.path.join(self.rc_dir, self.SESSIONS_DIR_NAME)
@@ -51,10 +51,10 @@ class Manager(object):
             self.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
             self.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
         }
-        for d in self.user_suites_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
+        for d in self.user_components_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)
-        self.load_suites()
+        self.load_components()
         self.current_session_name = None
         self.current_session_type = None
         self.load_current_session()
@@ -76,13 +76,13 @@ class Manager(object):
             module = imp.load_module(module_name, *module_info)
         return module
 
-    def load_suites(self):
-        uxs_suite_dir = os.environ.get(self.SUITES_DIR_VARNAME, "")
-        self.uxs_suite_dirs = [self.user_suites_dir]
-        self.uxs_suite_dirs.extend(uxs_suite_dir.split(':'))
-        for suite_dir in self.uxs_suite_dirs:
-            #print("===", suite_dir)
-            self._load_modules(suite_dir)
+    def load_components(self):
+        uxs_component_dir = os.environ.get(self.COMPONENTS_DIR_VARNAME, "")
+        self.uxs_component_dirs = [self.user_components_dir]
+        self.uxs_component_dirs.extend(uxs_component_dir.split(':'))
+        for component_dir in self.uxs_component_dirs:
+            #print("===", component_dir)
+            self._load_modules(component_dir)
 
     def load_current_session(self):
         current_session = os.environ.get(self.CURRENT_SESSION_NAME_VARNAME, None)
