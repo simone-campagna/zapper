@@ -28,3 +28,6 @@ class SessionLoadingError(SessionError):
 
 class SessionSuitesLoadingError(SessionError):
     pass
+
+class PackageNotFoundError(SessionError):
+    pass

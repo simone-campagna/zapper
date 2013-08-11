@@ -17,7 +17,6 @@
 
 __author__ = 'Simone Campagna'
 
-from .component import Component
 from .package import Package
 
 import abc
@@ -27,13 +26,13 @@ __all__ = ['Suite']
 class Suite(Package):
     def __init__(self, name, version, category):
         super().__init__(name, version, category)
-        self._components = []
+        self._packages = []
 
-    def add_component(self, component):
-        assert isinstance(component, Component)
-        self._components.append(component)
+    def add_package(self, package):
+        assert isinstance(package, Package)
+        self._packages.append(package)
         
     def apply(self, session):
-        for component in self._components:
-            component.apply(session)
+        for package in self._packages:
+            package.apply(session)
 

@@ -23,9 +23,13 @@ import imp
 import glob
 import getpass
 import tempfile
+import collections
 
 from .errors import *
 from ..session import *
+from ..package import Package
+
+Index = collections.namedtuple('Index', ('idx', 'path'))
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -35,14 +39,23 @@ class Manager(object):
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
     SESSION_INIT_FILE = ".session"
-    COMPONENTS_DIR_NAME = 'components'
+    PACKAGES_DIR_NAME = 'packages'
     CURRENT_SESSION_NAME_VARNAME = "UXS_CURRENT_SESSION"
-    COMPONENTS_DIR_VARNAME = "UXS_COMPONENT_DIR"
+    PACKAGES_DIR_VARNAME = "UXS_PACKAGE_DIR"
+    SESSION_INDEX_VARNAME = "UXS_SESSION_INDEX"
+    VERSION_OPERATORS = (
+        ('==',		lambda x, v: x == v),
+        ('!=',		lambda x, v: x != v),
+        ('<',		lambda x, v: x <  v),
+        ('<=',		lambda x, v: x <= v),
+        ('>',		lambda x, v: x >  v),
+        ('>=',		lambda x, v: x >= v),
+    )
     def __init__(self):
         home_dir = os.path.expanduser('~')
         username = getpass.getuser()
         self.rc_dir = os.path.join(home_dir, self.RC_DIR_NAME)
-        self.user_components_dir = os.path.join(self.rc_dir, self.COMPONENTS_DIR_NAME)
+        self.user_packages_dir = os.path.join(self.rc_dir, self.PACKAGES_DIR_NAME)
         tmpdir = os.environ.get("TMPDIR", "/tmp")
         self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, username))
         self.persistent_sessions_dir = os.path.join(self.rc_dir, self.SESSIONS_DIR_NAME)
@@ -51,12 +64,14 @@ class Manager(object):
             self.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
             self.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
         }
-        for d in self.user_components_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
+        for d in self.user_packages_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)
-        self.load_components()
+        self.load_available_packages()
         self.current_session_name = None
         self.current_session_type = None
+        self.current_session_dir = None
+        self.current_packages = []
         self.load_current_session()
 
     def _load_modules(self, module_dir):
@@ -76,15 +91,24 @@ class Manager(object):
             module = imp.load_module(module_name, *module_info)
         return module
 
-    def load_components(self):
-        uxs_component_dir = os.environ.get(self.COMPONENTS_DIR_VARNAME, "")
-        self.uxs_component_dirs = [self.user_components_dir]
-        self.uxs_component_dirs.extend(uxs_component_dir.split(':'))
-        for component_dir in self.uxs_component_dirs:
-            #print("===", component_dir)
-            self._load_modules(component_dir)
+    def load_available_packages(self):
+        uxs_package_dir = os.environ.get(self.PACKAGES_DIR_VARNAME, "")
+        self.uxs_package_dirs = [self.user_packages_dir]
+        self.uxs_package_dirs.extend(uxs_package_dir.split(':'))
+        for package_dir in self.uxs_package_dirs:
+            #print("===", package_dir)
+            self._load_modules(package_dir)
 
     def load_current_session(self):
+        current_session_index = os.environ.get(self.SESSION_INDEX_VARNAME, None)
+        if current_session_index is None:
+            self.current_session_index = 0
+        else:
+            try:
+                self.current_session_index = int(current_session_index)
+            except ValueError as e:
+                raise SessionLoadingError("inconsistent environment {0}={1!r}".format(
+                    self.SESSION_INDEX_VARNAME, current_session_index))
         current_session = os.environ.get(self.CURRENT_SESSION_NAME_VARNAME, None)
         if current_session:
             tnl = current_session.split(':', 1)
@@ -148,19 +172,133 @@ class Manager(object):
             session_dir = os.path.join(sessions_dir, session_name)
             if os.path.isdir(session_dir) and os.path.lexists(os.path.join(session_dir, self.SESSION_INIT_FILE)):
                 self.current_session = Session(session_name, session_type)
+                self.current_session_dir = session_dir
+                self.load_session_packages()
                 break
         else:
             raise SessionLoadingError("cannot load {t} session {n!r}".format(t=session_type, n=session_name))
 
+    def load_session_packages(self):
+        for index in self.get_session_indices():
+            if index.idx >= self.current_session_index:
+                with open(index.path, 'r') as f_in:
+                    for line in f_in:
+                        line = line.strip()
+                        if line:
+                            action, package_label = line.split(':', 1)
+                            if action == 'add':
+                                package_list = Package.REGISTRY
+                                func = self.add_package
+                                message = "available"
+                            elif action == 'remove':
+                                package_list = self.current_packages
+                                func = self.remove_package
+                                message = "loaded"
+                            package = self.get_package(package_label, package_list)
+                            if package is None:
+                                raise PackageNotFoundError("package {0} not {1}".format(package_label, message))
+                            func(package)
+                self.current_session_index = index.idx
+
+    def add_package(self, package):
+        print("### add {0}".format(package.label()))
+        if not package in self.current_packages:
+            self.current_packages.append(package)
+
+    def remove_package(self, package):
+        print("### remove {0}".format(package.label()))
+        if package in self.current_packages:
+            self.current_packages.remove(package)
+
     def info(self):
         print(self.current_session)
+        #print(self.current_session_dir)
+        print("=== Session:")
+        for index in self.get_session_indices():
+            with open(index.path, 'r') as f_in:
+                packages = list(line.strip() for line in f_in.readlines())
+            if index.idx <= self.current_session_index:
+                mark = '*'
+            else:
+                mark = ' '
+            print(" {0} {1:3d}) {2}".format(mark, index.idx, ' '.join(packages)))
+        print("=== Loaded packages:")
+        for package in self.current_packages:
+            print(" + {0}".format(package.label()))
+        
+    def get_session_indices(self):
+        indices = []
+        #print(self.current_session_dir)
+        for index_path in glob.glob(os.path.join(self.current_session_dir, "*.idx")):
+            index_s = os.path.splitext(os.path.basename(index_path))[0]
+            try:
+                index = int(index_s)
+                indices.append(Index(index, index_path))
+            except:
+                import traceback
+                traceback.print_exc()
+        indices.sort(key=lambda x: x.idx)
+        return indices
+            
+    def get_package(self, package_label, package_list):
+        l = package_label.split('/', 1)
+        package_name = l[0]
+        if len(l) > 1:
+            package_version = l[1]
+        else:
+            package_version = None
+        if package_version is not None:
+            for op_symbol, operator in self.VERSION_OPERATORS:
+                if package_version.startswith(op_symbol):
+                    package_version = package_version[len(op_symbol):]
+                    break
+            else:
+                operator = lambda x, v: x == v
+        else:
+            operator = lambda x, v: True
+        packages = []
+        for package in package_list:
+            if package.name == package_name and operator(package.version, package_version):
+                packages.append(package)
+        if packages:
+            packages.sort(key=lambda x: x.version)
+            package = packages[-1]
+        else:
+            package = None
+        return package
+        
+    def get_available_package(self, package_label):
+        return self.get_package(package_label, Package.REGISTRY)
 
-#def _run(method_name, *p_args, **n_args):
-#    manager = Manager()
-#    return getattr(manager, method_name)(*p_args, **n_args)
-#
-#def list(*p_args, **n_args):
-#    return _run('list', *p_args, **n_args)
-#
-#def info(*p_args, **n_args):
-#    return _run('info', *p_args, **n_args)
+    def get_loaded_package(self, package_label):
+        return self.get_package(package_label, self.current_packages)
+
+    def _change(self, action, package_labels):
+        packages = []
+        if action == 'add':
+            package_list = Package.REGISTRY
+        else:
+            package_list = self.current_packages
+        for package_label in package_labels:
+            package = self.get_package(package_label, package_list)
+            if package is None:
+                raise PackageNotFoundError("package {0} not found".format(package_label))
+            if action == 'add' and package in self.current_packages:
+                continue
+            elif action == 'remove' and not package in self.current_packages:
+                continue
+            packages.append(package)
+        indices = self.get_session_indices()
+        if indices:
+            index = max(i.idx for i in indices) + 1
+        else:
+            index = 1
+        with open(os.path.join(self.current_session_dir, "{0}.idx".format(index)), 'w') as f_out:
+            f_out.write('\n'.join("{0}:{1}".format(action, package.label()) for package in packages) + '\n')
+
+    def add(self, package_labels):
+        self._change('add', package_labels)
+
+    def remove(self, package_labels):
+        self._change('remove', package_labels)
+

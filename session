@@ -43,6 +43,24 @@ Change the current session""",
         help="name of a new persistent session")
     parser_create.set_defaults(function=manager.create)
 
+    parser_add = subparsers.add_parser("add",
+        help="add a package to current session")
+    parser_add.add_argument("package_labels",
+        type=str,
+        nargs='+',
+        default=None,
+        help="package name")
+    parser_add.set_defaults(function=manager.add)
+
+    parser_remove = subparsers.add_parser("remove", aliases=['rem', 'del'],
+        help="remove a package from current session")
+    parser_remove.add_argument("package_labels",
+        type=str,
+        nargs='+',
+        default=None,
+        help="package name")
+    parser_remove.set_defaults(function=manager.remove)
+
     parser_list = subparsers.add_parser("list", aliases=['li'],
         help="list available sessions")
     parser_list.add_argument("--persistent", "-p",

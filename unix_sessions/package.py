@@ -17,15 +17,16 @@
 
 __author__ = 'Simone Campagna'
 
-from .component import Component
+from .transition import *
 from .version import Version
-#from .category import Category
+from .registry import Registry
 
 import abc
 
 __all__ = ['Package']
 
-class Package(Component):
+class Package(object):
+    REGISTRY = Registry()
     def __init__(self, name, version, category):
         if not isinstance(name, str):
             name = str(name)
@@ -36,10 +37,14 @@ class Package(Component):
         self.name = name
         self.version = version
         self.category = category
-        super().__init__()
+        self._transitions = []
         self._requirements = []
         self._preferences = []
         self._conflicts = []
+        self.register()
+
+    def label(self):
+        return "{0}/{1}".format(self.name, self.version)
 
     def __filters(self, *filters):
         flt_funcs = []
@@ -66,3 +71,28 @@ class Package(Component):
     def conflicts(self, *filters):
         self._conflicts.append(self.__filters(filters))
 
+    def register(self):
+        self.__class__.REGISTRY.register(self)
+
+    def add_transition(self, transition):
+        assert isinstance(transition, Transition)
+        self._transitions.append(transition)
+        
+    def setenv(self, var_name, var_value):
+        self.add_transition(SetEnv(var_name, var_value))
+
+    def prepend_path(self, var_name, var_value, separator=None):
+        self.add_transition(PrependPath(var_name, var_value, separator))
+
+    def append_path(self, var_name, var_value, separator=None):
+        self.add_transition(AppendPath(var_name, var_value, separator))
+
+    def apply(self, session):
+        for transition in self._transitions:
+            transition.apply(session)
+
+    def __repr__(self):
+        return "{0}(name={1!r}, version={2!r}, category={3!r})".format(self.__class__.__name__, self.name, self.version, self.category)
+
+    def __str__(self):
+        return self.label()

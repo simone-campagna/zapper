@@ -18,7 +18,7 @@
 __author__ = 'Simone Campagna'
 
 from .environment import Environment
-from .component import Component
+#from .package import Package
 
 class Session(object):
     def __init__(self, name, type):
