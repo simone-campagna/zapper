@@ -25,7 +25,7 @@ import abc
 
 __all__ = ['Package']
 
-class Package(object):
+class Package(Transition):
     REGISTRY = Registry()
     def __init__(self, name, version, category):
         if not isinstance(name, str):
@@ -78,18 +78,37 @@ class Package(object):
         assert isinstance(transition, Transition)
         self._transitions.append(transition)
         
-    def setenv(self, var_name, var_value):
+    def var_set(self, var_name, var_value):
         self.add_transition(SetEnv(var_name, var_value))
 
-    def prepend_path(self, var_name, var_value, separator=None):
+    def var_unset(self, var_name):
+        self.add_transition(UnsetEnv(var_name))
+
+    def list_prepend(self, var_name, var_value, separator=None):
+        self.add_transition(PrependList(var_name, var_value, separator))
+
+    def path_prepend(self, var_name, var_value, separator=None):
         self.add_transition(PrependPath(var_name, var_value, separator))
 
-    def append_path(self, var_name, var_value, separator=None):
+    def list_append(self, var_name, var_value, separator=None):
+        self.add_transition(AppendList(var_name, var_value, separator))
+
+    def path_append(self, var_name, var_value, separator=None):
         self.add_transition(AppendPath(var_name, var_value, separator))
+
+    def list_remove(self, var_name, var_value, separator=None):
+        self.add_transition(RemoveList(var_name, var_value, separator))
+
+    def path_remove(self, var_name, var_value, separator=None):
+        self.add_transition(RemovePath(var_name, var_value, separator))
 
     def apply(self, session):
         for transition in self._transitions:
             transition.apply(session)
+
+    def revert(self, session):
+        for transition in self._transitions:
+            transition.revert(session)
 
     def __repr__(self):
         return "{0}(name={1!r}, version={2!r}, category={3!r})".format(self.__class__.__name__, self.name, self.version, self.category)
