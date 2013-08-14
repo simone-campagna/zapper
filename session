@@ -79,6 +79,14 @@ Change the current session""",
         help="info about current session")
     parser_info.set_defaults(function=manager.info)
 
+    parser_apply = subparsers.add_parser("apply", aliases=[],
+        help="apply modules to current session")
+    parser_apply.set_defaults(function=manager.apply)
+
+    parser_revert = subparsers.add_parser("revert", aliases=[],
+        help="revert modules to current session")
+    parser_revert.set_defaults(function=manager.revert)
+
     args = parser.parse_args()
 
     if 'persistent' in args and 'temporary' in args:

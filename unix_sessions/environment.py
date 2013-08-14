@@ -24,14 +24,38 @@ class Environment(dict):
     def __init__(self, init=None):
         if init is None:
             init = os.environ
+        self._changedkeys = set()
         super().__init__(init)
         
+    def __setitem__(self, var_name, var_value):
+        cur_value = self.get(var_name, None)
+        if cur_value is None or cur_value != var_value:
+            self._changedkeys.add(var_name)
+            super().__setitem__(var_name, var_value)
+
+    def __delitem__(self, var_name):
+        cur_value = self.get(var_name, None)
+        if cur_value is not None:
+            self._changedkeys.add(var_name)
+            super().__delitem__(var_name)
+
+    def changedkeys(self):
+        for key in self._changedkeys:
+            yield key
+
+    def changedvalues(self):
+        for key in self._changedkeys:
+            yield self[key]
+
+    def changeditems(self):
+        for key in self._changedkeys:
+            yield key, self[key]
+
     def var_get(self, var_name):
         return self.get(var_name, "")
 
-
     def _var_split(self, transform, var_name, separator):
-        return (trasform(item) for item in self.get(var_name, '').split(separator))
+        return (transform(item) for item in self.get(var_name, '').split(separator))
 
     def _var_split_uniq(self, transform, var_name, var_value, separator):
         for item in self._var_split(transform, var_name, separator):
@@ -72,7 +96,7 @@ class Environment(dict):
         l.insert(l_index, var_value)
         self[var_name] = separator.join(l)
 
-    def _list_remove(self, var_name, var_value, separator=':'):
+    def _list_remove(self, transform, var_name, var_value, separator=':'):
         l = list(self._var_split_uniq(transform, var_name, var_value, separator))
         self[var_name] = separator.join(l)
   
@@ -106,8 +130,8 @@ class Environment(dict):
     def list_insert(self, var_name, var_value, var_template, separator=None):
         self._list_insert(self.IDENTITY, var_name, var_value, var_template, separator)
 
-    def path_append(self, var_name, var_value, var_template, separator=None):
-        self._list_append(self.NORMPATH, var_name, var_value, var_template, separator)
+    def path_insert(self, var_name, var_value, var_template, separator=None):
+        self._list_insert(self.NORMPATH, var_name, var_value, var_template, separator)
 
     def list_remove(self, var_name, var_value, separator=None):
         self._list_remove(self.IDENTITY, var_name, var_value, separator)

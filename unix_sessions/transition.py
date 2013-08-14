@@ -59,20 +59,22 @@ class EnvListTransition(EnvVarValueTransition):
 
 class SetEnv(EnvVarValueTransition):
     def apply(self, session):
-        session.environment.env_set(self.var_name, self.var_value, self.separator)
+        session.environment.var_set(self.var_name, self.var_value)
         
     def revert(self, session):
         session.environment.var_unset(self.var_name)
 
 class UnsetEnv(EnvVarTransition):
     def apply(self, session):
-        var_cache = session.environment.env_get(self.var_name)
-        session.environment.env_set(self._cache_var_name(), var_cache)
+        cache_var_value = session.environment.var_get(self.var_name)
+        cache_var_name = self._cache_var_name()
+        session.environment.var_set(cache_var_name, cache_var_value)
         session.environment.var_unset(self.var_name, self.var_value, self.separator)
         
     def revert(self, session):
-        var_cache = session.environment.env_get(self._cache_var_name())
-        session.environment.env_set(self.var_name, var_cache)
+        cache_var_name = self._cache_var_name()
+        cache_var_value = session.environment.var_get(cache_var_name)
+        session.environment.var_set(self.var_name, cache_var_value)
 
 class PrependList(EnvListTransition):
     def apply(self, session):
@@ -104,21 +106,27 @@ class AppendPath(EnvListTransition):
 
 class RemoveList(EnvListTransition):
     def apply(self, session):
-        var_cache = session.environment.env_get(self.var_name)
-        session.environment.env_set(self._cache_var_name(), var_cache)
+        cache_var_name = self._cache_var_name()
+        cache_var_value = session.environment.var_get(self.var_name)
+        session.environment.var_set(cache_var_name, cache_var_value)
         session.environment.list_remove(self.var_name, self.var_value, self.separator)
         
     def revert(self, session):
-        var_cache = session.environment.env_get(self._cache_var_name())
-        session.environment.list_insert(self.var_name, self.var_value, var_cache, self.separator)
+        cache_var_name = self._cache_var_name()
+        cache_var_value = session.environment.var_get(cache_var_name)
+        session.environment.list_insert(self.var_name, self.var_value, cache_var_value, self.separator)
+        session.environment.var_unset(cache_var_name)
 
 class RemovePath(EnvListTransition):
     def apply(self, session):
-        var_cache = session.environment.env_get(self.var_name)
-        session.environment.env_set(self._cache_var_name(), var_cache)
+        cache_var_name = self._cache_var_name()
+        cache_var_value = session.environment.var_get(self.var_name)
+        session.environment.var_set(cache_var_name, cache_var_value)
         session.environment.path_remove(self.var_name, self.var_value, self.separator)
         
     def revert(self, session):
-        var_cache = session.environment.env_get(self._cache_var_name())
-        session.environment.path_insert(self.var_name, self.var_value, var_cache, self.separator)
+        cache_var_name = self._cache_var_name()
+        cache_var_value = session.environment.var_get(cache_var_name)
+        session.environment.path_insert(self.var_name, self.var_value, cache_var_value, self.separator)
+        session.environment.var_unset(cache_var_name)
 

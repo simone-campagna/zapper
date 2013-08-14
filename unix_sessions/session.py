@@ -25,10 +25,15 @@ class Session(object):
         self.name = name
         self.type = type
         self._environment = Environment()
+        self._orig_environment = self._environment.copy()
 
     @property
     def environment(self):
         return self._environment
+
+    @property
+    def orig_environment(self):
+        return self._orig_environment
 
 
     def __repr__(self):

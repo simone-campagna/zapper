@@ -226,6 +226,23 @@ class Manager(object):
         for package in self.current_packages:
             print(" + {0}".format(package.label()))
         
+    def _apply_or_revert(self, method_name):
+        print(self.current_session)
+        for package in self.current_packages:
+            print("### {0} {1}...".format(method_name, package))
+            getattr(package, method_name)(self.current_session)
+        environment = self.current_session.environment
+        orig_environment = self.current_session.orig_environment
+        for key, val in environment.changeditems():
+            print("{0}: <{1!r}".format(key, orig_environment.get(key, None)))
+            print("{0}  >{1!r}".format(key, val))
+
+    def apply(self):
+        return self._apply_or_revert('apply')
+
+    def revert(self):
+        return self._apply_or_revert('revert')
+
     def get_session_indices(self):
         indices = []
         #print(self.current_session_dir)
