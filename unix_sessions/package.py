@@ -27,11 +27,12 @@ __all__ = ['Package']
 
 class Package(Transition):
     REGISTRY = Registry()
+    __version_class__ = Version
     def __init__(self, name, version, category):
         if not isinstance(name, str):
             name = str(name)
         if not isinstance(version, Version):
-            version = Version(version)
+            version = self.make_version(version)
         if not isinstance(category, str):
             category = str(category)
         self.name = name
@@ -43,6 +44,9 @@ class Package(Transition):
         self._conflicts = []
         self.register()
 
+    def make_version(self, version_string):
+        return self.__version_class__(version_string)
+
     def label(self):
         return "{0}/{1}".format(self.name, self.version)
 
@@ -50,17 +54,25 @@ class Package(Transition):
         flt_funcs = []
         for flt in filters:
             if isinstance(flt, str):
-                def create_func(flt):
-                    return lambda package: package.name == flt
-                flt_func = create_func(flt)
+                package_name = flt
+                def create_func(package_name):
+                    return lambda package: package.name == package_name
+                flt_func = create_func(package_name)
             elif isinstance(flt, Version):
-                def create_func(flt):
-                    return lambda package: package.version == flt
-                flt_func = create_func(flt)
+                package_version = flt
+                def create_func(package_version):
+                    return lambda package: package.version == package_version
+                flt_func = create_func(package_version)
             else:
                 flt_func = flt
             flt_funcs.append(flt_func)
-        return flt_funcs
+        def create_func(*flt_funcs):
+            def filter(package):
+                for flt in flt_funcs:
+                    if not flt(package):
+                        return False
+                return True
+        return create_func(*flt_funcs)
 
     def requires(self, *filters):
         self._requirements.append(self.__filters(filters))

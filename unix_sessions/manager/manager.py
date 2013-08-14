@@ -235,7 +235,7 @@ class Manager(object):
         orig_environment = self.current_session.orig_environment
         for key, val in environment.changeditems():
             print("{0}: <{1!r}".format(key, orig_environment.get(key, None)))
-            print("{0}  >{1!r}".format(key, val))
+            print("{0}: >{1!r}".format(key, val))
 
     def apply(self):
         return self._apply_or_revert('apply')
