@@ -41,6 +41,7 @@ class Manager(object):
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
+    TMP_PREFIX = "uxs_"
     def __init__(self):
         home_dir = os.path.expanduser('~')
         username = getpass.getuser()
@@ -67,7 +68,7 @@ class Manager(object):
 
     def set_session(self, session):
         if self._session is not None:
-            self.session.unload()
+            self.session.unload_packages()
             self.session.serialize(self.serializer)
         self._session = session
 
@@ -77,7 +78,7 @@ class Manager(object):
         if session_name is None:
             session_dir = os.environ.get("UXS_SESSION", None)
             if session_dir is None:
-                session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix="uxs")
+                session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix=self.TMP_PREFIX)
                 Session.create_session_dir(session_dir=session_dir, session_name=os.path.basename(session_dir), session_type='temporary')
         else:
             for sessions_dir in self.persistent_sessions_dir, self.temporary_sessions_dir:
@@ -144,7 +145,7 @@ class Manager(object):
         session_type = None
         if session_name is None:
             session_type = self.SESSION_TYPE_TEMPORARY
-            session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir)
+            session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix=self.TMP_PREFIX)
             session_name = os.path.basename(session_dir)
         else:
             session_type = self.SESSION_TYPE_PERSISTENT
@@ -152,25 +153,43 @@ class Manager(object):
             if os.path.lexists(session_dir):
                 raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
             os.makedirs(session_dir)
-        self.session = Session.create(session_dir=session_dir, session_name=session_name, session_type=session_type)
+        Session.create_session_dir(session_dir=session_dir, session_name=session_name, session_type=session_type)
         print("created {t} session {n} at {d}".format(t=session_type, n=session_name, d=session_dir))
         
     def delete_sessions(self, session_names):
         for session_name in session_names:
             self.delete_session(session_name)
 
-    def delete_session(self, session_name):
-        if session_name is None:
-            session_name = self.session.session_name
-        session_dir = self.get_session_dir(session_name)
-        #print(self.session)
-        if session_dir == self.session.session_dir:
-            del os.environ['UXS_SESSION']
-            self.load_session()
-        #print(self.session)
-        session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
-        os.remove(session_config_file)
+    def delete_session(self, session_name_pattern):
+        if session_name_pattern is None:
+            session_name_pattern = self.session.session_name
+        for session_dir in self.get_sessions(session_name_pattern):
+            #print(self.session)
+            if session_dir == self.session.session_dir:
+                del os.environ['UXS_SESSION']
+                self.load_session()
+            #print(self.session)
+            session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+            os.remove(session_config_file)
+            try:
+                os.rmdir(session_dir)
+            except OSError:
+                pass
         
+    def get_sessions(self, session_name_pattern, temporary=True, persistent=True):
+        dl = []
+        if temporary:
+            dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
+        if persistent:
+            dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
+        session_dirs = []
+        for session_type, sessions_dir in dl:
+            for session_dir in glob.glob(os.path.join(sessions_dir, session_name_pattern)):
+                session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+                if os.path.lexists(session_config_file):
+                    session_dirs.append(session_dir)
+        return session_dirs
+
     def get_session_dir(self, session_name, temporary=True, persistent=True):
         dl = []
         if temporary:
@@ -182,7 +201,7 @@ class Manager(object):
             session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
             if os.path.lexists(session_config_file):
                 return session_dir
-        return none
+        return None
 
     def list(self, temporary=True, persistent=True):
         dl = []
