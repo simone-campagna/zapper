@@ -45,8 +45,8 @@ class Package(Transition):
             name = str(name)
         if not isinstance(version, Version):
             version = self.make_version(version)
-        if not isinstance(category, str):
-            category = str(category)
+        if not isinstance(category, Category):
+            category = Category(category)
         self.name = name
         self.version = version
         self.category = category

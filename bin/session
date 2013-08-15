@@ -100,6 +100,12 @@ Change the current session""",
         help="show available packages")
     parser_show_available_packages.set_defaults(function=manager.show_available_packages)
 
+    parser_show_package = subparsers.add_parser("show", aliases=[],
+        help="show package content")
+    parser_show_package.add_argument("package_label",
+        help="package label")
+    parser_show_package.set_defaults(function=manager.show_package)
+
     parser_init = subparsers.add_parser("init", aliases=[],
         help="init modules to current session")
     parser_init.set_defaults(function=manager.init)

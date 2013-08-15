@@ -231,6 +231,15 @@ class Manager(object):
     def show_available_packages(self):
         self.show_packages(Package.REGISTRY)
 
+    def show_package(self, package_label):
+        package = self.session.get_available_package(package_label)
+        if package is None:
+            print("package {0} not found".format(package_label))
+        else:
+            print("=== Package name:     {0}".format(package.name))
+            print("            version:  {0}".format(package.version))
+            print("            category: {0}".format(package.category))
+
     def info(self):
         print("=== Session name: {0}".format(self.session.session_name))
         print("            dir:  {0}".format(self.session.session_dir))
