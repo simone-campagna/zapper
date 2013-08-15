@@ -36,7 +36,7 @@ class bash(Serializer):
         stream.write("""\
 function uxs {{
     typeset _filename="$TMPDIR/$$.$RANDOM"
-    eval $(env UXS_CURRENT_SESSION="{shell}:${{_filename}}" ./sessions "$@")
+    eval $(env UXS_CURRENT_SERIALIZATION="{shell}:${{_filename}}" ./sessions "$@")
 }}\n""".format(
         shell=self.__registry_name__,
         ))

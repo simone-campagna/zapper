@@ -46,7 +46,8 @@ class Manager(object):
     PACKAGES_DIR_VARNAME = "UXS_PACKAGE_DIR"
     SESSION_INDEX_VARNAME = "UXS_SESSION_INDEX"
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
-    CURRENT_SERIALIZATION_VARNAME ="UXS_CURRENT_SERIALIZATION"
+    CURRENT_SERIALIZATION_VARNAME = "UXS_CURRENT_SERIALIZATION"
+    UXS_CURRENT_SESSION_DIR_VARNAME = "UXS_CURRENT_SESSION_DIR"
     VERSION_OPERATORS = (
         ('==',		lambda x, v: x == v),
         ('!=',		lambda x, v: x != v),
@@ -275,6 +276,17 @@ class Manager(object):
         del self.current_session.environment[self.LOADED_PACKAGES_VARNAME]
         return self._apply_or_revert('revert', serializer, serialization_filename)
 
+    def init(self, serializer=None, serialization_filename=None):
+        environment = self.current_session.environment
+        environment[self.UXS_CURRENT_SESSION_DIR_VARNAME] = self.current_session_dir
+        print(serializer, serialization_filename)
+        if serializer:
+            if serialization_filename:
+                with open(serialization_filename, "w") as f_out:
+                    self.current_session.serialize(serializer, stream=f_out, filename=os.path.abspath(serialization_filename))
+            else:
+                self.current_session.serialize(serializer, stream=sys.stdout)
+        
     def get_session_indices(self):
         indices = []
         #print(self.current_session_dir)

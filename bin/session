@@ -80,6 +80,10 @@ Change the current session""",
         help="info about current session")
     parser_info.set_defaults(function=manager.info)
 
+    parser_init = subparsers.add_parser("init", aliases=[],
+        help="init modules to current session")
+    parser_init.set_defaults(function=manager.init)
+
     parser_apply = subparsers.add_parser("apply", aliases=[],
         help="apply modules to current session")
     parser_apply.set_defaults(function=manager.apply)
@@ -95,7 +99,7 @@ Change the current session""",
     #else:
     #    default_serializer_name = None
 
-    for subparser in parser_apply, parser_revert:
+    for subparser in parser_init, parser_apply, parser_revert:
         subparser.add_argument('--shell', '-s',
             dest="serializer",
             type=Serializer.createbyname,

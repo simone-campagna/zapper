@@ -1,0 +1,26 @@
+export PYTHONPATH="${PYTHONPATH}:${UXS_HOME_DIR}/lib/python"
+function uxs {
+    typeset _filename
+    if [[ ${UXS_CURRENT_SESSION_DIR} == '' ]] ; then
+        typeset _tmpdir=${TMPDIR:-/tmp}
+        unset _filename
+        while [[ -f ${_filename:="$_tmpdir/$$.$RANDOM"} ]] ; do
+            unset _filename
+        done
+        env UXS_CURRENT_SERIALIZATION="bash:$_filename" ${UXS_HOME_DIR}/bin/session init
+        echo "---> $_filename"
+        cat "$_filename"
+        . "$_filename"
+    fi
+    unset _filename
+    while [[ -f ${_filename:="$UXS_CURRENT_SESSION_DIR/$$.$RANDOM"} ]] ; do
+        unset _filename
+    done
+    echo env UXS_CURRENT_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
+    env UXS_CURRENT_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
+    if [[ -f ${_filename} ]] ; then
+        echo "---> $_filename"
+        cat "$_filename"
+        . "$_filename"
+    fi
+}
