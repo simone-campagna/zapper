@@ -43,6 +43,7 @@ class Manager(object):
     CURRENT_SESSION_NAME_VARNAME = "UXS_CURRENT_SESSION"
     PACKAGES_DIR_VARNAME = "UXS_PACKAGE_DIR"
     SESSION_INDEX_VARNAME = "UXS_SESSION_INDEX"
+    LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     VERSION_OPERATORS = (
         ('==',		lambda x, v: x == v),
         ('!=',		lambda x, v: x != v),
@@ -231,6 +232,7 @@ class Manager(object):
         for package in self.current_packages:
             print("### {0} {1}...".format(method_name, package))
             getattr(package, method_name)(self.current_session)
+           
         environment = self.current_session.environment
         orig_environment = self.current_session.orig_environment
         for key, val in environment.changeditems():
@@ -239,9 +241,11 @@ class Manager(object):
         self.current_session.serialize(serializer)
 
     def apply(self, serializer):
+        self.current_session.environment[self.LOADED_PACKAGES_VARNAME] = ':'.join(package.label() for package in self.current_packages)
         return self._apply_or_revert('apply', serializer)
 
     def revert(self, serializer):
+        del self.current_session.environment[self.LOADED_PACKAGES_VARNAME]
         return self._apply_or_revert('revert', serializer)
 
     def get_session_indices(self):

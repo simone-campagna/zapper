@@ -41,7 +41,6 @@ class Session(object):
     
     def serialize(self, serializer, stream=None):
         for var_name, var_value in self._environment.changeditems():
-            print("-->", var_name)
             orig_var_value = self._orig_environment.get(var_name, None)
             if var_value is None and orig_var_value is not None:
                 # removed
