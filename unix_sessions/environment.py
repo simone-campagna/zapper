@@ -113,7 +113,6 @@ class Environment(dict):
 
     def var_unset(self, var_name):
         if var_name in self:
-            print("HERE unset ", var_name)
             del self[var_name]
 
     def list_prepend(self, var_name, var_value, separator=None):

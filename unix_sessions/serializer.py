@@ -34,11 +34,14 @@ class MetaSerializer(abc.ABCMeta):
                 name = cls.__registry_name__
             else:
                 name = cls.__name__
-            mcls.__registry__[cls.__name__] = cls
+            mcls.__registry__[name] = cls
         return cls
 
     def createbyname(self, name):
-        return self.__registry__[name]()
+        if name in self.__registry__:
+            return self.__registry__[name]()
+        else:
+            raise KeyError("invalid serializer: {0!r}".format(name))
 
 class Serializer(object, metaclass=MetaSerializer):
     def __init__(self):
@@ -50,21 +53,29 @@ class Serializer(object, metaclass=MetaSerializer):
     def var_unset(self, var_name):
         self._vars.append((var_name, None))
 
-    def write(self, stream=None):
+    def serialize(self, stream=None):
         if stream is None:
             stream = sys.stdout
         for var_name, var_value in self._vars:
             if var_value is None:
-                self.write_var_unset(stream, var_name)
+                self.serialize_var_unset(stream, var_name)
             else:
-                self.write_var_set(stream, var_name, var_value)
+                self.serialize_var_set(stream, var_name, var_value)
 
     @abc.abstractmethod
-    def write_var_unset(self, stream, var_name):
+    def serialize_var_unset(self, stream, var_name):
         pass
 
     @abc.abstractmethod
-    def write_var_set(self, stream, var_name, var_value):
+    def serialize_var_set(self, stream, var_name, var_value):
+        pass
+
+    @abc.abstractmethod
+    def serialize_remove_filename(self, stream, filename):
+        pass
+
+    @abc.abstractmethod
+    def serialize_init(self, stream):
         pass
 
     def __repr__(self):
@@ -74,9 +85,20 @@ class Serializer(object, metaclass=MetaSerializer):
 
 class BashSerializer(Serializer):
     __registry_name__ = 'bash'
-    def write_var_set(self, stream, var_name, var_value):
+    def serialize_var_set(self, stream, var_name, var_value):
         stream.write("export {0}={1!r}\n".format(var_name, var_value))
 
-    def write_var_unset(self, stream, var_name):
+    def serialize_var_unset(self, stream, var_name):
         stream.write("export -n {0}\nunset {0}\n".format(var_name))
         
+    def serialize_remove_filename(self, stream, filename):
+        stream.write("rm -f {0}\n".format(filename))
+
+    def serialize_init(self, stream):
+        stream.write("""\
+function uxs {{
+    typeset _filename="$TMPDIR/$$.$RANDOM"
+    eval $(env UXS_CURRENT_SESSION="{shell}:${{_filename}}" ./sessions "$@")
+}}\n""".format(
+        shell=self.__registry_name__,
+        ))

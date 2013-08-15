@@ -28,6 +28,7 @@ import collections
 from .errors import *
 from ..session import *
 from ..package import Package
+from ..serializer import Serializer
 
 Index = collections.namedtuple('Index', ('idx', 'path'))
 
@@ -44,6 +45,7 @@ class Manager(object):
     PACKAGES_DIR_VARNAME = "UXS_PACKAGE_DIR"
     SESSION_INDEX_VARNAME = "UXS_SESSION_INDEX"
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
+    CURRENT_SERIALIZATION_VARNAME ="UXS_CURRENT_SERIALIZATION"
     VERSION_OPERATORS = (
         ('==',		lambda x, v: x == v),
         ('!=',		lambda x, v: x != v),
@@ -74,6 +76,7 @@ class Manager(object):
         self.current_session_dir = None
         self.current_packages = []
         self.load_current_session()
+        self.load_current_serialization()
 
     def _load_modules(self, module_dir):
         #print("+++", module_dir)
@@ -125,6 +128,23 @@ class Manager(object):
             except SessionError as e:
                 raise SessionLoadingError("inconsistent environment {0}={1!r}: {2}".format(
                     self.CURRENT_SESSION_NAME_VARNAME, current_session, e))
+
+    def load_current_serialization(self):
+        current_serialization = os.environ.get(self.CURRENT_SERIALIZATION_VARNAME, None)
+        self.current_serialization_filename = None
+        self.current_serializer = None
+        if current_serialization is None:
+            return
+        l = current_serialization.split(':', 1)
+        current_serialization_name = l[0]
+        if len(l) == 1:
+            self.current_serialization_filename = None
+        else:
+            self.current_serialization_filename = os.path.abspath(l[1])
+        try:
+            self.current_serializer = Serializer.createbyname(current_serialization_name)
+        except Exception as e:
+            raise SessionError("invalid serialization {0!r}: {1}: {2}".format(current_serialization_name, e.__class__.__name__, e))
 
     def acquire_session_dir(self, session_type, session_name, session_dir):
         with open(os.path.join(session_dir, self.SESSION_INIT_FILE), "w") as f_out:
@@ -227,26 +247,32 @@ class Manager(object):
         for package in self.current_packages:
             print(" + {0}".format(package.label()))
         
-    def _apply_or_revert(self, method_name, serializer):
-        print(self.current_session)
+    def _apply_or_revert(self, method_name, serializer=None, serialization_filename=None):
+        if serializer is None:
+            serializer = self.current_serializer
+        if serialization_filename is None:
+            serialization_filename = self.current_serialization_filename
+        #print(self.current_session, serializer, serialization_filename)
         for package in self.current_packages:
             print("### {0} {1}...".format(method_name, package))
             getattr(package, method_name)(self.current_session)
            
         environment = self.current_session.environment
         orig_environment = self.current_session.orig_environment
-        for key, val in environment.changeditems():
-            print("{0}: <{1!r}".format(key, orig_environment.get(key, None)))
-            print("{0}: >{1!r}".format(key, val))
-        self.current_session.serialize(serializer)
+        #for key, val in environment.changeditems():
+        #    print("{0}: <{1!r}".format(key, orig_environment.get(key, None)))
+        #    print("{0}: >{1!r}".format(key, val))
+        if serializer and serialization_filename:
+            with open(serialization_filename, "w") as f_out:
+                self.current_session.serialize(serializer, stream=f_out, filename=os.path.abspath(serialization_filename))
 
-    def apply(self, serializer):
+    def apply(self, serializer=None, serialization_filename=None):
         self.current_session.environment[self.LOADED_PACKAGES_VARNAME] = ':'.join(package.label() for package in self.current_packages)
-        return self._apply_or_revert('apply', serializer)
+        return self._apply_or_revert('apply', serializer, serialization_filename)
 
-    def revert(self, serializer):
+    def revert(self, serializer=None, serialization_filename=None):
         del self.current_session.environment[self.LOADED_PACKAGES_VARNAME]
-        return self._apply_or_revert('revert', serializer)
+        return self._apply_or_revert('revert', serializer, serialization_filename)
 
     def get_session_indices(self):
         indices = []

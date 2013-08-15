@@ -32,12 +32,6 @@ def main():
 Change the current session""",
         epilog = "")
 
-    serializer_names = list(Serializer.__registry__.keys())
-    if serializer_names:
-        default_serializer_name = serializer_names[0]
-    else:
-        default_serializer_name = None
-
     subparsers = parser.add_subparsers(
         help="action")
 
@@ -94,12 +88,23 @@ Change the current session""",
         help="revert modules to current session")
     parser_revert.set_defaults(function=manager.revert)
 
+    serializer_names = list(Serializer.__registry__.keys())
+    #default_serializer_output_filename = manager.get_default_serializer_output_filename()
+    #if serializer_names:
+    #    default_serializer_name = serializer_names[0]
+    #else:
+    #    default_serializer_name = None
+
     for subparser in parser_apply, parser_revert:
         subparser.add_argument('--shell', '-s',
             dest="serializer",
             type=Serializer.createbyname,
-            choices=serializer_names,
-            default=default_serializer_name,
+            default=manager.current_serializer,
+            help="shell type")
+        subparser.add_argument('--output', '-o',
+            dest="serialization_filename",
+            type=str,
+            default=manager.current_serialization_filename,
             help="shell type")
 
     args = parser.parse_args()
