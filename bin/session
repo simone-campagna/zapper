@@ -36,12 +36,29 @@ Change the current session""",
 
     parser_create = subparsers.add_parser("create", aliases=['cr'],
         help="create new session")
-    parser_create.add_argument("session_name",
-        type=str,
-        nargs='?',
-        default=None,
-        help="name of a new persistent session")
-    parser_create.set_defaults(function=manager.create)
+    parser_create.set_defaults(function=manager.create_session)
+
+    parser_delete = subparsers.add_parser("delete", aliases=['cr'],
+        help="delete session")
+    parser_delete.set_defaults(function=manager.delete_sessions)
+
+    parser_load = subparsers.add_parser("load", aliases=['lo'],
+        help="load existing session")
+    parser_load.set_defaults(function=manager.load_session)
+
+    for subparser in (parser_create, parser_load):
+        subparser.add_argument("session_name",
+            type=str,
+            nargs='?',
+            default=None,
+            help="session name")
+
+    for subparser in (parser_delete, ):
+        subparser.add_argument("session_names",
+            type=str,
+            nargs='+',
+            default=None,
+            help="session names")
 
     parser_add = subparsers.add_parser("add",
         help="add a package to current session")
@@ -129,7 +146,9 @@ Change the current session""",
     n_args = dict(args._get_kwargs())
     del n_args['function']
 
+    #print(manager.session)
     args.function(*p_args, **n_args)
+    #print(manager.session)
 
     manager.serialize()
 

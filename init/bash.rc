@@ -8,19 +8,19 @@ function uxs {
             unset _filename
         done
         env UXS_SERIALIZATION="bash:$_filename" ${UXS_HOME_DIR}/bin/session init
-        echo "---> $_filename"
-        cat "$_filename"
+        #echo "---> $_filename"
+        #cat "$_filename"
         . "$_filename"
     fi
     unset _filename
     while [[ -f ${_filename:="$UXS_SESSION/$$.$RANDOM"} ]] ; do
         unset _filename
     done
-    echo env UXS_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
+    #echo env UXS_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
     env UXS_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
     if [[ -f ${_filename} ]] ; then
-        echo "---> $_filename"
-        cat "$_filename"
+        #echo "---> $_filename"
+        #cat "$_filename"
         . "$_filename"
     fi
 }

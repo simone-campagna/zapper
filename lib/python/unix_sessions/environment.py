@@ -28,14 +28,18 @@ class Environment(dict):
         super().__init__(init)
         
     def __setitem__(self, var_name, var_value):
+        #print("   SET: {0}={1!r}".format(var_name, var_value))
         cur_value = self.get(var_name, None)
         if cur_value is None or cur_value != var_value:
+            #print("++ SET: {0}={1!r}".format(var_name, var_value))
             self._changedkeys.add(var_name)
             super().__setitem__(var_name, var_value)
 
     def __delitem__(self, var_name):
+        #print("   DEL: {0}".format(var_name))
         cur_value = self.get(var_name, None)
         if cur_value is not None:
+            #print("++ DEL: {0}".format(var_name))
             self._changedkeys.add(var_name)
             super().__delitem__(var_name)
 

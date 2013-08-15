@@ -40,7 +40,7 @@ class Packages(collections.OrderedDict):
     def __delitem__(self, package_label):
         if package_label in self:
             self._changed_package_labels.append(package_label)
-        super().__delitem__(package_label)
+            super().__delitem__(package_label)
 
 class Session(object):
     SESSION_CONFIG_FILE = "session.config"
@@ -55,15 +55,19 @@ class Session(object):
     )
 
     def __init__(self, session_dir):
+        self._environment = Environment()
+        self._orig_environment = self._environment.copy()
+        self._packages = Packages()
+        self.load(session_dir)
+
+    def load(self, session_dir):
+        self.unload_packages()
         self.session_dir = os.path.abspath(session_dir)
         session_config_file = os.path.join(self.session_dir, self.SESSION_CONFIG_FILE)
         with open(session_config_file, "r") as f_in:
             line = f_in.readline().strip()
             self.session_type, self.session_name = line.split(":", 1)
-        self._environment = Environment()
-        self._orig_environment = self._environment.copy()
-        self._packages = Packages()
-        self.load()
+        self.load_packages()
 
     @classmethod
     def create_session_dir(cls, session_dir, session_name, session_type):
@@ -112,21 +116,23 @@ class Session(object):
         return self.get_package(package_label, Package.REGISTRY)
 
     def get_loaded_package(self, package_label):
-        return self.get_package(package_label, self._packages.keys())
+        return self.get_package(package_label, self._packages.values())
 
-    def unload(self):
+    def unload_packages(self):
         for package_label, package in self._packages.items():
+            #print("@@@ unload_packages::reverting {0}...".format(package_label))
             package.revert(self)
         self._packages.clear()
 
-    def load(self):
-        self.unload()
+    def load_packages(self):
         packages_file = os.path.join(self.session_dir, self.PACKAGES_FILE)
         if os.path.lexists(packages_file):
             with open(packages_file, "r") as f_in:
                 for line in f_in:
                     package_label = line.strip()
                     package = self.get_available_package(package_label)
+                    package_label = package.label()
+                    #print("@@@ load_packages::applying {0}...".format(package_label))
                     package.apply(self)
                     self._packages[package_label] = package
                 
@@ -140,6 +146,8 @@ class Session(object):
         for package_label in package_labels:
             if not package_label in self._packages:
                 package = self.get_available_package(package_label)
+                package_label = package.label()
+                #print("@@@ add::applying {0}...".format(package_label))
                 package.apply(self)
                 self._packages[package_label] = package
         if self._packages.is_changed():
@@ -149,6 +157,7 @@ class Session(object):
         for package_label in package_labels:
             if not package_label in self._packages:
                 package = self.get_loaded_package(package_label)
+                package_label = package.label()
                 package.revert(self)
                 del self._packages[package_label]
         if self._packages.is_changed():
@@ -166,7 +175,7 @@ class Session(object):
         return "{c}(session_dir={d!r}, session_name={n!r}, session_type={t!r})".format(c=self.__class__.__name__, d=self.session_dir, n=self.session_name, t=self.session_type)
     __str__ = __repr__
     
-    def serialize_stream(self, serializer, stream=None, serialization_filename=None):
+    def serialize(self, serializer):
         for var_name, var_value in self._environment.changeditems():
             orig_var_value = self._orig_environment.get(var_name, None)
             if var_value is None and orig_var_value is not None:
@@ -175,10 +184,15 @@ class Session(object):
             elif var_value != orig_var_value:
                 # set
                 serializer.var_set(var_name, var_value)
+        serializer.var_set("UXS_SESSION", self.session_dir)
+
+    def serialize_stream(self, serializer, stream=None, serialization_filename=None):
+        self.serialize(serializer)
         serializer.serialize(stream)
         if serialization_filename:
             serializer.serialize_remove_filename(stream, serialization_filename)
+            serializer.serialize_remove_empty_directory(stream, os.path.dirname(serialization_filename))
 
-    def serialize(self, serializer, serialization_filename):
+    def serialize_file(self, serializer, serialization_filename):
         with open(serialization_filename, "w") as f_out:
             self.serialize_stream(serializer, stream=f_out, serialization_filename=serialization_filename)

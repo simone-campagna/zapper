@@ -58,9 +58,15 @@ class Serializer(object, metaclass=MetaSerializer):
             stream = sys.stdout
         for var_name, var_value in self._vars:
             if var_value is None:
+                #print("SER: unset({0!r})".format(var_name))
                 self.serialize_var_unset(stream, var_name)
             else:
+                #print("SER: set({0!r}, {1!r})".format(var_name, var_value))
                 self.serialize_var_set(stream, var_name, var_value)
+        self.clear()
+
+    def clear(self):
+        del self._vars[:]
 
     @abc.abstractmethod
     def serialize_var_unset(self, stream, var_name):
@@ -72,6 +78,14 @@ class Serializer(object, metaclass=MetaSerializer):
 
     @abc.abstractmethod
     def serialize_remove_filename(self, stream, filename):
+        pass
+
+    @abc.abstractmethod
+    def serialize_remove_empty_directory(self, stream, directory):
+        pass
+
+    @abc.abstractmethod
+    def serialize_remove_directory(self, stream, directory):
         pass
 
     @abc.abstractmethod

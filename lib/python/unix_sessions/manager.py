@@ -21,6 +21,7 @@ import os
 import sys
 import imp
 import glob
+import shutil
 import getpass
 import tempfile
 import collections
@@ -56,18 +57,47 @@ class Manager(object):
         for d in self.user_packages_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)
+        self._session = None
+        self.load_serialization()
         self.load_available_packages()
         self.load_session()
-        self.load_serialization()
 
-    def load_session(self):
-        session_dir = os.environ.get("UXS_SESSION", None)
-        if session_dir is None:
-            session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix="uxs")
-            self.session = Session.create(session_dir, session_name=os.path.basename(session_dir), session_type='temporary')
+    def get_session(self):
+        return self._session
+
+    def set_session(self, session):
+        if self._session is not None:
+            self.session.unload()
+            self.session.serialize(self.serializer)
+        self._session = session
+
+    session = property(get_session, set_session)
+
+    def load_session(self, session_name=None):
+        if session_name is None:
+            session_dir = os.environ.get("UXS_SESSION", None)
+            if session_dir is None:
+                session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix="uxs")
+                Session.create_session_dir(session_dir=session_dir, session_name=os.path.basename(session_dir), session_type='temporary')
         else:
-            self.session = Session(session_dir)
-
+            for sessions_dir in self.persistent_sessions_dir, self.temporary_sessions_dir:
+                session_dir = os.path.join(sessions_dir, session_name)
+                session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+                if os.path.lexists(session_config_file):
+                    break
+            else:
+                raise SessionError("session {0} not found".format(session_name))
+        try:
+            if self.session:
+                self.session.load(session_dir)
+            else:
+                self.session = Session(session_dir)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            del os.environ['UXS_SESSION']
+            self.load_session()
+                    
     def _load_modules(self, module_dir):
         #print("+++", module_dir)
         modules = []
@@ -110,7 +140,7 @@ class Manager(object):
         except Exception as e:
             raise SessionError("invalid serialization {0!r}: {1}: {2}".format(serialization_name, e.__class__.__name__, e))
 
-    def create(self, session_name=None):
+    def create_session(self, session_name=None):
         session_type = None
         if session_name is None:
             session_type = self.SESSION_TYPE_TEMPORARY
@@ -125,6 +155,35 @@ class Manager(object):
         self.session = Session.create(session_dir=session_dir, session_name=session_name, session_type=session_type)
         print("created {t} session {n} at {d}".format(t=session_type, n=session_name, d=session_dir))
         
+    def delete_sessions(self, session_names):
+        for session_name in session_names:
+            self.delete_session(session_name)
+
+    def delete_session(self, session_name):
+        if session_name is None:
+            session_name = self.session.session_name
+        session_dir = self.get_session_dir(session_name)
+        #print(self.session)
+        if session_dir == self.session.session_dir:
+            del os.environ['UXS_SESSION']
+            self.load_session()
+        #print(self.session)
+        session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+        os.remove(session_config_file)
+        
+    def get_session_dir(self, session_name, temporary=True, persistent=True):
+        dl = []
+        if temporary:
+            dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
+        if persistent:
+            dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
+        for session_type, sessions_dir in dl:
+            session_dir = os.path.join(sessions_dir, session_name)
+            session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+            if os.path.lexists(session_config_file):
+                return session_dir
+        return none
+
     def list(self, temporary=True, persistent=True):
         dl = []
         if temporary:
@@ -154,7 +213,6 @@ class Manager(object):
         self.show_packages(Package.REGISTRY)
 
     def info(self):
-        print(self.session)
         print("=== Session name: {0}".format(self.session.session_name))
         print("            dir:  {0}".format(self.session.session_dir))
         print("            type: {0}".format(self.session.session_type))
@@ -179,45 +237,18 @@ class Manager(object):
         if serialization_filename is None:
             serialization_filename = self.serialization_filename
         if serializer and serialization_filename:
-            self.session.serialize(serializer, serialization_filename)
+            self.session.serialize_file(serializer, serialization_filename)
             
-#    def _apply_or_revert(self, method_name, serializer=None, serialization_filename=None):
-#        if serializer is None:
-#            serializer = self.serializer
-#        if serialization_filename is None:
-#            serialization_filename = self.serialization_filename
-#        for package in self.current_packages:
-#            print("### {0} {1}...".format(method_name, package))
-#            getattr(package, method_name)(self.session)
-#           
-#        environment = self.session.environment
-#        orig_environment = self.session.orig_environment
-#        #for key, val in environment.changeditems():
-#        #    print("{0}: <{1!r}".format(key, orig_environment.get(key, None)))
-#        #    print("{0}: >{1!r}".format(key, val))
-#        if serializer and serialization_filename:
-#            with open(serialization_filename, "w") as f_out:
-#                self.session.serialize(serializer, stream=f_out, filename=os.path.abspath(serialization_filename))
-#
-#    def apply(self, serializer=None, serialization_filename=None):
-#        self.session.environment[self.LOADED_PACKAGES_VARNAME] = ':'.join(package.label() for package in self.current_packages)
-#        return self._apply_or_revert('apply', serializer, serialization_filename)
-#
-#    def revert(self, serializer=None, serialization_filename=None):
-#        del self.session.environment[self.LOADED_PACKAGES_VARNAME]
-#        return self._apply_or_revert('revert', serializer, serialization_filename)
-
     def init(self, serializer=None, serialization_filename=None):
         environment = self.session.environment
-        print("UXS_SESSION={0}".format(environment.get('UXS_SESSION', None)))
+        #print("UXS_SESSION={0}".format(environment.get('UXS_SESSION', None)))
         if not 'UXS_SESSION' in environment:
             environment['UXS_SESSION'] = self.session.session_dir
-        print(serializer, serialization_filename)
+        #print(serializer, serialization_filename)
         if serializer:
             if serialization_filename:
-                with open(serialization_filename, "w") as f_out:
-                    self.session.serialize(serializer, stream=f_out, filename=os.path.abspath(serialization_filename))
+                self.session.serialize_file(serializer, serialization_filename=os.path.abspath(serialization_filename))
             else:
-                self.session.serialize(serializer, stream=sys.stdout)
+                self.session.serialize_stream(serializer, stream=sys.stdout)
         
 

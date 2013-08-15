@@ -32,6 +32,12 @@ class bash(Serializer):
     def serialize_remove_filename(self, stream, filename):
         stream.write("rm -f {0}\n".format(filename))
 
+    def serialize_remove_directory(self, stream, directory):
+        stream.write("rm -rf {0}\n".format(directory))
+
+    def serialize_remove_empty_directory(self, stream, directory):
+        stream.write("rmdir {0} 2>/dev/null\n".format(directory))
+
     def serialize_init(self, stream):
         stream.write("""\
 function uxs {{
