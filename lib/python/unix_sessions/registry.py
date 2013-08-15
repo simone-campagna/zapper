@@ -31,3 +31,5 @@ class Registry(object):
     def __iter__(self):
         return iter(self._reg)
 
+    def __len__(self):
+        return len(self._reg)

@@ -25,6 +25,18 @@ import abc
 
 __all__ = ['Package']
 
+class Category(str):
+    __categories__ = ['application', 'tool', 'library', 'compiler']
+    def __init__(self, value):
+        if not value in self.__categories__:
+            raise KeyError("invalid category {0!r}".format(value))
+        super().__init__(value)
+
+    @classmethod
+    def add_category(cls, category):
+        if not category in cls.__categories__:
+            cls.__categories__.append(category)
+
 class Package(Transition):
     REGISTRY = Registry()
     __version_class__ = Version

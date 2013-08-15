@@ -20,8 +20,7 @@ __author__ = 'Simone Campagna'
 import sys
 import argparse
 
-from unix_sessions.manager import *
-from unix_sessions.manager.manager import Manager
+from unix_sessions.manager import Manager
 from unix_sessions.serializer import Serializer
 
 def main():
@@ -80,6 +79,10 @@ Change the current session""",
         help="info about current session")
     parser_info.set_defaults(function=manager.info)
 
+    parser_show_available_packages = subparsers.add_parser("available", aliases=["avail", "av"],
+        help="show available packages")
+    parser_show_available_packages.set_defaults(function=manager.show_available_packages)
+
     parser_init = subparsers.add_parser("init", aliases=[],
         help="init modules to current session")
     parser_init.set_defaults(function=manager.init)
@@ -103,12 +106,12 @@ Change the current session""",
         subparser.add_argument('--shell', '-s',
             dest="serializer",
             type=Serializer.createbyname,
-            default=manager.current_serializer,
+            default=manager.serializer,
             help="shell type")
         subparser.add_argument('--output', '-o',
             dest="serialization_filename",
             type=str,
-            default=manager.current_serialization_filename,
+            default=manager.serialization_filename,
             help="shell type")
 
     args = parser.parse_args()
@@ -127,6 +130,8 @@ Change the current session""",
     del n_args['function']
 
     args.function(*p_args, **n_args)
+
+    manager.serialize()
 
 if __name__ == "__main__":
     main()
