@@ -45,14 +45,14 @@ class Environment(dict):
 
     def changedvalues(self):
         for key in self._changedkeys:
-            yield self[key]
+            yield self.get(key, None)
 
     def changeditems(self):
         for key in self._changedkeys:
-            yield key, self[key]
+            yield key, self.get(key, None)
 
     def var_get(self, var_name):
-        return self.get(var_name, "")
+        return self.get(var_name, None)
 
     def _var_split(self, transform, var_name, separator):
         return (transform(item) for item in self.get(var_name, '').split(separator))
@@ -113,6 +113,7 @@ class Environment(dict):
 
     def var_unset(self, var_name):
         if var_name in self:
+            print("HERE unset ", var_name)
             del self[var_name]
 
     def list_prepend(self, var_name, var_value, separator=None):
@@ -138,4 +139,3 @@ class Environment(dict):
 
     def path_remove(self, var_name, var_value, separator=None):
         self._list_remove(self.NORMPATH, var_name, var_value, separator)
-

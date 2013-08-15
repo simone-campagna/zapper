@@ -226,7 +226,7 @@ class Manager(object):
         for package in self.current_packages:
             print(" + {0}".format(package.label()))
         
-    def _apply_or_revert(self, method_name):
+    def _apply_or_revert(self, method_name, serializer):
         print(self.current_session)
         for package in self.current_packages:
             print("### {0} {1}...".format(method_name, package))
@@ -236,12 +236,13 @@ class Manager(object):
         for key, val in environment.changeditems():
             print("{0}: <{1!r}".format(key, orig_environment.get(key, None)))
             print("{0}: >{1!r}".format(key, val))
+        self.current_session.serialize(serializer)
 
-    def apply(self):
-        return self._apply_or_revert('apply')
+    def apply(self, serializer):
+        return self._apply_or_revert('apply', serializer)
 
-    def revert(self):
-        return self._apply_or_revert('revert')
+    def revert(self, serializer):
+        return self._apply_or_revert('revert', serializer)
 
     def get_session_indices(self):
         indices = []

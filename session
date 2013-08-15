@@ -22,6 +22,7 @@ import argparse
 
 from unix_sessions.manager import *
 from unix_sessions.manager.manager import Manager
+from unix_sessions.serializer import Serializer
 
 def main():
     manager = Manager()
@@ -30,6 +31,12 @@ def main():
         description="""\
 Change the current session""",
         epilog = "")
+
+    serializer_names = list(Serializer.__registry__.keys())
+    if serializer_names:
+        default_serializer_name = serializer_names[0]
+    else:
+        default_serializer_name = None
 
     subparsers = parser.add_subparsers(
         help="action")
@@ -87,6 +94,14 @@ Change the current session""",
         help="revert modules to current session")
     parser_revert.set_defaults(function=manager.revert)
 
+    for subparser in parser_apply, parser_revert:
+        subparser.add_argument('--shell', '-s',
+            dest="serializer",
+            type=Serializer.createbyname,
+            choices=serializer_names,
+            default=default_serializer_name,
+            help="shell type")
+
     args = parser.parse_args()
 
     if 'persistent' in args and 'temporary' in args:
@@ -101,7 +116,6 @@ Change the current session""",
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
     del n_args['function']
-
 
     args.function(*p_args, **n_args)
 

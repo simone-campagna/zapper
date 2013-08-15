@@ -67,15 +67,18 @@ class SetEnv(EnvVarValueTransition):
 class UnsetEnv(EnvVarTransition):
     def apply(self, session):
         cache_var_value = session.environment.var_get(self.var_name)
-        cache_var_name = self._cache_var_name()
-        session.environment.var_set(cache_var_name, cache_var_value)
-        session.environment.var_unset(self.var_name)
+        print("AAA", self.var_name, cache_var_value)
+        if cache_var_value is not None:
+            cache_var_name = self._cache_var_name()
+            session.environment.var_set(cache_var_name, cache_var_value)
+            session.environment.var_unset(self.var_name)
         
     def revert(self, session):
         cache_var_name = self._cache_var_name()
         cache_var_value = session.environment.var_get(cache_var_name)
-        session.environment.var_set(self.var_name, cache_var_value)
-        session.environment.var_unset(cache_var_name)
+        if cache_var_value is not None:
+            session.environment.var_set(self.var_name, cache_var_value)
+            session.environment.var_unset(cache_var_name)
 
 class PrependList(EnvListTransition):
     def apply(self, session):
