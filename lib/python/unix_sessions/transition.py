@@ -38,6 +38,7 @@ class Transition(object, metaclass=abc.ABCMeta):
         """revert(session) -> revert the transition on the session"""
         pass
 
+        
 class EnvVarTransition(Transition):
     def __init__(self, var_name):
         self.var_name = var_name
@@ -45,10 +46,16 @@ class EnvVarTransition(Transition):
     def _cache_var_name(self):
         return "_UXS_CACHE_{0}_".format(self.var_name)
 
+    def __str__(self):
+        return "{0}({1})".format(self.__class__.__name__, self.var_name)
+
 class EnvVarValueTransition(EnvVarTransition):
     def __init__(self, var_name, var_value):
         super().__init__(var_name)
         self.var_value = str(var_value)
+
+    def __str__(self):
+        return "{0}({1}={2!r})".format(self.__class__.__name__, self.var_name, self.var_value)
 
 class EnvListTransition(EnvVarValueTransition):
     def __init__(self, var_name, var_value, separator=None):

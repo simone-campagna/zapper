@@ -56,6 +56,22 @@ class Package(Transition):
         self._conflicts = []
         self.register()
 
+    def get_transitions(self):
+        for transition in self._transitions:
+            yield transition
+
+    def get_requirements(self):
+        for requirement in self._requirements:
+            yield requirement
+
+    def get_preferences(self):
+        for preference in self._preferences:
+            yield preference
+
+    def get_conflicts(self):
+        for conflict in self._conflicts:
+            yield conflict
+
     def make_version(self, version_string):
         return self.__version_class__(version_string)
 
@@ -84,6 +100,7 @@ class Package(Transition):
                     if not flt(package):
                         return False
                 return True
+            return filter
         return create_func(*flt_funcs)
 
     def requires(self, *filters):

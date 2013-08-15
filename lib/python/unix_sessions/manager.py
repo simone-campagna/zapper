@@ -231,6 +231,17 @@ class Manager(object):
     def show_available_packages(self):
         self.show_packages(Package.REGISTRY)
 
+    def _show_sequence(self, sequence, min_number=3):
+        lst = list(sequence)
+        if lst:
+            nt = len(str(len(lst) - 1))
+        else:
+            nt = 0
+        nt = max(min_number, nt)
+        fmt = "{{0:{nt}d}} {{1}}".format(nt=nt)
+        for i, item in enumerate(lst):
+            print(fmt.format(i, item))
+           
     def show_package(self, package_label):
         package = self.session.get_available_package(package_label)
         if package is None:
@@ -239,6 +250,14 @@ class Manager(object):
             print("=== Package name:     {0}".format(package.name))
             print("            version:  {0}".format(package.version))
             print("            category: {0}".format(package.category))
+            print("=== Transitions:")
+            self._show_sequence(package.get_transitions())
+            print("=== Requirements:")
+            self._show_sequence(package.get_requirements())
+            print("=== Preferences:")
+            self._show_sequence(package.get_preferences())
+            print("=== Conflicts:")
+            self._show_sequence(package.get_conflicts())
 
     def info(self):
         print("=== Session name: {0}".format(self.session.session_name))
