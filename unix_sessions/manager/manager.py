@@ -29,6 +29,7 @@ from .errors import *
 from ..session import *
 from ..package import Package
 from ..serializer import Serializer
+from ..serializers import *
 
 Index = collections.namedtuple('Index', ('idx', 'path'))
 

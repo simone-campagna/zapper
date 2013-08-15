@@ -83,22 +83,3 @@ class Serializer(object, metaclass=MetaSerializer):
     __str__ = __repr__
     
 
-class BashSerializer(Serializer):
-    __registry_name__ = 'bash'
-    def serialize_var_set(self, stream, var_name, var_value):
-        stream.write("export {0}={1!r}\n".format(var_name, var_value))
-
-    def serialize_var_unset(self, stream, var_name):
-        stream.write("export -n {0}\nunset {0}\n".format(var_name))
-        
-    def serialize_remove_filename(self, stream, filename):
-        stream.write("rm -f {0}\n".format(filename))
-
-    def serialize_init(self, stream):
-        stream.write("""\
-function uxs {{
-    typeset _filename="$TMPDIR/$$.$RANDOM"
-    eval $(env UXS_CURRENT_SESSION="{shell}:${{_filename}}" ./sessions "$@")
-}}\n""".format(
-        shell=self.__registry_name__,
-        ))
