@@ -1,3 +1,5 @@
+UXS_HOME_DIR="@UXS_HOME_DIR@"
+PYTHON_EXECUTABLE="@PYTHON_EXECUTABLE@"
 export PYTHONPATH="${PYTHONPATH}:${UXS_HOME_DIR}/lib/python"
 function uxs {
     typeset _filename
