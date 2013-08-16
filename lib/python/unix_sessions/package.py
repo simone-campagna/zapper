@@ -21,6 +21,7 @@ from .transition import *
 from .version import Version
 from .registry import Registry
 from .expression import Expression, AttributeGetter, ConstExpression
+from .text import fill
 
 import abc
 
@@ -45,7 +46,7 @@ class Category(str):
 class Package(Transition):
     REGISTRY = Registry()
     __version_class__ = Version
-    def __init__(self, name, version, category):
+    def __init__(self, name, version, category, short_description="", long_description=""):
         if not isinstance(name, str):
             name = str(name)
         if not isinstance(version, Version):
@@ -55,6 +56,8 @@ class Package(Transition):
         self.name = name
         self.version = version
         self.category = category
+        self.short_description = short_description
+        self.long_description = long_description
         self._transitions = []
         self._requirements = []
         self._preferences = []
@@ -76,6 +79,38 @@ class Package(Transition):
     def get_conflicts(self):
         for conflict in self._conflicts:
             yield conflict
+
+    def set_short_description(self, short_description):
+        self.short_description = short_description
+
+    def set_long_description(self, long_description):
+        self.long_description = long_description
+
+    def _show_sequence(self, title, sequence, min_number=3):
+        lst = list(sequence)
+        if not lst:
+            return
+        nt = len(str(len(lst) - 1))
+        nt = max(min_number, nt)
+        print("=== {0}:".format(title))
+        fmt = "{{0:{nt}d}}) {{1}}".format(nt=nt)
+        for i, item in enumerate(lst):
+            print(fmt.format(i, item))
+
+    def show(self):
+        print("=== Package name:     {0}".format(self.name))
+        print("            version:  {0}".format(self.version))
+        print("            category: {0}".format(self.category))
+        self._show_sequence("Transitions", self.get_transitions())
+        self._show_sequence("Requirements", self.get_requirements())
+        self._show_sequence("Preferences", self.get_preferences())
+        self._show_sequence("Conflicts", self.get_conflicts())
+        if self.short_description:
+            print("=== Short description:")
+            print(fill(self.short_description))
+        if self.long_description:
+            print("=== Long description:")
+            print(fill(self.long_description))
 
     def make_version(self, version_string):
         return self.__version_class__(version_string)

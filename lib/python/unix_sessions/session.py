@@ -124,7 +124,7 @@ class Session(object):
 
     def unload_environment_packages(self):
         loaded_package_labels_string = self._environment.get('UXS_LOADED_PACKAGES', None)
-        if loaded_package_labels_string is None:
+        if not loaded_package_labels_string:
             return
         loaded_package_labels = loaded_package_labels_string.split(':')
         for loaded_package_label in loaded_package_labels:

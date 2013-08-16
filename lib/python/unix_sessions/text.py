@@ -34,6 +34,8 @@ class Text(object):
         for paragraph in self.split_paragraphs(text):
             lines.extend(self.wrap_paragraph(paragraph))
             lines.append('')
+        if lines:
+            del lines[-1]
         return lines
        
     def wrap_paragraph(self, text):
@@ -41,6 +43,9 @@ class Text(object):
 
     def fill(self, text):
         return '\n'.join(self.wrap(text))
+
+def fill(text):
+    return Text().fill(text)
 
 if __name__ == "__main__":
     text = """\
