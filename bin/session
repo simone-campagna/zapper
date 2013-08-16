@@ -113,7 +113,7 @@ Change the current session""",
         help="info about current session")
     parser_info.set_defaults(function=manager.info)
 
-    parser_show_available_packages = subparsers.add_parser("available", aliases=["avail", "av"],
+    parser_show_available_packages = subparsers.add_parser("avail", aliases=["av"],
         help="show available packages")
     parser_show_available_packages.set_defaults(function=manager.show_available_packages)
 
