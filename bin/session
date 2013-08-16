@@ -22,6 +22,8 @@ import argparse
 
 from unix_sessions.manager import Manager
 from unix_sessions.serializer import Serializer
+from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
+from unix_sessions.utils.trace import set_trace, trace
 
 def main():
     manager = Manager()
@@ -30,6 +32,21 @@ def main():
         description="""\
 Change the current session""",
         epilog = "")
+
+    parser.add_argument("--verbose", "-v",
+        action="store_true",
+        default=False,
+        help="set verbose on")
+
+    parser.add_argument("--debug", "-d",
+        action="store_true",
+        default=False,
+        help="set debug on")
+
+    parser.add_argument("--trace", "-t",
+        action="store_true",
+        default=False,
+        help="show traceback on errors")
 
     subparsers = parser.add_subparsers(
         help="action")
@@ -139,6 +156,10 @@ Change the current session""",
 
     args = parser.parse_args()
 
+    set_trace(args.trace)
+    set_verbose(args.verbose)
+    set_debug(args.debug)
+
     if 'persistent' in args and 'temporary' in args:
         if args.persistent is None:
             if args.temporary is None:
@@ -150,13 +171,19 @@ Change the current session""",
             args.temporary = False
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
-    del n_args['function']
+    for key in 'function', 'verbose', 'debug', 'trace':
+        if key in n_args:
+            del n_args[key]
 
-    #print(manager.session)
-    args.function(*p_args, **n_args)
-    #print(manager.session)
-
-    manager.serialize()
+    try:
+        #print(manager.session)
+        args.function(*p_args, **n_args)
+        #print(manager.session)
+    
+        manager.serialize()
+    except Exception as e:
+        trace()
+        LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
 
 if __name__ == "__main__":
     main()

@@ -24,6 +24,7 @@ import collections
 from .environment import Environment
 from .package import Package
 from .errors import *
+from .utils.debug import LOGGER
 
 class Packages(collections.OrderedDict):
     def __init__(self):
@@ -123,6 +124,7 @@ class Session(object):
     def unload_packages(self):
         for package_label, package in self._packages.items():
             #print("@@@ unload_packages::reverting {0}...".format(package_label))
+            LOGGER.info("unloading package {0}...".format(package_label))
             package.revert(self)
         self._packages.clear()
 
@@ -135,6 +137,7 @@ class Session(object):
                     package = self.get_available_package(package_label)
                     package_label = package.label()
                     #print("@@@ load_packages::applying {0}...".format(package_label))
+                    LOGGER.info("loading package {0}...".format(package_label))
                     package.apply(self)
                     self._packages[package_label] = package
                 
@@ -149,13 +152,18 @@ class Session(object):
         current_package_labels = []
         for package_label in package_labels:
             package = self.get_available_package(package_label)
+            if package is None:
+                LOGGER.error("package {0} not found".format(package_label))
+                raise PackageNotFoundError("package {0} not found".format(package_label))
             package_label = package.label()
-            if not package_label in self._packages:
-                package = self.get_available_package(package_label)
-                if package is None:
-                    raise AddPackageError("no such package: {0}".format(package_label))
-                packages.append(package)
-                current_package_labels.append(package_label)
+            if package_label in self._packages:
+                LOGGER.info("package {0} already loaded".format(package_label))
+                continue
+            package = self.get_available_package(package_label)
+            if package is None:
+                raise AddPackageError("no such package: {0}".format(package_label))
+            packages.append(package)
+            current_package_labels.append(package_label)
         package_labels = current_package_labels
         for package_index, package in enumerate(packages):
             package_label = package.label()
@@ -164,7 +172,7 @@ class Session(object):
             unmatched_requirements = package.match_requirements(loaded_packages)
             if unmatched_requirements:
                 for pkg, expression in unmatched_requirements:
-                    sys.stderr.write("{0}: unmatched {1}\n".format(pkg, expression))
+                    LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
                 if len(unmatched_requirements) > 1:
                     s = 's'
                 else:    
@@ -173,12 +181,13 @@ class Session(object):
             conflicts = package.match_conflicts(self._packages.values())
             if conflicts:
                 for pkg0, expression, pkg1 in unmatched_requirements:
-                    sys.stderr.write("{0}: expression {1} conflicts with {2}\n".format(pkg0, expression, pkg1))
+                    LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
                 if len(conflicts) > 1:
                     s = 's'
                 else:    
                     s = ''
                 raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
+            LOGGER.info("loading package {0}...".format(package_label))
             package.apply(self)
             self._packages[package_label] = package
         if self._packages.is_changed():
@@ -189,13 +198,18 @@ class Session(object):
         current_package_labels = []
         for package_label in package_labels:
             package = self.get_loaded_package(package_label)
+            if package is None:
+                LOGGER.error("package {0} not loaded".format(package_label))
+                raise PackageNotFoundError("package {0} not loaded".format(package_label))
             package_label = package.label()
-            if package_label in self._packages:
-                package = self.get_available_package(package_label)
-                if package is None:
-                    raise AddPackageError("no such package: {0}".format(package_label))
-                packages.append(package)
-                current_package_labels.append(package_label)
+            if not package_label in self._packages:
+                LOGGER.info("package {0} not loaded".format(package_label))
+                continue
+            package = self.get_available_package(package_label)
+            if package is None:
+                raise AddPackageError("no such package: {0}".format(package_label))
+            packages.append(package)
+            current_package_labels.append(package_label)
         package_labels = current_package_labels
         for package_index, package in enumerate(packages):
             package_label = package.label()
@@ -207,12 +221,13 @@ class Session(object):
                 unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, loaded_packages))
                 if unmatched_requirements:
                     for pkg, expression in unmatched_requirements:
-                        sys.stderr.write("{0}: unmatched {1}\n".format(pkg, expression))
+                        LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
                     if len(unmatched_requirements) > 1:
                         s = 's'
                     else:    
                         s = ''
                     raise RemovePackageError("cannot remove package {0}: would leave {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+            LOGGER.info("unloading package {0}...".format(package))
             package.revert(self)
             del self._packages[package_label]
         if self._packages.is_changed():
