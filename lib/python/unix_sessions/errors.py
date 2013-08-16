@@ -23,10 +23,13 @@ class SessionError(Exception):
 class SessionCreationError(SessionError):
     pass
 
-class SessionLoadingError(SessionError):
+class AddPackageError(SessionError):
     pass
 
-class SessionSuitesLoadingError(SessionError):
+class RemovePackageError(SessionError):
+    pass
+
+class LoadSuiteError(SessionError):
     pass
 
 class PackageNotFoundError(SessionError):

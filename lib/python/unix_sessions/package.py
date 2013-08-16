@@ -20,10 +20,15 @@ __author__ = 'Simone Campagna'
 from .transition import *
 from .version import Version
 from .registry import Registry
+from .expression import Expression, AttributeGetter, ConstExpression
 
 import abc
 
-__all__ = ['Package']
+__all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY']
+
+NAME = AttributeGetter('name', 'NAME')
+VERSION = AttributeGetter('version', 'VERSION')
+CATEGORY = AttributeGetter('category', 'CATEGORY')
 
 class Category(str):
     __categories__ = ['application', 'tool', 'library', 'compiler']
@@ -78,39 +83,86 @@ class Package(Transition):
     def label(self):
         return "{0}/{1}".format(self.name, self.version)
 
-    def __filters(self, *filters):
-        flt_funcs = []
-        for flt in filters:
-            if isinstance(flt, str):
-                package_name = flt
-                def create_func(package_name):
-                    return lambda package: package.name == package_name
-                flt_func = create_func(package_name)
-            elif isinstance(flt, Version):
-                package_version = flt
-                def create_func(package_version):
-                    return lambda package: package.version == package_version
-                flt_func = create_func(package_version)
+#    def __filters(self, *filters):
+#        flt_funcs = []
+#        for flt in filters:
+#            if isinstance(flt, str):
+#                package_name = flt
+#                def create_func(package_name):
+#                    return lambda package: package.name == package_name
+#                flt_func = create_func(package_name)
+#            elif isinstance(flt, Version):
+#                package_version = flt
+#                def create_func(package_version):
+#                    return lambda package: package.version == package_version
+#                flt_func = create_func(package_version)
+#            else:
+#                flt_func = flt
+#            flt_funcs.append(flt_func)
+#        def create_func(*flt_funcs):
+#            def filter(package):
+#                for flt in flt_funcs:
+#                    if not flt(package):
+#                        return False
+#                return True
+#            return filter
+#        return create_func(*flt_funcs)
+
+    def _create_expression(self, *expressions):
+        result = None
+        for e in expressions:
+            if isinstance(e, str):
+                expression = NAME == e
+            elif isinstance(e, Expression):
+                expression = e
             else:
-                flt_func = flt
-            flt_funcs.append(flt_func)
-        def create_func(*flt_funcs):
-            def filter(package):
-                for flt in flt_funcs:
-                    if not flt(package):
-                        return False
-                return True
-            return filter
-        return create_func(*flt_funcs)
+                expression = ConstExpression(e)
+            if result is None:
+                result = expression
+            else:
+                result = result & expression
+        return result
+        
+    def requires(self, expression, *expressions):
+        self._requirements.append(self._create_expression(expression, *expressions))
 
-    def requires(self, *filters):
-        self._requirements.append(self.__filters(filters))
+    def prefers(self, expression, *expressions):
+        self._preferences.append(self._create_expression(expression, *expressions))
 
-    def prefers(self, *filters):
-        self._preferences.append(self.__filters(filters))
+    def conflicts(self, expression, *expressions):
+        self._conflicts.append(self._create_expression(expression, *expressions))
 
-    def conflicts(self, *filters):
-        self._conflicts.append(self.__filters(filters))
+    def match_expressions(self, loaded_packages, expressions):
+        unmatched = []
+        for expression in expressions:
+            for loaded_package in loaded_packages:
+                expression.bind(loaded_package)
+                if expression.get_value():
+                    break
+            else:
+                unmatched.append((self, expression))
+        return unmatched
+
+    def match_requirements(self, package):
+        return self.match_expressions(package, self._requirements)
+
+    def match_preferences(self, package):
+        return self.match_expressions(package, self._preferences)
+
+    def match_conflicts(self, loaded_packages):
+        conflicts = self._match_conflicts(loaded_packages)
+        for loaded_package in loaded_packages:
+            conflicts.extend(loaded_package._match_conflicts([self]))
+        return conflicts
+        
+    def _match_conflicts(self, loaded_packages):
+        conflicts = []
+        for expression in self._conflicts:
+            for loaded_package in loaded_packages:
+                expression.bind(loaded_package)
+                if expression.get_value():
+                    conflicts.append((self, expression, package))
+        return conflicts
 
     def register(self):
         self.__class__.REGISTRY.register(self)
