@@ -64,6 +64,7 @@ class Session(object):
         self.load(session_dir)
 
     def load(self, session_dir):
+        self.unload_environment_packages()
         self.unload_packages()
         self.session_dir = os.path.abspath(session_dir)
         session_config_file = os.path.join(self.session_dir, self.SESSION_CONFIG_FILE)
@@ -120,6 +121,20 @@ class Session(object):
 
     def get_loaded_package(self, package_label):
         return self.get_package(package_label, self._packages.values())
+
+    def unload_environment_packages(self):
+        loaded_package_labels_string = self._environment.get('UXS_LOADED_PACKAGES', None)
+        if loaded_package_labels_string is None:
+            return
+        loaded_package_labels = loaded_package_labels_string.split(':')
+        for loaded_package_label in loaded_package_labels:
+            loaded_package = self.get_available_package(loaded_package_label)
+            if loaded_package is None:
+                LOGGER.warning("inconsistent environment: cannot unload unknown package {0!r}".format(loaded_package_label))
+                continue
+            LOGGER.info("unloading package {0}...".format(loaded_package))
+            loaded_package.revert(self)
+        del self._environment['UXS_LOADED_PACKAGES']
 
     def unload_packages(self):
         for package_label, package in self._packages.items():
@@ -215,13 +230,13 @@ class Session(object):
             package_label = package.label()
             loaded_packages = []
             for pkg_label, pkg in self._packages.items():
-                if not pkg_label in package_labels:
+                if pkg_label != package_label:
                     loaded_packages.append(pkg)
             for pkg in loaded_packages:
                 unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, loaded_packages))
                 if unmatched_requirements:
                     for pkg, expression in unmatched_requirements:
-                        LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
+                        LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg, expression))
                     if len(unmatched_requirements) > 1:
                         s = 's'
                     else:    
@@ -255,6 +270,8 @@ class Session(object):
                 # set
                 serializer.var_set(var_name, var_value)
         serializer.var_set("UXS_SESSION", self.session_dir)
+        loaded_packages = ':'.join(self._packages.keys())
+        serializer.var_set("UXS_LOADED_PACKAGES", loaded_packages)
 
     def serialize_stream(self, serializer, stream=None, serialization_filename=None):
         self.serialize(serializer)
