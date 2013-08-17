@@ -186,7 +186,7 @@ class Manager(object):
                 return session_dir
         return None
 
-    def list(self, temporary=True, persistent=True):
+    def show_available_sessions(self, temporary=True, persistent=True):
         dl = []
         if temporary:
             dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
@@ -204,22 +204,13 @@ class Manager(object):
                     mark_current = ' '
                 print("  {0} {1}".format(mark_current, session_name))
 
-#    def show_packages(self, packages):
-#        if Category.__categories__:
-#            max_category_len = max(len(category) for category in Category.__categories__)
-#        else:
-#            max_category_len = 0
-#        fmt = "{{0:{np}d}} {{1:{lc}s}} {{2}}".format(np=len(str(len(packages) - 1)), lc=max_category_len)
-#        for package_index, package in enumerate(packages):
-#            print(fmt.format(package_index, package.category, package.label()))
-#     
     def show_available_packages(self):
         self.session.show_available_packages()
 
     def show_package(self, package_label):
         self.session.show_package(package_label)
 
-    def info(self):
+    def info_session(self):
         self.session.info()
 
     def add_packages(self, package_labels):
