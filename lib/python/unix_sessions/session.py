@@ -53,6 +53,7 @@ class Packages(collections.OrderedDict):
 
 class Session(object):
     SESSION_CONFIG_FILE = "session.config"
+    MODULE_PATTERN = "uxs_*.py"
     VERSION_OPERATORS = (
         ('==',          lambda x, v: x == v),
         ('!=',          lambda x, v: x != v),
@@ -73,7 +74,7 @@ class Session(object):
     def _load_modules(self, module_dir):
         #print("+++", module_dir)
         modules = []
-        for module_path in glob.glob(os.path.join(module_dir, '*.py')):
+        for module_path in glob.glob(os.path.join(module_dir, self.MODULE_PATTERN)):
             Package.set_module_dir(module_dir)
             try:
                 modules.append(self._load_module(module_path))
@@ -360,17 +361,21 @@ class Session(object):
     __str__ = __repr__
     
     
-    def show_packages(self, packages):
+    def show_packages(self, title, packages):
         if Category.__categories__:
             max_category_len = max(len(category) for category in Category.__categories__)
         else:
             max_category_len = 0
+        print("=== {0}:".format(title))
         fmt = "{{0:{np}d}} {{1:{lc}s}} {{2}}".format(np=len(str(len(packages) - 1)), lc=max_category_len)
         for package_index, package in enumerate(packages):
             print(fmt.format(package_index, package.category, package.label()))
 
     def show_available_packages(self):
-        self.show_packages(self.available_packages())
+        self.show_packages("Available packages", self.available_packages())
+
+    def show_loaded_packages(self):
+        self.show_packages("Loaded packages", self.loaded_packages())
 
     def show_package(self, package_label):
         package = self.get_available_package(package_label)
@@ -378,6 +383,9 @@ class Session(object):
             print("package {0} not found".format(package_label))
         else:
             package.show()
+
+    def show_package_directories(self):
+        show_sequence("Package directories", self._package_directories)
 
     def info(self):
         print("=== Session name: {0}".format(self.session_name))

@@ -27,70 +27,95 @@ from unix_sessions.utils.trace import set_trace, trace
 
 def main():
     manager = Manager()
-    parser = argparse.ArgumentParser(
+
+    ### Common parser
+    common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument("--verbose", "-v",
+        action="store_true",
+        default=False,
+        help="set verbose on")
+
+    common_parser.add_argument("--debug", "-d",
+        action="store_true",
+        default=False,
+        help="set debug on")
+
+    common_parser.add_argument("--trace", "-t",
+        action="store_true",
+        default=False,
+        help="show traceback on errors")
+
+    ### Top-level parser
+    top_level_parser = argparse.ArgumentParser(
+        parents = [common_parser],
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""\
 Change the current session""",
         epilog = "")
 
-    parser.add_argument("--verbose", "-v",
-        action="store_true",
-        default=False,
-        help="set verbose on")
-
-    parser.add_argument("--debug", "-d",
-        action="store_true",
-        default=False,
-        help="set debug on")
-
-    parser.add_argument("--trace", "-t",
-        action="store_true",
-        default=False,
-        help="show traceback on errors")
-
-    subparsers = parser.add_subparsers(
+    ### Subparsers
+    top_level_subparsers = top_level_parser.add_subparsers(
         help="action")
 
     ### Session subparser
-    parser_session = subparsers.add_parser("session", aliases=["s"],
+    parser_session = top_level_subparsers.add_parser("session",
+        aliases=["s"],
+        parents=[common_parser],
         help="session management")
 
     session_subparsers = parser_session.add_subparsers(
         help="session action")
 
-    parser_session_create = session_subparsers.add_parser("create", aliases=["cr"],
+    parser_session_create = session_subparsers.add_parser("create",
+        aliases=["cr"],
+        parents=[common_parser],
         help="create new session")
+    parser_session_create.set_defaults(function=manager.create_session)
     
-    parser_session_load = session_subparsers.add_parser("load", aliases=["lo"],
+    parser_session_load = session_subparsers.add_parser("load",
+        aliases=["lo"],
+        parents=[common_parser],
         help="load existing session")
+    parser_session_load.set_defaults(function=manager.load_session)
     
-    parser_session_delete = session_subparsers.add_parser("delete", aliases=["del"],
+    parser_session_delete = session_subparsers.add_parser("delete",
+        aliases=["del"],
+        parents=[common_parser],
         help="delete existing sessions")
+    parser_session_delete.set_defaults(function=manager.delete_sessions)
     
     parser_session_new = session_subparsers.add_parser("new",
+        parents=[common_parser],
         help="create and load new session")
+    parser_session_new.set_defaults(function=manager.new_session)
     
-    parser_session_available = session_subparsers.add_parser("available", aliases=['avail'],
+    parser_session_available = session_subparsers.add_parser("available",
+        aliases=['avail'],
+        parents=[common_parser],
         help="list available sessions")
-    parser_session_available.add_argument("--persistent", "-p",
+    parser_session_available.add_argument("--no-persistent", "-P",
         dest="persistent",
         action="store_true",
         default=None,
         help="show persistent sessions")
-    parser_session_available.add_argument("--no-temporary", "-t",
+    parser_session_available.add_argument("--no-temporary", "-T",
         dest="temporary",
         action="store_true",
         default=None,
         help="show temporary sessions")
     parser_session_available.set_defaults(function=manager.show_available_sessions)
 
-    parser_session_info = session_subparsers.add_parser("info", aliases=[],
+    parser_session_info = session_subparsers.add_parser("info",
+        aliases=[],
+        parents=[common_parser],
         help="info about current session")
     parser_session_info.set_defaults(function=manager.info_session)
 
-    parser_session_show_available_packages = session_subparsers.add_parser("avail", aliases=["av"],
-        help="show available packages")
-    parser_session_show_available_packages.set_defaults(function=manager.show_available_packages)
+    #parser_session_show_available_packages = session_subparsers.add_parser("avail",
+    #    aliases=["av"],
+    #    parents=[common_parser],
+    #    help="show available packages")
+    #parser_session_show_available_packages.set_defaults(function=manager.show_available_packages)
 
     for subparser in (parser_session_create, parser_session_load, parser_session_new):
         subparser.add_argument("session_name",
@@ -107,46 +132,80 @@ Change the current session""",
             help="session names")
 
     ### Package subparser
-    parser_package = subparsers.add_parser("package", aliases=["p"],
+    parser_package = top_level_subparsers.add_parser("package",
+        aliases=["p"],
+        parents=[common_parser],
         help="package management")
 
     package_subparsers = parser_package.add_subparsers(
         help="package action")
 
-    parser_package_show_available_packages = package_subparsers.add_parser("avail", aliases=["av"],
-        help="show available packages")
-    parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)
+    for subparsers in top_level_subparsers, package_subparsers:
+        parser_package_show_available_packages = subparsers.add_parser("avail",
+            aliases=["av"],
+            parents=[common_parser],
+            help="show available packages")
+        parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)
 
-    parser_package_show_package = package_subparsers.add_parser("show", aliases=[],
-        help="show package content")
-    parser_package_show_package.add_argument("package_label",
-        help="package label")
-    parser_package_show_package.set_defaults(function=manager.show_package)
+        parser_package_show_loaded_packages = subparsers.add_parser("list",
+            aliases=["li"],
+            parents=[common_parser],
+            help="show loaded packages")
+        parser_package_show_loaded_packages.set_defaults(function=manager.show_loaded_packages)
 
-    parser_package_add = package_subparsers.add_parser("add",
-        help="add a package to current session")
-    parser_package_add.set_defaults(function=manager.add_packages)
+        parser_package_show_package = subparsers.add_parser("show",
+            aliases=[],
+            parents=[common_parser],
+            help="show package content")
+        parser_package_show_package.add_argument("package_label",
+            help="package label")
+        parser_package_show_package.set_defaults(function=manager.show_package)
+    
+        parser_package_add = subparsers.add_parser("add",
+            parents=[common_parser],
+            help="add a package to current session")
+        parser_package_add.set_defaults(function=manager.add_packages)
+    
+        parser_package_remove = subparsers.add_parser("remove",
+            aliases=['rem'],
+            parents=[common_parser],
+            help="remove a package from current session")
+        parser_package_remove.set_defaults(function=manager.remove_packages)
 
-    parser_package_remove = package_subparsers.add_parser("remove", aliases=['rem'],
-        help="remove a package from current session")
-    parser_package_remove.set_defaults(function=manager.remove_packages)
+        for subparser in parser_package_add, parser_package_remove:
+            subparser.add_argument("package_labels",
+            type=str,
+            nargs='+',
+            default=None,
+            help="package name")
 
-    for subparser in parser_package_add, parser_package_remove:
-        subparser.add_argument("package_labels",
-        type=str,
-        nargs='+',
-        default=None,
-        help="package name")
+    ### package_dir subparsers
+    parser_package_dir = top_level_subparsers.add_parser("package_dir",
+        aliases=["dir", "d"],
+        parents=[common_parser],
+        help="package directory management")
 
-    parser_package_add_directories = package_subparsers.add_parser("add_dir",
+    package_dir_subparsers = parser_package_dir.add_subparsers(
+        help="package directory action")
+
+    parser_package_dir_list = package_dir_subparsers.add_parser("list",
+        aliases=["li"],
+        parents=[common_parser],
+        help="list current package directories")
+    parser_package_dir_list.set_defaults(function=manager.show_package_directories)
+
+    parser_package_dir_add = package_dir_subparsers.add_parser("add",
+        parents=[common_parser],
         help="add a package directory to current session")
-    parser_package_add_directories.set_defaults(function=manager.add_package_directories)
+    parser_package_dir_add.set_defaults(function=manager.add_package_directories)
 
-    parser_package_remove_directories = package_subparsers.add_parser("remove_dir", aliases=['rem_dir'],
+    parser_package_dir_remove = package_dir_subparsers.add_parser("remove",
+        aliases=['rem'],
+        parents=[common_parser],
         help="remove a package directory from current session")
-    parser_package_remove_directories.set_defaults(function=manager.remove_package_directories)
+    parser_package_dir_remove.set_defaults(function=manager.remove_package_directories)
 
-    for subparser in parser_package_add_directories, parser_package_remove_directories:
+    for subparser in parser_package_dir_add, parser_package_dir_remove:
         subparser.add_argument("package_directories",
         type=str,
         nargs='+',
@@ -154,11 +213,13 @@ Change the current session""",
         help="package directory")
 
     ### other subparsers
-    parser_init = subparsers.add_parser("init", aliases=[],
+    parser_init = top_level_subparsers.add_parser("init",
+        aliases=[],
+        parents=[common_parser],
         help="init modules to current session")
     parser_init.set_defaults(function=manager.init)
 
-    args = parser.parse_args()
+    args = top_level_parser.parse_args()
 
     set_trace(args.trace)
     set_verbose(args.verbose)

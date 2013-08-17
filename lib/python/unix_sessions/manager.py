@@ -207,6 +207,12 @@ class Manager(object):
     def show_available_packages(self):
         self.session.show_available_packages()
 
+    def show_loaded_packages(self):
+        self.session.show_loaded_packages()
+
+    def show_package_directories(self):
+        self.session.show_package_directories()
+
     def show_package(self, package_label):
         self.session.show_package(package_label)
 
