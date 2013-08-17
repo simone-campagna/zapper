@@ -77,13 +77,18 @@ class Manager(object):
     def load_session(self, session_name=None):
         if session_name is None:
             session_dir = os.environ.get("UXS_SESSION", None)
+            if session_dir:
+                session_config_file = Session.get_session_config_file(session_dir)
+                if not os.path.lexists(session_config_file):
+                    LOGGER.warning("inconsistent environment: invalid session {0}".format(session_dir))
+                    session_dir = None
             if session_dir is None:
                 session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix=self.TMP_PREFIX)
                 Session.create_session_dir(session_dir=session_dir, session_name=os.path.basename(session_dir), session_type='temporary')
         else:
             for sessions_dir in self.persistent_sessions_dir, self.temporary_sessions_dir:
                 session_dir = os.path.join(sessions_dir, session_name)
-                session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+                session_config_file = Session.get_session_config_file(session_dir)
                 if os.path.lexists(session_config_file):
                     break
             else:
@@ -113,7 +118,6 @@ class Manager(object):
         sys_path = [module_dirname]
         module_info = imp.find_module(module_name, sys_path)
         if module_info:
-            print(module_name, module_dirname)
             module = imp.load_module(module_name, *module_info)
         return module
 
@@ -171,7 +175,7 @@ class Manager(object):
                 del os.environ['UXS_SESSION']
                 self.load_session()
             #print(self.session)
-            session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+            session_config_file = Session.get_session_config_file(session_dir)
             os.remove(session_config_file)
             try:
                 os.rmdir(session_dir)
@@ -187,7 +191,7 @@ class Manager(object):
         session_dirs = []
         for session_type, sessions_dir in dl:
             for session_dir in glob.glob(os.path.join(sessions_dir, session_name_pattern)):
-                session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+                session_config_file = Session.get_session_config_file(session_dir)
                 if os.path.lexists(session_config_file):
                     session_dirs.append(session_dir)
         return session_dirs
@@ -200,7 +204,7 @@ class Manager(object):
             dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         for session_type, sessions_dir in dl:
             session_dir = os.path.join(sessions_dir, session_name)
-            session_config_file = os.path.join(session_dir, Session.SESSION_CONFIG_FILE)
+            session_config_file = Session.get_session_config_file(session_dir)
             if os.path.lexists(session_config_file):
                 return session_dir
         return None
@@ -213,7 +217,9 @@ class Manager(object):
             dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         for session_type, sessions_dir in dl:
             print("=== Available {t} sessions:".format(t=session_type))
-            for entry in glob.glob(os.path.join(sessions_dir, '*', Session.SESSION_CONFIG_FILE)):
+            session_dir_pattern = os.path.join(sessions_dir, '*')
+            for entry in glob.glob(Session.get_session_config_file(session_dir_pattern)):
+
                 session_name = os.path.basename(os.path.dirname(entry))
                 if session_name == self.session.session_name:
                     mark_current = '*'

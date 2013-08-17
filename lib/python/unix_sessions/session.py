@@ -20,11 +20,13 @@ __author__ = 'Simone Campagna'
 import os
 import sys
 import collections
+import configparser
 
 from .environment import Environment
 from .package import Package
 from .errors import *
 from .utils.debug import LOGGER
+from .utils.trace import trace
 
 class Packages(collections.OrderedDict):
     def __init__(self):
@@ -63,23 +65,52 @@ class Session(object):
         self._packages = Packages()
         self.load(session_dir)
 
+    @classmethod
+    def get_session_config_file(cls, session_dir):
+        return os.path.join(session_dir, cls.SESSION_CONFIG_FILE)
+
     def load(self, session_dir):
         self.unload_environment_packages()
         self.unload_packages()
         self.session_dir = os.path.abspath(session_dir)
-        session_config_file = os.path.join(self.session_dir, self.SESSION_CONFIG_FILE)
-        with open(session_config_file, "r") as f_in:
-            line = f_in.readline().strip()
-            self.session_type, self.session_name = line.split(":", 1)
-        self.load_packages()
+        session_config_file = self.get_session_config_file(session_dir)
+        self.session_name = None
+        self.session_type = None
+        packages_list = []
+        if os.path.lexists(session_config_file):
+            config = configparser.ConfigParser()
+            config.read(session_config_file)
+            session_section = config['session']
+            self.session_name = session_section['name']
+            self.session_type = session_section['type']
+            packages_config = config['packages']
+            #packages_dir_list_string = packages_config['directories']
+            #if packages_dir_list_string:
+            #    packages_dir_list = package_dir_list_string.split(':')
+            #else:
+            #    packages_dir_list = []
+            packages_list_string = packages_config['loaded_packages']
+            if packages_list_string:
+                packages_list = package_list_string.split(':')
+        else:
+            LOGGER.warning("cannot load session config file {0}".format(session_config_file))
+            return
+        self.load_packages(packages_list)
 
     @classmethod
     def create_session_dir(cls, session_dir, session_name, session_type):
         if not os.path.isdir(session_dir):
             os.makedirs(session_dir)
-        session_config_file = os.path.join(session_dir, cls.SESSION_CONFIG_FILE)
-        with open(session_config_file, "w") as f_out:
-            f_out.write("{0}:{1}\n".format(session_type, session_name))
+        session_config_file = cls.get_session_config_file(session_dir)
+        config = configparser.ConfigParser()
+        config['session'] = {}
+        config['session']['name'] = session_name
+        config['session']['type'] = session_type
+        config['packages'] = {}
+        config['packages']['loaded_packages'] = ''
+        config['packages']['directories'] = ''
+        with open(session_config_file, "w") as f_config:
+            config.write(f_config)
     
     @classmethod
     def create(cls, session_dir, session_name, session_type):
@@ -143,18 +174,14 @@ class Session(object):
             package.revert(self)
         self._packages.clear()
 
-    def load_packages(self):
-        packages_file = os.path.join(self.session_dir, self.PACKAGES_FILE)
-        if os.path.lexists(packages_file):
-            with open(packages_file, "r") as f_in:
-                for line in f_in:
-                    package_label = line.strip()
-                    package = self.get_available_package(package_label)
-                    package_label = package.label()
-                    #print("@@@ load_packages::applying {0}...".format(package_label))
-                    LOGGER.info("loading package {0}...".format(package_label))
-                    package.apply(self)
-                    self._packages[package_label] = package
+    def load_packages(self, packages_list):
+        for package_label in packages_list:
+            package = self.get_available_package(package_label)
+            package_label = package.label()
+            #print("@@@ load_packages::applying {0}...".format(package_label))
+            LOGGER.info("loading package {0}...".format(package_label))
+            package.apply(self)
+            self._packages[package_label] = package
                 
     def store(self):
         packages_file = os.path.join(self.session_dir, self.PACKAGES_FILE)
@@ -281,5 +308,9 @@ class Session(object):
             serializer.serialize_remove_empty_directory(stream, os.path.dirname(serialization_filename))
 
     def serialize_file(self, serializer, serialization_filename):
-        with open(serialization_filename, "w") as f_out:
-            self.serialize_stream(serializer, stream=f_out, serialization_filename=serialization_filename)
+        try:
+            with open(serialization_filename, "w") as f_out:
+                self.serialize_stream(serializer, stream=f_out, serialization_filename=serialization_filename)
+        except Exception as e:
+            trace()
+            LOGGER.warning("cannot serialize {0}".format(serialization_filename))

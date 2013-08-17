@@ -3,7 +3,7 @@ PYTHON_EXECUTABLE="@PYTHON_EXECUTABLE@"
 export PYTHONPATH="${PYTHONPATH}:${UXS_HOME_DIR}/lib/python"
 function uxs {
     typeset _filename
-    if [[ ${UXS_SESSION} == '' ]] ; then
+    if [[ ${UXS_SESSION} == '' || ! -d ${UXS_SESSION} ]] ; then
         typeset _tmpdir=${TMPDIR:-/tmp}
         unset _filename
         while [[ -f ${_filename:="$_tmpdir/$$.$RANDOM"} ]] ; do
