@@ -169,14 +169,16 @@ class Package(Transition):
 
     def match_expressions(self, loaded_packages, expressions):
         unmatched = []
+        matched = []
         for expression in expressions:
             for loaded_package in loaded_packages:
                 expression.bind(loaded_package)
                 if expression.get_value():
+                    matched.append((self, expression, loaded_package))
                     break
             else:
                 unmatched.append((self, expression))
-        return unmatched
+        return matched, unmatched
 
     def match_requirements(self, package):
         return self.match_expressions(package, self._requirements)

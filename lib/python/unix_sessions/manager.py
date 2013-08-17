@@ -232,6 +232,9 @@ class Manager(object):
     def remove_packages(self, package_labels):
         self.session.remove(package_labels)
 
+    def clear_packages(self):
+        self.session.clear()
+
     def add_package_directories(self, package_directories):
         self.session.add_directories(package_directories)
 

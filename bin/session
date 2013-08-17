@@ -185,6 +185,11 @@ Change the current session""",
             help="remove a package from current session")
         parser_package_remove.set_defaults(function=manager.remove_packages)
 
+        parser_package_clear = subparsers.add_parser("clear",
+            parents=[common_parser],
+            help="remove all packages from current session")
+        parser_package_clear.set_defaults(function=manager.clear_packages)
+
         for subparser in parser_package_add, parser_package_remove:
             subparser.add_argument("package_labels",
             type=str,
