@@ -19,7 +19,6 @@ __author__ = 'Simone Campagna'
 
 import os
 import sys
-import imp
 import glob
 import shutil
 import getpass
@@ -60,7 +59,6 @@ class Manager(object):
                 os.makedirs(d)
         self._session = None
         self.load_serialization()
-        self.load_available_packages()
         self.load_session()
 
     def get_session(self):
@@ -97,39 +95,13 @@ class Manager(object):
             if self.session:
                 self.session.load(session_dir)
             else:
-                self.session = Session(session_dir)
+                self.session = Session(self, session_dir)
         except Exception as e:
             import traceback
             traceback.print_exc()
             del os.environ['UXS_SESSION']
             self.load_session()
                     
-    def _load_modules(self, module_dir):
-        #print("+++", module_dir)
-        modules = []
-        for module_path in glob.glob(os.path.join(module_dir, '*.py')):
-            modules.append(self._load_module(module_path))
-        return modules
-
-    def _load_module(self, module_path):
-        module_dirname, module_basename = os.path.split(module_path)
-        module_name = module_basename[:-3]
-        #print("---", module_path, module_name)
-        sys_path = [module_dirname]
-        module_info = imp.find_module(module_name, sys_path)
-        if module_info:
-            module = imp.load_module(module_name, *module_info)
-        return module
-
-    def load_available_packages(self):
-        self.uxs_package_dirs = [self.user_packages_dir]
-        uxs_package_dir = os.environ.get("UXS_PACKAGE_DIR", None)
-        if uxs_package_dir:
-            self.uxs_package_dirs.extend(uxs_package_dir.split(':'))
-        for package_dir in self.uxs_package_dirs:
-            #print("===", package_dir)
-            self._load_modules(package_dir)
-
     def load_serialization(self):
         serialization = os.environ.get("UXS_SERIALIZATION", None)
         self.serialization_filename = None
@@ -237,7 +209,7 @@ class Manager(object):
             print(fmt.format(package_index, package.category, package.label()))
      
     def show_available_packages(self):
-        self.show_packages(Package.REGISTRY)
+        self.show_packages(self.session.get_available_packages())
 
     def show_package(self, package_label):
         package = self.session.get_available_package(package_label)

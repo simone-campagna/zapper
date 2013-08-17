@@ -44,7 +44,7 @@ class Category(str):
             cls.__categories__.append(category)
 
 class Package(Transition):
-    REGISTRY = Registry()
+    __registry__ = Registry()
     __version_class__ = Version
     def __init__(self, name, version, category, short_description="", long_description=""):
         if not isinstance(name, str):
@@ -65,6 +65,14 @@ class Package(Transition):
         self._preferences = []
         self._conflicts = []
         self.register()
+
+    @classmethod
+    def set_module_dir(cls, module_dir):
+        cls.__registry__.set_default_key(module_dir)
+
+    @classmethod
+    def unset_module_dir(cls):
+        cls.__registry__.unset_default_key()
 
     def get_transitions(self):
         for transition in self._transitions:
@@ -202,7 +210,7 @@ class Package(Transition):
         return conflicts
 
     def register(self):
-        self.__class__.REGISTRY.register(self)
+        self.__class__.__registry__.register(self)
 
     def add_transition(self, transition):
         assert isinstance(transition, Transition)

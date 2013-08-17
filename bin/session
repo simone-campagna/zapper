@@ -55,7 +55,7 @@ Change the current session""",
         help="create new session")
     parser_create.set_defaults(function=manager.create_session)
 
-    parser_delete = subparsers.add_parser("delete", aliases=['cr'],
+    parser_delete = subparsers.add_parser("delete", aliases=['del'],
         help="delete session")
     parser_delete.set_defaults(function=manager.delete_sessions)
 
@@ -86,7 +86,7 @@ Change the current session""",
         help="package name")
     parser_add.set_defaults(function=manager.add)
 
-    parser_remove = subparsers.add_parser("remove", aliases=['rem', 'del'],
+    parser_remove = subparsers.add_parser("remove", aliases=['rem'],
         help="remove a package from current session")
     parser_remove.add_argument("package_labels",
         type=str,

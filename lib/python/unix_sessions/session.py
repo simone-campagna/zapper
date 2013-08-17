@@ -19,12 +19,14 @@ __author__ = 'Simone Campagna'
 
 import os
 import sys
+import imp
+import glob
 import collections
-import configparser
 
 from .environment import Environment
 from .package import Package
 from .errors import *
+from .session_config import SessionConfig
 from .utils.debug import LOGGER
 from .utils.trace import trace
 
@@ -47,27 +49,6 @@ class Packages(collections.OrderedDict):
             self._changed_package_labels.append(package_label)
             super().__delitem__(package_label)
 
-class SessionConfig(configparser.ConfigParser):
-    def __init__(self, filename=None):
-        super().__init__()
-        self.filename = filename
-        if self.filename and os.path.lexists(self.filename):
-            self.load()
-        else:
-            self['session'] = {}
-            self['session']['name'] = ''
-            self['session']['type'] = ''
-            self['packages'] = {}
-            self['packages']['directories'] = ''
-            self['packages']['loaded_packages'] = ''
-
-    def load(self):
-        self.read(self.filename)
-
-    def store(self):
-        with open(self.filename, "w") as f_out:
-            self.write(f_out)
-
 class Session(object):
     SESSION_CONFIG_FILE = "session.config"
     VERSION_OPERATORS = (
@@ -79,11 +60,42 @@ class Session(object):
         ('>=',          lambda x, v: x >= v),
     )
 
-    def __init__(self, session_dir):
+    def __init__(self, manager, session_dir):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
-        self._packages = Packages()
+        self._loaded_packages = Packages()
+        self._package_dirs = []
+        self._available_packages = Packages()
+        self._manager = manager
         self.load(session_dir)
+
+    def _load_modules(self, module_dir):
+        #print("+++", module_dir)
+        modules = []
+        for module_path in glob.glob(os.path.join(module_dir, '*.py')):
+            Package.set_module_dir(module_dir)
+            try:
+                modules.append(self._load_module(module_path))
+            finally:
+                Package.unset_module_dir()
+        return modules
+
+    def _load_module(self, module_path):
+        module_dirname, module_basename = os.path.split(module_path)
+        module_name = module_basename[:-3]
+        #print("---", module_path, module_name)
+        sys_path = [module_dirname]
+        module_info = imp.find_module(module_name, sys_path)
+        if module_info:
+            module = imp.load_module(module_name, *module_info)
+        return module
+
+    def load_available_packages(self):
+        self._available_packages.clear()
+        for package_dir in self._package_dirs:
+            self._load_modules(package_dir)
+            for package in Package.__registry__[package_dir]:
+                self._available_packages[package.label()] = package
 
     @classmethod
     def get_session_config_file(cls, session_dir):
@@ -99,8 +111,6 @@ class Session(object):
             session_config.write(f_out)
 
     def load(self, session_dir):
-        self.unload_environment_packages()
-        self.unload_packages()
         self.session_dir = os.path.abspath(session_dir)
         session_config_file = self.get_session_config_file(session_dir)
         if not os.path.lexists(session_config_file):
@@ -108,11 +118,17 @@ class Session(object):
         session_config = self.get_session_config(session_config_file)
         self.session_name = session_config['session']['name']
         self.session_type = session_config['session']['type']
-        #packages_dir_list_string = session_config['packages']['directories']
-        #if packages_dir_list_string:
-        #    packages_dir_list = package_dir_list_string.split(':')
-        #else:
-        #    packages_dir_list = []
+        package_dirs_string = session_config['packages']['directories']
+        if package_dirs_string:
+            package_dirs = package_dir_list_string.split(':')
+        else:
+            package_dirs = []
+        package_dirs.append(self._manager.user_packages_dir)
+        uxs_package_dir = os.environ.get("UXS_PACKAGE_DIR", None)
+        if uxs_package_dir:
+            package_dirs.extend(uxs_package_dir.split(':'))
+        self._package_dirs = package_dirs
+        self.load_available_packages()
         packages_list_string = session_config['packages']['loaded_packages']
         if packages_list_string:
             packages_list = packages_list_string.split(':')
@@ -136,7 +152,7 @@ class Session(object):
         return cls(session_dir)
         
     def packages(self):
-        return self._packages.values()
+        return self._loaded_packages.values()
         
     def get_package(self, package_label, package_list):
         l = package_label.split('/', 1)
@@ -166,10 +182,16 @@ class Session(object):
         return package
 
     def get_available_package(self, package_label):
-        return self.get_package(package_label, Package.REGISTRY)
+        return self.get_package(package_label, self._available_packages.values())
 
     def get_loaded_package(self, package_label):
-        return self.get_package(package_label, self._packages.values())
+        return self.get_package(package_label, self._loaded_packages.values())
+
+    def get_loaded_packages(self):
+        return self._loaded_packages.values()
+
+    def get_available_packages(self):
+        return self._available_packages.values()
 
     def unload_environment_packages(self):
         loaded_package_labels_string = self._environment.get('UXS_LOADED_PACKAGES', None)
@@ -186,26 +208,28 @@ class Session(object):
         del self._environment['UXS_LOADED_PACKAGES']
 
     def unload_packages(self):
-        for package_label, package in self._packages.items():
+        for package_label, package in self._loaded_packages.items():
             #print("@@@ unload_packages::reverting {0}...".format(package_label))
             LOGGER.info("unloading package {0}...".format(package_label))
             package.revert(self)
-        self._packages.clear()
+        self._loaded_packages.clear()
 
     def load_packages(self, packages_list):
+        self.unload_environment_packages()
+        self.unload_packages()
         for package_label in packages_list:
             package = self.get_available_package(package_label)
             package_label = package.label()
             #print("@@@ load_packages::applying {0}...".format(package_label))
             LOGGER.info("loading package {0}...".format(package_label))
             package.apply(self)
-            self._packages[package_label] = package
+            self._loaded_packages[package_label] = package
                 
     def store(self):
         session_config_file = self.get_session_config_file(self.session_dir)
         session_config = self.get_session_config(session_config_file)
-        session_config['packages']['loaded_packages'] = ':'.join(self._packages.keys())
-        session_config.write(sys.stdout)
+        session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
+        #session_config.write(sys.stdout)
         session_config.store()
         
     def add(self, package_labels):
@@ -217,7 +241,7 @@ class Session(object):
                 LOGGER.error("package {0} not found".format(package_label))
                 raise PackageNotFoundError("package {0} not found".format(package_label))
             package_label = package.label()
-            if package_label in self._packages:
+            if package_label in self._loaded_packages:
                 LOGGER.info("package {0} already loaded".format(package_label))
                 continue
             package = self.get_available_package(package_label)
@@ -229,7 +253,7 @@ class Session(object):
         for package_index, package in enumerate(packages):
             package_label = package.label()
             #print("@@@ add::applying {0}...".format(package_label))
-            loaded_packages = list(self._packages.values()) + packages[package_index + 1:]
+            loaded_packages = list(self._loaded_packages.values()) + packages[package_index + 1:]
             unmatched_requirements = package.match_requirements(loaded_packages)
             if unmatched_requirements:
                 for pkg, expression in unmatched_requirements:
@@ -239,7 +263,7 @@ class Session(object):
                 else:    
                     s = ''
                 raise AddPackageError("cannot add package {0}: {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
-            conflicts = package.match_conflicts(self._packages.values())
+            conflicts = package.match_conflicts(self._loaded_packages.values())
             if conflicts:
                 for pkg0, expression, pkg1 in unmatched_requirements:
                     LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
@@ -250,8 +274,8 @@ class Session(object):
                 raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
             LOGGER.info("loading package {0}...".format(package_label))
             package.apply(self)
-            self._packages[package_label] = package
-        if self._packages.is_changed():
+            self._loaded_packages[package_label] = package
+        if self._loaded_packages.is_changed():
             self.store()
         
     def remove(self, package_labels):
@@ -263,7 +287,7 @@ class Session(object):
                 LOGGER.error("package {0} not loaded".format(package_label))
                 raise PackageNotFoundError("package {0} not loaded".format(package_label))
             package_label = package.label()
-            if not package_label in self._packages:
+            if not package_label in self._loaded_packages:
                 LOGGER.info("package {0} not loaded".format(package_label))
                 continue
             package = self.get_available_package(package_label)
@@ -272,26 +296,31 @@ class Session(object):
             packages.append(package)
             current_package_labels.append(package_label)
         package_labels = current_package_labels
-        for package_index, package in enumerate(packages):
-            package_label = package.label()
-            loaded_packages = []
-            for pkg_label, pkg in self._packages.items():
-                if pkg_label != package_label:
-                    loaded_packages.append(pkg)
-            for pkg in loaded_packages:
-                unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, loaded_packages))
-                if unmatched_requirements:
-                    for pkg, expression in unmatched_requirements:
-                        LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg, expression))
-                    if len(unmatched_requirements) > 1:
-                        s = 's'
-                    else:    
-                        s = ''
-                    raise RemovePackageError("cannot remove package {0}: would leave {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+        new_loaded_packages = []
+        for package_label, package in self._loaded_packages.items():
+            if not package_label in package_labels:
+                new_loaded_packages.append(package)
+        #print("loaded:", [package.label() for package in self.get_loaded_packages()])
+        #print("to remove:", [package.label() for package in packages])
+        #print("new loaded:", [package.label() for package in new_loaded_packages])
+        for pkg in new_loaded_packages:
+            unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, new_loaded_packages))
+            if unmatched_requirements:
+                for pkg, expression in unmatched_requirements:
+                    LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg, expression))
+                if len(unmatched_requirements) > 1:
+                    s = 's'
+                else:    
+                    s = ''
+                raise RemovePackageError("cannot remove package {0}: would leave {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+
+        for package in packages:
+            package
             LOGGER.info("unloading package {0}...".format(package))
             package.revert(self)
-            del self._packages[package_label]
-        if self._packages.is_changed():
+            del self._loaded_packages[package.label()]
+            
+        if self._loaded_packages.is_changed():
             self.store()
 
     @property
@@ -316,7 +345,7 @@ class Session(object):
                 # set
                 serializer.var_set(var_name, var_value)
         serializer.var_set("UXS_SESSION", self.session_dir)
-        loaded_packages = ':'.join(self._packages.keys())
+        loaded_packages = ':'.join(self._loaded_packages.keys())
         serializer.var_set("UXS_LOADED_PACKAGES", loaded_packages)
 
     def serialize_stream(self, serializer, stream=None, serialization_filename=None):

@@ -18,18 +18,41 @@
 __author__ = 'Simone Campagna'
 
 import abc
+import collections
 
 __all__ = ['Registry']
 
-class Registry(object):
+class Registry(collections.defaultdict):
     def __init__(self):
-        self._reg = []
+        self.unset_default_key()
+        super().__init__(list)
 
-    def register(self, instance):
-        self._reg.append(instance)
+    def set_default_key(self, default_key):
+        self._default_key = default_key
 
-    def __iter__(self):
-        return iter(self._reg)
+    def unset_default_key(self):
+        self.set_default_key('default')
 
-    def __len__(self):
-        return len(self._reg)
+    def get_default_key(self):
+        return self._default_key
+
+    def register(self, instance, key=None):
+        if key is None:
+            key = self._default_key
+        self[key].append(instance)
+
+#    def __iter__(self):
+#        print(":::---")
+#        for key, lst in self.items():
+#            print(":::", key, lst)
+#            for instance in lst:
+#                yield instance
+#
+#    def __len__(self):
+#        return sum(len(lst) for lst in self.values())
+
+#    def __iter__(self):
+#        return iter(self._reg)
+#
+#    def __len__(self):
+#        return len(self._reg)
