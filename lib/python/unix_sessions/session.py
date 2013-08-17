@@ -47,9 +47,29 @@ class Packages(collections.OrderedDict):
             self._changed_package_labels.append(package_label)
             super().__delitem__(package_label)
 
+class SessionConfig(configparser.ConfigParser):
+    def __init__(self, filename=None):
+        super().__init__()
+        self.filename = filename
+        if self.filename and os.path.lexists(self.filename):
+            self.load()
+        else:
+            self['session'] = {}
+            self['session']['name'] = ''
+            self['session']['type'] = ''
+            self['packages'] = {}
+            self['packages']['directories'] = ''
+            self['packages']['loaded_packages'] = ''
+
+    def load(self):
+        self.read(self.filename)
+
+    def store(self):
+        with open(self.filename, "w") as f_out:
+            self.write(f_out)
+
 class Session(object):
     SESSION_CONFIG_FILE = "session.config"
-    PACKAGES_FILE = "packages.txt"
     VERSION_OPERATORS = (
         ('==',          lambda x, v: x == v),
         ('!=',          lambda x, v: x != v),
@@ -69,32 +89,35 @@ class Session(object):
     def get_session_config_file(cls, session_dir):
         return os.path.join(session_dir, cls.SESSION_CONFIG_FILE)
 
+    @classmethod
+    def get_session_config(cls, session_config_file):
+        return SessionConfig(session_config_file)
+
+    @classmethod
+    def write_session_config(cls, session_config, session_config_file):
+        with open(session_config_file, "w") as f_out:
+            session_config.write(f_out)
+
     def load(self, session_dir):
         self.unload_environment_packages()
         self.unload_packages()
         self.session_dir = os.path.abspath(session_dir)
         session_config_file = self.get_session_config_file(session_dir)
-        self.session_name = None
-        self.session_type = None
-        packages_list = []
-        if os.path.lexists(session_config_file):
-            config = configparser.ConfigParser()
-            config.read(session_config_file)
-            session_section = config['session']
-            self.session_name = session_section['name']
-            self.session_type = session_section['type']
-            packages_config = config['packages']
-            #packages_dir_list_string = packages_config['directories']
-            #if packages_dir_list_string:
-            #    packages_dir_list = package_dir_list_string.split(':')
-            #else:
-            #    packages_dir_list = []
-            packages_list_string = packages_config['loaded_packages']
-            if packages_list_string:
-                packages_list = package_list_string.split(':')
-        else:
+        if not os.path.lexists(session_config_file):
             LOGGER.warning("cannot load session config file {0}".format(session_config_file))
-            return
+        session_config = self.get_session_config(session_config_file)
+        self.session_name = session_config['session']['name']
+        self.session_type = session_config['session']['type']
+        #packages_dir_list_string = session_config['packages']['directories']
+        #if packages_dir_list_string:
+        #    packages_dir_list = package_dir_list_string.split(':')
+        #else:
+        #    packages_dir_list = []
+        packages_list_string = session_config['packages']['loaded_packages']
+        if packages_list_string:
+            packages_list = packages_list_string.split(':')
+        else:
+            packages_list = []
         self.load_packages(packages_list)
 
     @classmethod
@@ -102,15 +125,10 @@ class Session(object):
         if not os.path.isdir(session_dir):
             os.makedirs(session_dir)
         session_config_file = cls.get_session_config_file(session_dir)
-        config = configparser.ConfigParser()
-        config['session'] = {}
-        config['session']['name'] = session_name
-        config['session']['type'] = session_type
-        config['packages'] = {}
-        config['packages']['loaded_packages'] = ''
-        config['packages']['directories'] = ''
-        with open(session_config_file, "w") as f_config:
-            config.write(f_config)
+        session_config = cls.get_session_config(session_config_file)
+        session_config['session']['name'] = session_name
+        session_config['session']['type'] = session_type
+        session_config.store()
     
     @classmethod
     def create(cls, session_dir, session_name, session_type):
@@ -184,10 +202,11 @@ class Session(object):
             self._packages[package_label] = package
                 
     def store(self):
-        packages_file = os.path.join(self.session_dir, self.PACKAGES_FILE)
-        with open(packages_file, "w") as f_out:
-            for package_label in self._packages:
-                f_out.write(package_label + '\n')
+        session_config_file = self.get_session_config_file(self.session_dir)
+        session_config = self.get_session_config(session_config_file)
+        session_config['packages']['loaded_packages'] = ':'.join(self._packages.keys())
+        session_config.write(sys.stdout)
+        session_config.store()
         
     def add(self, package_labels):
         packages = []

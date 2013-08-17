@@ -49,6 +49,8 @@ class Package(Transition):
     def __init__(self, name, version, category, short_description="", long_description=""):
         if not isinstance(name, str):
             name = str(name)
+        if ':' in name:
+            raise ValueError("invalid package name {0}: cannot contain ':'".format(name))
         if not isinstance(version, Version):
             version = self.make_version(version)
         if not isinstance(category, Category):

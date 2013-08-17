@@ -24,8 +24,10 @@ import re
 
 class Version(str):
     RE_SPLIT = re.compile(r"[\.\-_]")
-    def __init__(self, init):
-        super().__init__(init)
+    def __init__(self, version):
+        if ':' in version:
+            raise ValueError("invalid version {0}: cannot contain ':'".format(version))
+        super().__init__(version)
         self._tokens = []
         for token in self.RE_SPLIT.split(self):
             try:
