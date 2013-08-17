@@ -30,6 +30,7 @@ from .session import *
 from .package import Package
 from .serializer import Serializer
 from .serializers import *
+from .utils.home import get_home_dir
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -42,13 +43,19 @@ class Manager(object):
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     TMP_PREFIX = "uxs_"
     def __init__(self):
-        home_dir = os.path.expanduser('~')
+        user_home_dir = os.path.expanduser('~')
         username = getpass.getuser()
-        self.rc_dir = os.path.join(home_dir, self.RC_DIR_NAME)
-        self.user_package_dir = os.path.join(self.rc_dir, self.PACKAGES_DIR_NAME)
+        self.user_rc_dir = os.path.join(user_home_dir, self.RC_DIR_NAME)
+        self.user_package_dir = os.path.join(self.user_rc_dir, self.PACKAGES_DIR_NAME)
+        uxs_home_dir = get_home_dir()
+        if uxs_home_dir and os.path.lexists(uxs_home_dir):
+            uxs_etc_dir = os.path.join(uxs_home_dir, 'etc', 'unix-sessions')
+            self.uxs_package_dir = os.path.join(uxs_etc_dir, self.PACKAGES_DIR_NAME)
+        else:
+            self.uxs_package_dir = None
         tmpdir = os.environ.get("TMPDIR", "/tmp")
         self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, username))
-        self.persistent_sessions_dir = os.path.join(self.rc_dir, self.SESSIONS_DIR_NAME)
+        self.persistent_sessions_dir = os.path.join(self.user_rc_dir, self.SESSIONS_DIR_NAME)
         self.temporary_sessions_dir = os.path.join(self.tmp_dir, self.SESSIONS_DIR_NAME)
         self.sessions_dir = {
             self.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,

@@ -145,8 +145,14 @@ class Session(object):
         session_config = cls.get_session_config(session_config_file)
         session_config['session']['name'] = session_name
         session_config['session']['type'] = session_type
-        package_directories = [manager.user_package_dir]
+        package_directories = []
+        if manager.user_package_dir and os.path.lexists(manager.user_package_dir):
+            package_directories.append(manager.user_package_dir)
+        if manager.uxs_package_dir and os.path.lexists(manager.uxs_package_dir):
+            package_directories.append(manager.uxs_package_dir)
+        package_directories = [os.path.normpath(os.path.abspath(d)) for d in package_directories]
         session_config['packages']['directories'] = ':'.join(package_directories)
+        #session_config.write(sys.stdout)
         session_config.store()
     
     @classmethod
@@ -392,8 +398,7 @@ class Session(object):
         print("            dir:  {0}".format(self.session_dir))
         print("            type: {0}".format(self.session_type))
         show_sequence("Package directories", self._package_directories)
-        print("=== Packages:")
-        self.show_packages(self.loaded_packages())
+        self.show_packages("Loaded packages", self.loaded_packages())
 
     def serialize(self, serializer):
         for var_name, var_value in self._environment.changeditems():

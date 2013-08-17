@@ -25,8 +25,11 @@ from unix_sessions.manager import Manager
 from unix_sessions.serializer import Serializer
 from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
 from unix_sessions.utils.trace import set_trace, trace
+from unix_sessions.utils.home import set_home_dir
+
 
 def main():
+    set_home_dir("@UXS_HOME_DIR@")
     manager = Manager()
 
     class Formatter(argparse.HelpFormatter):
