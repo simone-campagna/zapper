@@ -18,7 +18,7 @@
 
 __author__ = 'Simone Campagna'
 
-def _show_sequence(title, sequence, min_number=3):
+def show_sequence(title, sequence, min_number=3):
     lst = list(sequence)
     if not lst:
         return

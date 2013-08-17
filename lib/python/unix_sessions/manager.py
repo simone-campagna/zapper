@@ -27,7 +27,7 @@ import collections
 
 from .errors import *
 from .session import *
-from .package import Package, Category
+from .package import Package
 from .serializer import Serializer
 from .serializers import *
 
@@ -45,7 +45,7 @@ class Manager(object):
         home_dir = os.path.expanduser('~')
         username = getpass.getuser()
         self.rc_dir = os.path.join(home_dir, self.RC_DIR_NAME)
-        self.user_packages_dir = os.path.join(self.rc_dir, self.PACKAGES_DIR_NAME)
+        self.user_package_dir = os.path.join(self.rc_dir, self.PACKAGES_DIR_NAME)
         tmpdir = os.environ.get("TMPDIR", "/tmp")
         self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, username))
         self.persistent_sessions_dir = os.path.join(self.rc_dir, self.SESSIONS_DIR_NAME)
@@ -54,7 +54,7 @@ class Manager(object):
             self.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
             self.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
         }
-        for d in self.user_packages_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
+        for d in self.user_package_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)
         self._session = None
@@ -82,7 +82,7 @@ class Manager(object):
                     session_dir = None
             if session_dir is None:
                 session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix=self.TMP_PREFIX)
-                Session.create_session_dir(session_dir=session_dir, session_name=os.path.basename(session_dir), session_type='temporary')
+                Session.create_session_dir(manager=self, session_dir=session_dir, session_name=os.path.basename(session_dir), session_type='temporary')
         else:
             for sessions_dir in self.persistent_sessions_dir, self.temporary_sessions_dir:
                 session_dir = os.path.join(sessions_dir, session_name)
@@ -131,8 +131,13 @@ class Manager(object):
             if os.path.lexists(session_dir):
                 raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
             os.makedirs(session_dir)
-        Session.create_session_dir(session_dir=session_dir, session_name=session_name, session_type=session_type)
+        Session.create_session_dir(manager=self, session_dir=session_dir, session_name=session_name, session_type=session_type)
         print("created {t} session {n} at {d}".format(t=session_type, n=session_name, d=session_dir))
+        return session_dir
+
+    def new_session(self, session_name=None):
+        session_dir = self.create_session(session_name)
+        self.session.load(session_dir)
         
     def delete_sessions(self, session_names):
         for session_name in session_names:
@@ -199,37 +204,35 @@ class Manager(object):
                     mark_current = ' '
                 print("  {0} {1}".format(mark_current, session_name))
 
-    def show_packages(self, packages):
-        if Category.__categories__:
-            max_category_len = max(len(category) for category in Category.__categories__)
-        else:
-            max_category_len = 0
-        fmt = "{{0:{np}d}} {{1:{lc}s}} {{2}}".format(np=len(str(len(packages) - 1)), lc=max_category_len)
-        for package_index, package in enumerate(packages):
-            print(fmt.format(package_index, package.category, package.label()))
-     
+#    def show_packages(self, packages):
+#        if Category.__categories__:
+#            max_category_len = max(len(category) for category in Category.__categories__)
+#        else:
+#            max_category_len = 0
+#        fmt = "{{0:{np}d}} {{1:{lc}s}} {{2}}".format(np=len(str(len(packages) - 1)), lc=max_category_len)
+#        for package_index, package in enumerate(packages):
+#            print(fmt.format(package_index, package.category, package.label()))
+#     
     def show_available_packages(self):
-        self.show_packages(self.session.get_available_packages())
+        self.session.show_available_packages()
 
     def show_package(self, package_label):
-        package = self.session.get_available_package(package_label)
-        if package is None:
-            print("package {0} not found".format(package_label))
-        else:
-            package.show()
+        self.session.show_package(package_label)
 
     def info(self):
-        print("=== Session name: {0}".format(self.session.session_name))
-        print("            dir:  {0}".format(self.session.session_dir))
-        print("            type: {0}".format(self.session.session_type))
-        print("=== Packages:")
-        self.show_packages(self.session.packages())
+        self.session.info()
 
-    def add(self, package_labels):
+    def add_packages(self, package_labels):
         self.session.add(package_labels)
 
-    def remove(self, package_labels):
+    def remove_packages(self, package_labels):
         self.session.remove(package_labels)
+
+    def add_package_directories(self, package_directories):
+        self.session.add_directories(package_directories)
+
+    def remove_package_directories(self, package_directories):
+        self.session.remove_directories(package_directories)
 
     def apply(self, serializer=None, serialization_filename=None):
         pass

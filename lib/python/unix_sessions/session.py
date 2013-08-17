@@ -24,11 +24,13 @@ import glob
 import collections
 
 from .environment import Environment
-from .package import Package
+from .package import Package, Category
 from .errors import *
 from .session_config import SessionConfig
 from .utils.debug import LOGGER
 from .utils.trace import trace
+from .utils.show_sequence import show_sequence
+
 
 class Packages(collections.OrderedDict):
     def __init__(self):
@@ -64,9 +66,8 @@ class Session(object):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
         self._loaded_packages = Packages()
-        self._package_dirs = []
+        self._package_directories = []
         self._available_packages = Packages()
-        self._manager = manager
         self.load(session_dir)
 
     def _load_modules(self, module_dir):
@@ -92,7 +93,7 @@ class Session(object):
 
     def load_available_packages(self):
         self._available_packages.clear()
-        for package_dir in self._package_dirs:
+        for package_dir in self._package_directories:
             self._load_modules(package_dir)
             for package in Package.__registry__[package_dir]:
                 self._available_packages[package.label()] = package
@@ -118,16 +119,15 @@ class Session(object):
         session_config = self.get_session_config(session_config_file)
         self.session_name = session_config['session']['name']
         self.session_type = session_config['session']['type']
-        package_dirs_string = session_config['packages']['directories']
-        if package_dirs_string:
-            package_dirs = package_dir_list_string.split(':')
+        package_directories_string = session_config['packages']['directories']
+        if package_directories_string:
+            package_directories = package_directories_string.split(':')
         else:
-            package_dirs = []
-        package_dirs.append(self._manager.user_packages_dir)
+            package_directories = []
         uxs_package_dir = os.environ.get("UXS_PACKAGE_DIR", None)
         if uxs_package_dir:
-            package_dirs.extend(uxs_package_dir.split(':'))
-        self._package_dirs = package_dirs
+            package_directories.extend(uxs_package_dir.split(':'))
+        self._package_directories = package_directories
         self.load_available_packages()
         packages_list_string = session_config['packages']['loaded_packages']
         if packages_list_string:
@@ -137,22 +137,21 @@ class Session(object):
         self.load_packages(packages_list)
 
     @classmethod
-    def create_session_dir(cls, session_dir, session_name, session_type):
+    def create_session_dir(cls, manager, session_dir, session_name, session_type):
         if not os.path.isdir(session_dir):
             os.makedirs(session_dir)
         session_config_file = cls.get_session_config_file(session_dir)
         session_config = cls.get_session_config(session_config_file)
         session_config['session']['name'] = session_name
         session_config['session']['type'] = session_type
+        package_directories = [manager.user_package_dir]
+        session_config['packages']['directories'] = ':'.join(package_directories)
         session_config.store()
     
     @classmethod
-    def create(cls, session_dir, session_name, session_type):
-        cls.create_session_dir(session_dir, session_name, session_type)
+    def create(cls, manager, session_dir, session_name, session_type):
+        cls.create_session_dir(manager, session_dir, session_name, session_type)
         return cls(session_dir)
-        
-    def packages(self):
-        return self._loaded_packages.values()
         
     def get_package(self, package_label, package_list):
         l = package_label.split('/', 1)
@@ -187,10 +186,10 @@ class Session(object):
     def get_loaded_package(self, package_label):
         return self.get_package(package_label, self._loaded_packages.values())
 
-    def get_loaded_packages(self):
+    def loaded_packages(self):
         return self._loaded_packages.values()
 
-    def get_available_packages(self):
+    def available_packages(self):
         return self._available_packages.values()
 
     def unload_environment_packages(self):
@@ -229,8 +228,33 @@ class Session(object):
         session_config_file = self.get_session_config_file(self.session_dir)
         session_config = self.get_session_config(session_config_file)
         session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
-        #session_config.write(sys.stdout)
         session_config.store()
+        
+    def add_directories(self, directories):
+        changed = False
+        for directory in directories:
+            directory = os.path.normpath(os.path.abspath(directory))
+            if not directory in self._package_directories:
+                self._package_directories.append(directory)
+                changed = True
+        if changed:
+            session_config_file = self.get_session_config_file(self.session_dir)
+            session_config = self.get_session_config(session_config_file)
+            session_config['packages']['directories'] = ':'.join(self._package_directories)
+            session_config.store()
+        
+    def remove_directories(self, directories):
+        changed = False
+        for directory in directories:
+            directory = os.path.normpath(os.path.abspath(directory))
+            if directory in self._package_directories:
+                self._package_directories.remove(directory)
+                changed = True
+        if changed:
+            session_config_file = self.get_session_config_file(self.session_dir)
+            session_config = self.get_session_config(session_config_file)
+            session_config['packages']['directories'] = ':'.join(self._package_directories)
+            session_config.store()
         
     def add(self, package_labels):
         packages = []
@@ -300,7 +324,7 @@ class Session(object):
         for package_label, package in self._loaded_packages.items():
             if not package_label in package_labels:
                 new_loaded_packages.append(package)
-        #print("loaded:", [package.label() for package in self.get_loaded_packages()])
+        #print("loaded:", [package.label() for package in self.loaded_packages()])
         #print("to remove:", [package.label() for package in packages])
         #print("new loaded:", [package.label() for package in new_loaded_packages])
         for pkg in new_loaded_packages:
@@ -335,6 +359,34 @@ class Session(object):
         return "{c}(session_dir={d!r}, session_name={n!r}, session_type={t!r})".format(c=self.__class__.__name__, d=self.session_dir, n=self.session_name, t=self.session_type)
     __str__ = __repr__
     
+    
+    def show_packages(self, packages):
+        if Category.__categories__:
+            max_category_len = max(len(category) for category in Category.__categories__)
+        else:
+            max_category_len = 0
+        fmt = "{{0:{np}d}} {{1:{lc}s}} {{2}}".format(np=len(str(len(packages) - 1)), lc=max_category_len)
+        for package_index, package in enumerate(packages):
+            print(fmt.format(package_index, package.category, package.label()))
+
+    def show_available_packages(self):
+        self.show_packages(self.available_packages())
+
+    def show_package(self, package_label):
+        package = self.get_available_package(package_label)
+        if package is None:
+            print("package {0} not found".format(package_label))
+        else:
+            package.show()
+
+    def info(self):
+        print("=== Session name: {0}".format(self.session_name))
+        print("            dir:  {0}".format(self.session_dir))
+        print("            type: {0}".format(self.session_type))
+        show_sequence("Package directories", self._package_directories)
+        print("=== Packages:")
+        self.show_packages(self.loaded_packages())
+
     def serialize(self, serializer):
         for var_name, var_value in self._environment.changeditems():
             orig_var_value = self._orig_environment.get(var_name, None)

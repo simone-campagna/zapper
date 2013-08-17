@@ -22,6 +22,7 @@ from .version import Version
 from .registry import Registry
 from .expression import Expression, AttributeGetter, ConstExpression
 from .text import fill
+from .utils.show_sequence import show_sequence
 
 import abc
 
@@ -96,25 +97,14 @@ class Package(Transition):
     def set_long_description(self, long_description):
         self.long_description = long_description
 
-    def _show_sequence(self, title, sequence, min_number=3):
-        lst = list(sequence)
-        if not lst:
-            return
-        nt = len(str(len(lst) - 1))
-        nt = max(min_number, nt)
-        print("=== {0}:".format(title))
-        fmt = "{{0:{nt}d}}) {{1}}".format(nt=nt)
-        for i, item in enumerate(lst):
-            print(fmt.format(i, item))
-
     def show(self):
         print("=== Package name:     {0}".format(self.name))
         print("            version:  {0}".format(self.version))
         print("            category: {0}".format(self.category))
-        self._show_sequence("Transitions", self.get_transitions())
-        self._show_sequence("Requirements", self.get_requirements())
-        self._show_sequence("Preferences", self.get_preferences())
-        self._show_sequence("Conflicts", self.get_conflicts())
+        show_sequence("Transitions", self.get_transitions())
+        show_sequence("Requirements", self.get_requirements())
+        show_sequence("Preferences", self.get_preferences())
+        show_sequence("Conflicts", self.get_conflicts())
         if self.short_description:
             print("=== Short description:")
             print(fill(self.short_description))
