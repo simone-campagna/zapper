@@ -21,6 +21,7 @@ import os
 import sys
 import imp
 import glob
+import shutil
 import collections
 
 from .environment import Environment
@@ -123,6 +124,12 @@ class Session(object):
     def write_session_config(cls, session_config, session_config_file):
         with open(session_config_file, "w") as f_out:
             session_config.write(f_out)
+
+    @classmethod
+    def copy(cls, source_session_root, target_session_root):
+        source_session_config_file = cls.get_session_config_file(source_session_root)
+        target_session_config_file = cls.get_session_config_file(target_session_root)
+        shutil.copy(source_session_config_file, target_session_config_file)
 
     def load(self, session_root):
         self.session_root = os.path.abspath(session_root)

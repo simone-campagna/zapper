@@ -152,6 +152,22 @@ class Manager(object):
         for session_name in session_names:
             self.delete_session(session_name)
 
+    def copy_sessions(self, session_names):
+        if len(session_names) == 1:
+            source_session_name = self.session.session_name
+        else:
+            source_session_name = session_names.pop(0)
+        target_session_names = session_names
+        source_session_root = self.get_session_root(source_session_name)
+        if source_session_root is None:
+            LOGGER.error("session {0} does not exist".format(source_session_name))
+        for target_session_name in target_session_names:
+            target_session_root = self._get_session_root(target_session_name, temporary=False, _check='mustnt_exist')
+            if target_session_root is None:
+                LOGGER.error("session {0} already exists".format(target_session_name))
+            else:
+                Session.copy(source_session_root, target_session_root)
+
     def delete_session(self, session_name_pattern):
         if session_name_pattern is None:
             session_name_pattern = self.session.session_name
@@ -180,15 +196,23 @@ class Manager(object):
         return session_roots
 
     def get_session_root(self, session_name, temporary=True, persistent=True):
+        return self._get_session_root(session_name=session_name, temporary=temporary, persistent=persistent, _check='must_exist')
+
+    def _get_session_root(self, session_name, temporary=True, persistent=True, _check='must_exist'):
         dl = []
-        if temporary:
-            dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
             dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
+        if temporary:
+            dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         for session_type, sessions_dir in dl:
             session_root = os.path.join(sessions_dir, session_name)
             session_config_file = Session.get_session_config_file(session_root)
-            if os.path.lexists(session_config_file):
+            exists = os.path.lexists(session_config_file)
+            if _check == 'must_exist' and not exists:
+                continue
+            elif _check == 'mustnt_exist' and exists:
+                continue
+            else:
                 return session_root
         return None
 

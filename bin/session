@@ -124,11 +124,10 @@ Change the current session""",
         help="info about current session")
     parser_session_info.set_defaults(function=manager.info_session)
 
-    #parser_session_show_available_packages = session_subparsers.add_parser("avail",
-    #    aliases=["av"],
-    #    parents=[common_parser],
-    #    help="show available packages")
-    #parser_session_show_available_packages.set_defaults(function=manager.show_available_packages)
+    parser_session_copy = session_subparsers.add_parser("copy",
+        parents=[common_parser],
+        help="copy sessions")
+    parser_session_copy.set_defaults(function=manager.copy_sessions)
 
     for subparser in (parser_session_create, parser_session_load, parser_session_new):
         subparser.add_argument("session_name",
@@ -137,7 +136,7 @@ Change the current session""",
             default=None,
             help="session name")
 
-    for subparser in (parser_session_delete, ):
+    for subparser in (parser_session_delete, parser_session_copy):
         subparser.add_argument("session_names",
             type=str,
             nargs='+',
