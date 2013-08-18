@@ -18,14 +18,19 @@
 
 __author__ = 'Simone Campagna'
 
-def show_sequence(title, sequence, min_number=3):
-    lst = list(sequence)
-    if not lst:
-        return
-    nt = len(str(len(lst) - 1))
-    nt = max(min_number, nt)
-    print("=== {0}:".format(title))
-    fmt = "{{0:{nt}d}}) {{1}}".format(nt=nt)
-    for i, item in enumerate(lst):
-        print(fmt.format(i, item))
+import random
+import os
 
+class RandomNameSequence(object):
+    def __init__(self, width=8, characters=None, seed=None):
+        if characters is None:
+            characters = "abcdefghijklmnopqrstuvwxyz0123456789_"
+        self.width = width
+        self.characters = characters
+        self.random = random.Random(seed)
+ 
+    def __iter__(self):
+        choice = self.random.choice
+        characters = self.characters
+        yield ''.join(choice(characters) for i in range(self.width))
+        

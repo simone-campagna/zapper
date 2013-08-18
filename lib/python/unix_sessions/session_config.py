@@ -28,12 +28,17 @@ class SessionConfig(configparser.ConfigParser):
         self.filename = filename
         if self.filename and os.path.lexists(self.filename):
             self.load()
-        else:
+        if not 'session' in self:
             self['session'] = {}
+        if not 'name' in self['session']:
             self['session']['name'] = ''
+        if not 'type' in self['session']:
             self['session']['type'] = ''
+        if not 'packages' in self:
             self['packages'] = {}
+        if not 'directories' in self['packages']:
             self['packages']['directories'] = ''
+        if not 'loaded_packages' in self['packages']:
             self['packages']['loaded_packages'] = ''
 
     def load(self):

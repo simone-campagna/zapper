@@ -29,8 +29,9 @@ from .errors import *
 from .session_config import SessionConfig
 from .utils.debug import LOGGER
 from .utils.trace import trace
-from .utils.show_sequence import show_sequence
+from .utils.show_table import show_table
 from .utils.sorted_dependencies import sorted_dependencies
+from .utils.random_name import RandomNameSequence
 
 
 class Packages(collections.OrderedDict):
@@ -53,7 +54,7 @@ class Packages(collections.OrderedDict):
             super().__delitem__(package_label)
 
 class Session(object):
-    SESSION_CONFIG_FILE = "session.config"
+    SESSION_SUFFIX = ".session"
     MODULE_PATTERN = "uxs_*.py"
     VERSION_OPERATORS = (
         ('==',          lambda x, v: x == v),
@@ -63,14 +64,15 @@ class Session(object):
         ('>',           lambda x, v: x >  v),
         ('>=',          lambda x, v: x >= v),
     )
+    RANDOM_NAME_SEQUENCE = RandomNameSequence(width=5)
 
-    def __init__(self, manager, session_dir):
+    def __init__(self, manager, session_root):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
         self._loaded_packages = Packages()
         self._package_directories = []
         self._available_packages = Packages()
-        self.load(session_dir)
+        self.load(session_root)
 
     def _load_modules(self, module_dir):
         #print("+++", module_dir)
@@ -101,8 +103,17 @@ class Session(object):
                 self._available_packages[package.label()] = package
 
     @classmethod
-    def get_session_config_file(cls, session_dir):
-        return os.path.join(session_dir, cls.SESSION_CONFIG_FILE)
+    def get_session_config_file(cls, session_root):
+        return session_root + cls.SESSION_SUFFIX
+
+    @classmethod
+    def get_session_root(cls, session_config_file):
+        l = len(cls.SESSION_SUFFIX)
+        session_root, session_suffix = \
+            session_config_file[:-l], session_config_file[-l:]
+        if session_suffix != cls.SESSION_SUFFIX:
+            raise SessionError("invalid session config file name {0}".format(session_config_file))
+        return session_root
 
     @classmethod
     def get_session_config(cls, session_config_file):
@@ -113,9 +124,9 @@ class Session(object):
         with open(session_config_file, "w") as f_out:
             session_config.write(f_out)
 
-    def load(self, session_dir):
-        self.session_dir = os.path.abspath(session_dir)
-        session_config_file = self.get_session_config_file(session_dir)
+    def load(self, session_root):
+        self.session_root = os.path.abspath(session_root)
+        session_config_file = self.get_session_config_file(session_root)
         if not os.path.lexists(session_config_file):
             LOGGER.warning("cannot load session config file {0}".format(session_config_file))
         session_config = self.get_session_config(session_config_file)
@@ -139,10 +150,26 @@ class Session(object):
         self.load_packages(packages_list)
 
     @classmethod
-    def create_session_dir(cls, manager, session_dir, session_name, session_type):
-        if not os.path.isdir(session_dir):
-            os.makedirs(session_dir)
-        session_config_file = cls.get_session_config_file(session_dir)
+    def create_unique_session_root(cls, sessions_dir):
+        for name in cls.RANDOM_NAME_SEQUENCE:
+            session_name = "uxs{0}".format(name)
+            session_root = os.path.join(sessions_dir, session_name)
+            session_config_file = cls.get_session_config_file(session_root)
+            if os.path.lexists(session_config_file):
+                # name already in use
+                LOGGER.warning("name {0} already in use - discarded".format(session_name))
+                continue
+            try:
+                os.open(session_config_file, os.O_CREAT | os.O_EXCL)
+            except OSError as e:
+                # file already exists
+                LOGGER.warning("file {0} already exists - {1} discarded".format(session_config_file, session_name))
+                continue
+            return session_root
+            
+    @classmethod
+    def create_session_config(cls, manager, session_root, session_name, session_type):
+        session_config_file = cls.get_session_config_file(session_root)
         session_config = cls.get_session_config(session_config_file)
         session_config['session']['name'] = session_name
         session_config['session']['type'] = session_type
@@ -157,9 +184,27 @@ class Session(object):
         session_config.store()
     
     @classmethod
-    def create(cls, manager, session_dir, session_name, session_type):
-        cls.create_session_dir(manager, session_dir, session_name, session_type)
-        return cls(session_dir)
+    def delete_session_root(cls, session_root, session_name=None):
+        if session_name is None:
+            session_name = os.path.basename(session_root)
+        LOGGER.info("deleting session {0}...".format(session_name))
+        session_config_file = cls.get_session_config_file(session_root)
+        if not os.path.lexists(session_config_file):
+            LOGGER.error("cannot delete session {0}: it does not exists".format(session_name))
+        os.remove(session_config_file)
+
+    @classmethod
+    def get_session_roots(cls, sessions_dir, session_name_pattern='*'):
+        session_roots = []
+        for session_config_file in glob.glob(os.path.join(sessions_dir, session_name_pattern + cls.SESSION_SUFFIX)):
+            session_root = session_config_file[:-len(cls.SESSION_SUFFIX)]
+            session_roots.append(session_root)
+        return session_roots
+
+    @classmethod
+    def create(cls, manager, session_root, session_name, session_type):
+        cls.create_session_config(manager, session_root, session_name, session_type)
+        return cls(session_root)
         
     def get_package(self, package_label, package_list):
         l = package_label.split('/', 1)
@@ -233,7 +278,7 @@ class Session(object):
             self._loaded_packages[package_label] = package
                 
     def store(self):
-        session_config_file = self.get_session_config_file(self.session_dir)
+        session_config_file = self.get_session_config_file(self.session_root)
         session_config = self.get_session_config(session_config_file)
         session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
         session_config.store()
@@ -246,7 +291,7 @@ class Session(object):
                 self._package_directories.append(directory)
                 changed = True
         if changed:
-            session_config_file = self.get_session_config_file(self.session_dir)
+            session_config_file = self.get_session_config_file(self.session_root)
             session_config = self.get_session_config(session_config_file)
             session_config['packages']['directories'] = ':'.join(self._package_directories)
             session_config.store()
@@ -259,7 +304,7 @@ class Session(object):
                 self._package_directories.remove(directory)
                 changed = True
         if changed:
-            session_config_file = self.get_session_config_file(self.session_dir)
+            session_config_file = self.get_session_config_file(self.session_root)
             session_config = self.get_session_config(session_config_file)
             session_config['packages']['directories'] = ':'.join(self._package_directories)
             session_config.store()
@@ -381,19 +426,12 @@ class Session(object):
         return self._orig_environment
 
     def __repr__(self):
-        return "{c}(session_dir={d!r}, session_name={n!r}, session_type={t!r})".format(c=self.__class__.__name__, d=self.session_dir, n=self.session_name, t=self.session_type)
+        return "{c}(session_root={r!r}, session_name={n!r}, session_type={t!r})".format(c=self.__class__.__name__, r=self.session_root, n=self.session_name, t=self.session_type)
     __str__ = __repr__
     
     
     def show_packages(self, title, packages):
-        if Category.__categories__:
-            max_category_len = max(len(category) for category in Category.__categories__)
-        else:
-            max_category_len = 0
-        print("=== {0}:".format(title))
-        fmt = "{{0:{np}d}} {{1:{lc}s}} {{2}}".format(np=len(str(len(packages) - 1)), lc=max_category_len)
-        for package_index, package in enumerate(packages):
-            print(fmt.format(package_index, package.category, package.label()))
+        show_table(title, [(package.category, package.label()) for package in packages])
 
     def show_available_packages(self):
         self.show_packages("Available packages", self.available_packages())
@@ -409,13 +447,13 @@ class Session(object):
             package.show()
 
     def show_package_directories(self):
-        show_sequence("Package directories", self._package_directories)
+        show_table("Package directories", self._package_directories)
 
     def info(self):
         print("=== Session name: {0}".format(self.session_name))
-        print("            dir:  {0}".format(self.session_dir))
+        print("            dir:  {0}".format(self.session_root))
         print("            type: {0}".format(self.session_type))
-        show_sequence("Package directories", self._package_directories)
+        show_table("Package directories", self._package_directories)
         self.show_packages("Loaded packages", self.loaded_packages())
 
     def serialize(self, serializer):
@@ -427,7 +465,7 @@ class Session(object):
             elif var_value != orig_var_value:
                 # set
                 serializer.var_set(var_name, var_value)
-        serializer.var_set("UXS_SESSION", self.session_dir)
+        serializer.var_set("UXS_SESSION", self.session_root)
         loaded_packages = ':'.join(self._loaded_packages.keys())
         serializer.var_set("UXS_LOADED_PACKAGES", loaded_packages)
 
@@ -436,7 +474,7 @@ class Session(object):
         serializer.serialize(stream)
         if serialization_filename:
             serializer.serialize_remove_filename(stream, serialization_filename)
-            serializer.serialize_remove_empty_directory(stream, os.path.dirname(serialization_filename))
+            #serializer.serialize_remove_empty_directory(stream, os.path.dirname(serialization_filename))
 
     def serialize_file(self, serializer, serialization_filename):
         try:

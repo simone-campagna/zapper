@@ -3,10 +3,10 @@ PYTHON_EXECUTABLE="@PYTHON_EXECUTABLE@"
 export PYTHONPATH="${PYTHONPATH}:${UXS_HOME_DIR}/lib/python"
 function uxs {
     typeset _filename
-    if [[ ${UXS_SESSION} == '' || ! -d ${UXS_SESSION} ]] ; then
+    if [[ ${UXS_SESSION} == '' ]] ; then
         typeset _tmpdir=${TMPDIR:-/tmp}
         unset _filename
-        while [[ -f ${_filename:="$_tmpdir/$$.$RANDOM"} ]] ; do
+        while [[ -f ${_filename:="$_tmpdir/bash.$$.$RANDOM"} ]] ; do
             unset _filename
         done
         env UXS_SERIALIZATION="bash:$_filename" ${UXS_HOME_DIR}/bin/session init
@@ -15,7 +15,7 @@ function uxs {
         . "$_filename"
     fi
     unset _filename
-    while [[ -f ${_filename:="$UXS_SESSION/$$.$RANDOM"} ]] ; do
+    while [[ -f ${_filename:="${UXS_SESSION}.bash.$$.$RANDOM"} ]] ; do
         unset _filename
     done
     #echo env UXS_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"

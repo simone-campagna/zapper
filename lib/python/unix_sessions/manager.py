@@ -31,6 +31,8 @@ from .package import Package
 from .serializer import Serializer
 from .serializers import *
 from .utils.home import get_home_dir
+from .utils.random_name import RandomNameSequence
+from .utils.show_table import show_table
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -41,7 +43,6 @@ class Manager(object):
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
-    TMP_PREFIX = "uxs_"
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
         username = getpass.getuser()
@@ -81,28 +82,28 @@ class Manager(object):
 
     def load_session(self, session_name=None):
         if session_name is None:
-            session_dir = os.environ.get("UXS_SESSION", None)
-            if session_dir:
-                session_config_file = Session.get_session_config_file(session_dir)
+            session_root = os.environ.get("UXS_SESSION", None)
+            if session_root:
+                session_config_file = Session.get_session_config_file(session_root)
                 if not os.path.lexists(session_config_file):
-                    LOGGER.warning("inconsistent environment: invalid session {0}".format(session_dir))
-                    session_dir = None
-            if session_dir is None:
-                session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix=self.TMP_PREFIX)
-                Session.create_session_dir(manager=self, session_dir=session_dir, session_name=os.path.basename(session_dir), session_type='temporary')
+                    LOGGER.warning("inconsistent environment: invalid session {0}".format(session_root))
+                    session_root = None
+            if session_root is None:
+                session_root = Session.create_unique_session_root(self.temporary_sessions_dir)
+                Session.create_session_config(manager=self, session_root=session_root, session_name=os.path.basename(session_root), session_type='temporary')
         else:
             for sessions_dir in self.persistent_sessions_dir, self.temporary_sessions_dir:
-                session_dir = os.path.join(sessions_dir, session_name)
-                session_config_file = Session.get_session_config_file(session_dir)
+                session_root = os.path.join(sessions_dir, session_name)
+                session_config_file = Session.get_session_config_file(session_root)
                 if os.path.lexists(session_config_file):
                     break
             else:
                 raise SessionError("session {0} not found".format(session_name))
         try:
             if self.session:
-                self.session.load(session_dir)
+                self.session.load(session_root)
             else:
-                self.session = Session(self, session_dir)
+                self.session = Session(self, session_root)
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -130,21 +131,21 @@ class Manager(object):
         session_type = None
         if session_name is None:
             session_type = self.SESSION_TYPE_TEMPORARY
-            session_dir = tempfile.mkdtemp(dir=self.temporary_sessions_dir, prefix=self.TMP_PREFIX)
-            session_name = os.path.basename(session_dir)
+            session_root = Session.create_unique_session_root(self.temporary_sessions_dir)
+            session_name = os.path.basename(session_root)
         else:
             session_type = self.SESSION_TYPE_PERSISTENT
-            session_dir = os.path.join(self.persistent_sessions_dir, session_name)
-            if os.path.lexists(session_dir):
-                raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
-            os.makedirs(session_dir)
-        Session.create_session_dir(manager=self, session_dir=session_dir, session_name=session_name, session_type=session_type)
-        print("created {t} session {n} at {d}".format(t=session_type, n=session_name, d=session_dir))
-        return session_dir
+            session_root = os.path.join(self.persistent_sessions_dir, session_name)
+            #if os.path.lexists(session_root):
+            #    raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
+            #os.makedirs(session_root)
+        Session.create_session_config(manager=self, session_root=session_root, session_name=session_name, session_type=session_type)
+        print("created {t} session {n} at {r}".format(t=session_type, n=session_name, r=session_root))
+        return session_root
 
     def new_session(self, session_name=None):
-        session_dir = self.create_session(session_name)
-        self.session.load(session_dir)
+        session_root = self.create_session(session_name)
+        self.session.load(session_root)
         
     def delete_sessions(self, session_names):
         for session_name in session_names:
@@ -153,18 +154,18 @@ class Manager(object):
     def delete_session(self, session_name_pattern):
         if session_name_pattern is None:
             session_name_pattern = self.session.session_name
-        for session_dir in self.get_sessions(session_name_pattern):
-            #print(self.session)
-            if session_dir == self.session.session_dir:
+        for session_root in self.get_sessions(session_name_pattern):
+            if session_root == self.session.session_root:
                 del os.environ['UXS_SESSION']
                 self.load_session()
             #print(self.session)
-            session_config_file = Session.get_session_config_file(session_dir)
-            os.remove(session_config_file)
-            try:
-                os.rmdir(session_dir)
-            except OSError:
-                pass
+            Session.delete_session_root(session_root)
+            #session_config_file = Session.get_session_config_file(session_root)
+            #os.remove(session_config_file)
+            #try:
+            #    os.rmdir(session_root)
+            #except OSError:
+            #    pass
         
     def get_sessions(self, session_name_pattern, temporary=True, persistent=True):
         dl = []
@@ -172,25 +173,22 @@ class Manager(object):
             dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
             dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
-        session_dirs = []
+        session_roots = []
         for session_type, sessions_dir in dl:
-            for session_dir in glob.glob(os.path.join(sessions_dir, session_name_pattern)):
-                session_config_file = Session.get_session_config_file(session_dir)
-                if os.path.lexists(session_config_file):
-                    session_dirs.append(session_dir)
-        return session_dirs
+            session_roots.extend(Session.get_session_roots(sessions_dir, session_name_pattern))
+        return session_roots
 
-    def get_session_dir(self, session_name, temporary=True, persistent=True):
+    def get_session_root(self, session_name, temporary=True, persistent=True):
         dl = []
         if temporary:
             dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
             dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         for session_type, sessions_dir in dl:
-            session_dir = os.path.join(sessions_dir, session_name)
-            session_config_file = Session.get_session_config_file(session_dir)
+            session_root = os.path.join(sessions_dir, session_name)
+            session_config_file = Session.get_session_config_file(session_root)
             if os.path.lexists(session_config_file):
-                return session_dir
+                return session_root
         return None
 
     def show_available_sessions(self, temporary=True, persistent=True):
@@ -200,16 +198,18 @@ class Manager(object):
         if persistent:
             dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         for session_type, sessions_dir in dl:
-            print("=== Available {t} sessions:".format(t=session_type))
-            session_dir_pattern = os.path.join(sessions_dir, '*')
-            for entry in glob.glob(Session.get_session_config_file(session_dir_pattern)):
-
-                session_name = os.path.basename(os.path.dirname(entry))
+            table = []
+            session_root_pattern = os.path.join(sessions_dir, '*')
+            for session_config_file in glob.glob(Session.get_session_config_file(session_root_pattern)):
+                session_root = Session.get_session_root(session_config_file)
+                session_name = os.path.basename(session_root)
                 if session_name == self.session.session_name:
                     mark_current = '*'
                 else:
-                    mark_current = ' '
-                print("  {0} {1}".format(mark_current, session_name))
+                    mark_current = ''
+                table.append((mark_current, session_name))
+            title = "Available {t} sessions".format(t=session_type)
+            show_table(title, table)
 
     def show_available_packages(self):
         self.session.show_available_packages()
@@ -259,7 +259,7 @@ class Manager(object):
         environment = self.session.environment
         #print("UXS_SESSION={0}".format(environment.get('UXS_SESSION', None)))
         if not 'UXS_SESSION' in environment:
-            environment['UXS_SESSION'] = self.session.session_dir
+            environment['UXS_SESSION'] = self.session.session_root
         #print(serializer, serialization_filename)
         if serializer:
             if serialization_filename:

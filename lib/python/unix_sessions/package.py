@@ -22,7 +22,7 @@ from .version import Version
 from .registry import Registry
 from .expression import Expression, AttributeGetter, ConstExpression
 from .text import fill
-from .utils.show_sequence import show_sequence
+from .utils.show_table import show_table
 
 import abc
 
@@ -101,10 +101,10 @@ class Package(Transition):
         print("=== Package name:     {0}".format(self.name))
         print("            version:  {0}".format(self.version))
         print("            category: {0}".format(self.category))
-        show_sequence("Transitions", self.get_transitions())
-        show_sequence("Requirements", self.get_requirements())
-        show_sequence("Preferences", self.get_preferences())
-        show_sequence("Conflicts", self.get_conflicts())
+        show_table("Transitions", self.get_transitions())
+        show_table("Requirements", self.get_requirements())
+        show_table("Preferences", self.get_preferences())
+        show_table("Conflicts", self.get_conflicts())
         if self.short_description:
             print("=== Short description:")
             print(fill(self.short_description))
