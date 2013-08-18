@@ -207,7 +207,7 @@ class Manager(object):
                 if session_name == self.session.session_name:
                     mark_current = '*'
                 else:
-                    mark_current = ''
+                    mark_current = ' '
                 table.append((mark_current, session_name))
             title = "Available {t} sessions".format(t=session_type)
             show_table(title, table)

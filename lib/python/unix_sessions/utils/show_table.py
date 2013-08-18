@@ -20,12 +20,11 @@ __author__ = 'Simone Campagna'
 from .debug import PRINT
 
 def show_title(title, print_function=PRINT, max_width=70):
-    if title:
-        t = "==[{0}]".format(title)
-        t += "=" * (max_width - len(t))
-        print_function(t)
+    t = "==[{0}]".format(title)
+    t += "=" * (max_width - len(t))
+    print_function(t)
 
-def show_table(title, table, min_number=3, separator=' ', print_function=PRINT):
+def show_table(title, table, min_number=3, separator=' ', print_function=PRINT, show_always_title=False):
     new_table = []
     for row in table:
         if isinstance(row, (tuple, list)):
@@ -36,7 +35,8 @@ def show_table(title, table, min_number=3, separator=' ', print_function=PRINT):
             new_table.append((str(row), ))
     table = new_table
 
-    show_title("{0} ({1})".format(title, len(table)))
+    if title and (show_always_title or table):
+        show_title("{0} ({1})".format(title, len(table)))
 
     if not table:
         return
@@ -52,7 +52,13 @@ def show_table(title, table, min_number=3, separator=' ', print_function=PRINT):
         table = new_table
 
     max_lengths = [max(len(row[col]) for row in table) for col in range(max_num_cols)]
-    mods = [":{0}s".format(max_lengths[i]) for i in range(max_num_cols - 1)] + [""]
+    mods = []
+    for max_length in max_lengths[:-1]:
+        if max_length:
+            mods.append(":{0}s".format(max_length))
+        else:
+            mods.append("")
+    mods.append("")
 
     fmts = ["{{{i}{m}}}".format(i=i + 1, m=m) for i, m in enumerate(mods)]
     fmt = separator.join(fmts)
