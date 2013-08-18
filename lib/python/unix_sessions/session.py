@@ -29,7 +29,7 @@ from .errors import *
 from .session_config import SessionConfig
 from .utils.debug import LOGGER
 from .utils.trace import trace
-from .utils.show_table import show_table
+from .utils.show_table import show_table, show_title
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
 
@@ -180,7 +180,6 @@ class Session(object):
             package_directories.append(manager.uxs_package_dir)
         package_directories = [os.path.normpath(os.path.abspath(d)) for d in package_directories]
         session_config['packages']['directories'] = ':'.join(package_directories)
-        #session_config.write(sys.stdout)
         session_config.store()
     
     @classmethod
@@ -442,7 +441,7 @@ class Session(object):
     def show_package(self, package_label):
         package = self.get_available_package(package_label)
         if package is None:
-            print("package {0} not found".format(package_label))
+            LOGGER.warning("package {0} not found".format(package_label))
         else:
             package.show()
 
@@ -450,9 +449,7 @@ class Session(object):
         show_table("Package directories", self._package_directories)
 
     def info(self):
-        print("=== Session name: {0}".format(self.session_name))
-        print("            dir:  {0}".format(self.session_root))
-        print("            type: {0}".format(self.session_type))
+        show_title("Session {0} at {1}".format(self.session_name, self.session_root))
         show_table("Package directories", self._package_directories)
         self.show_packages("Loaded packages", self.loaded_packages())
 

@@ -22,7 +22,8 @@ from .version import Version
 from .registry import Registry
 from .expression import Expression, AttributeGetter, ConstExpression
 from .text import fill
-from .utils.show_table import show_table
+from .utils.show_table import show_table, show_title
+from .utils.debug import PRINT
 
 import abc
 
@@ -98,19 +99,20 @@ class Package(Transition):
         self.long_description = long_description
 
     def show(self):
-        print("=== Package name:     {0}".format(self.name))
-        print("            version:  {0}".format(self.version))
-        print("            category: {0}".format(self.category))
+        show_title("Package {0}".format(self.label()))
+        PRINT("name     : {0}".format(self.name))
+        PRINT("version  : {0}".format(self.version))
+        PRINT("category : {0}".format(self.category))
         show_table("Transitions", self.get_transitions())
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())
         show_table("Conflicts", self.get_conflicts())
         if self.short_description:
-            print("=== Short description:")
-            print(fill(self.short_description))
+            show_title("Short description")
+            PRINT(fill(self.short_description))
         if self.long_description:
-            print("=== Long description:")
-            print(fill(self.long_description))
+            show_title("Long description")
+            PRINT(fill(self.long_description))
 
     def make_version(self, version_string):
         return self.__version_class__(version_string)

@@ -33,6 +33,7 @@ from .serializers import *
 from .utils.home import get_home_dir
 from .utils.random_name import RandomNameSequence
 from .utils.show_table import show_table
+from .utils.debug import PRINT
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -140,7 +141,7 @@ class Manager(object):
             #    raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
             #os.makedirs(session_root)
         Session.create_session_config(manager=self, session_root=session_root, session_name=session_name, session_type=session_type)
-        print("created {t} session {n} at {r}".format(t=session_type, n=session_name, r=session_root))
+        PRINT("created {t} session {n} at {r}".format(t=session_type, n=session_name, r=session_root))
         return session_root
 
     def new_session(self, session_name=None):

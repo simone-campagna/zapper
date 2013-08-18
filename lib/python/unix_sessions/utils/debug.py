@@ -27,16 +27,19 @@ from . import trace
 DEBUG = False
 VERBOSE = False
 
-def _create_logger(name, level=logging.WARNING):
+def _create_logger(name, level=logging.WARNING, formatter=None):
     logger = logging.getLogger(name)
     handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(levelname)s: %(message)s")
+    if formatter is None:
+        formatter = logging.Formatter("%(levelname)s: %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(level)
     return logger
 
 LOGGER = _create_logger('UXS')
+PRINT_LOGGER = _create_logger('PRINT', level=logging.INFO, formatter=logging.Formatter("%(message)s"))
+PRINT = PRINT_LOGGER.info
 
 def set_verbose(enable):
     global VERBOSE, LOGGER

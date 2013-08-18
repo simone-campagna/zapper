@@ -17,8 +17,15 @@
 #
 
 __author__ = 'Simone Campagna'
+from .debug import PRINT
 
-def show_table(title, table, min_number=3, separator=' ', print_function=print):
+def show_title(title, print_function=PRINT, max_width=70):
+    if title:
+        t = "==[{0}]".format(title)
+        t += "=" * (max_width - len(t))
+        print_function(t)
+
+def show_table(title, table, min_number=3, separator=' ', print_function=PRINT):
     new_table = []
     for row in table:
         if isinstance(row, (tuple, list)):
@@ -29,8 +36,7 @@ def show_table(title, table, min_number=3, separator=' ', print_function=print):
             new_table.append((str(row), ))
     table = new_table
 
-    if title:
-        print_function("=== {0}: [{1}]".format(title, len(table)))
+    show_title("{0} ({1})".format(title, len(table)))
 
     if not table:
         return
