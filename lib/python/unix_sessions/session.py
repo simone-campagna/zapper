@@ -33,6 +33,7 @@ from .utils.trace import trace
 from .utils.show_table import show_table, show_title
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
+from .utils import sequences
 
 
 class Packages(collections.OrderedDict):
@@ -315,7 +316,7 @@ class Session(object):
             session_config['packages']['directories'] = ':'.join(self._package_directories)
             session_config.store()
         
-    def add(self, package_labels):
+    def add(self, package_labels, resolution_level=0):
         packages = []
         current_package_labels = []
         for package_label in package_labels:
@@ -334,38 +335,55 @@ class Session(object):
             current_package_labels.append(package_label)
         package_labels = current_package_labels
         package_dependencies = collections.defaultdict(set)
-        loaded_packages = list(self._loaded_packages.values()) + packages
-        for package_index, package in enumerate(packages):
-            package_label = package.label()
-            #print("@@@ add::applying {0}...".format(package_label))
-            matched_requirements, unmatched_requirements = package.match_requirements(loaded_packages)
-            if unmatched_requirements:
-                for pkg, expression in unmatched_requirements:
-                    LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
-                if len(unmatched_requirements) > 1:
-                    s = 's'
-                else:    
-                    s = ''
-                raise AddPackageError("cannot add package {0}: {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
-            conflicts = package.match_conflicts(self._loaded_packages.values())
-            if conflicts:
-                for pkg0, expression, pkg1 in unmatched_requirements:
-                    LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
-                if len(conflicts) > 1:
-                    s = 's'
-                else:    
-                    s = ''
-                raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
-            for pkg0, expression, pkg1 in matched_requirements:
-                package_dependencies[pkg0].add(pkg1)
-        for package in sorted_dependencies(package_dependencies, packages):
+        available_packages = self.available_packages()
+        packages_to_load = set()
+        while packages:
+            simulated_loaded_packages = list(sequences.unique(list(self._loaded_packages.values()) + packages))
+            automatically_added_packages = []
+            for package_index, package in enumerate(packages):
+                package_label = package.label()
+                #print("@@@ add::applying {0}...".format(package_label))
+                matched_requirements, unmatched_requirements = package.match_requirements(simulated_loaded_packages)
+                if unmatched_requirements and resolution_level > 0:
+                    matched_requirements, unmatched_requirements = package.match_requirements(available_packages)
+                    for pkg0, expression, pkg1 in matched_requirements:
+                        if not pkg1 in simulated_loaded_packages:
+                            automatically_added_packages.append(pkg1)
+                            if not pkg1 in automatically_added_packages:
+                                LOGGER.info("package {0} will be automatically added".format(pkg1))
+                                automatically_added_packages.append(pkg1)
+                if unmatched_requirements:
+                    for pkg, expression in unmatched_requirements:
+                        LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
+                    if len(unmatched_requirements) > 1:
+                        s = 's'
+                    else:    
+                        s = ''
+                    raise AddPackageError("cannot add package {0}: {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+                for pkg0, expression, pkg1 in matched_requirements:
+                    package_dependencies[pkg0].add(pkg1)
+                    conflicts = package.match_conflicts(self._loaded_packages.values())
+                if conflicts:
+                    for pkg0, expression, pkg1 in unmatched_requirements:
+                        LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
+                    if len(conflicts) > 1:
+                        s = 's'
+                    else:    
+                        s = ''
+                    raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
+                packages_to_load.update(packages)
+                #packages = list(sequences.difference(packages, simulated_loaded_packages))
+                packages = list(sequences.unique(automatically_added_packages))
+                
+
+        for package in sorted_dependencies(package_dependencies, packages_to_load):
             LOGGER.info("adding package {0}...".format(package))
             package.apply(self)
             self._loaded_packages[package.label()] = package
         if self._loaded_packages.is_changed():
             self.store()
         
-    def remove(self, package_labels):
+    def remove(self, package_labels, resolution_level=0):
         packages = []
         current_package_labels = []
         for package_label in package_labels:
@@ -383,32 +401,42 @@ class Session(object):
             packages.append(package)
             current_package_labels.append(package_label)
         package_labels = current_package_labels
-        #print("loaded:", [package.label() for package in self.loaded_packages()])
-        #print("to remove:", [package.label() for package in packages])
+
+        packages_to_remove = set()
+
+        while packages:
+            automatically_removed_packages = []
+            # check missing dependencies:
+            for package in packages:
+                new_loaded_packages = [pkg for pkg in self._loaded_packages.values() if not pkg in packages]
+                for pkg in new_loaded_packages:
+                    matched_requirements, unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, new_loaded_packages))
+                    if unmatched_requirements:
+                        if resolution_level > 0:
+                            for pkg0, expression in unmatched_requirements:
+                                if not pkg in automatically_removed_packages:
+                                    LOGGER.info("package {0} will be automatically removed".format(pkg))
+                                    automatically_removed_packages.append(pkg)
+                        else:
+                            for pkg0, expression in unmatched_requirements:
+                                LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg, expression))
+                            if len(unmatched_requirements) > 1:
+                                s = 's'
+                            else:    
+                                s = ''
+                            raise RemovePackageError("cannot remove package {0}: would leave {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+            packages_to_remove.update(packages)
+            packages = list(sequences.unique(automatically_removed_packages))
 
         # compute dependencies between packages to remove:
         # it is used to remove packages in the correct order
         package_dependencies = collections.defaultdict(set)
-        for package in packages:
-            matched_requirements, unmatched_requirements = package.match_requirements(filter(lambda pkg0: pkg0 is not package, packages))
+        for package in packages_to_remove:
+            matched_requirements, unmatched_requirements = package.match_requirements(filter(lambda pkg0: pkg0 is not package, packages_to_remove))
             for pkg0, expression, pkg1 in matched_requirements:
                 package_dependencies[pkg0].add(pkg1)
 
-        # check missing dependencies:
-        for package in packages:
-            new_loaded_packages = [pkg for pkg in self._loaded_packages.values() if not pkg in packages]
-            for pkg in new_loaded_packages:
-                matched_requirements, unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, new_loaded_packages))
-                if unmatched_requirements:
-                    for pkg0, expression in unmatched_requirements:
-                        LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg, expression))
-                    if len(unmatched_requirements) > 1:
-                        s = 's'
-                    else:    
-                        s = ''
-                    raise RemovePackageError("cannot remove package {0}: would leave {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
-        sorted_packages = sorted_dependencies(package_dependencies, packages, reverse=True)
-        #print(' : '.join(str(p) for p in sorted_packages))
+        sorted_packages = sorted_dependencies(package_dependencies, packages_to_remove, reverse=True)
         self.remove_packages(sorted_packages)
 
     def remove_packages(self, packages):

@@ -251,11 +251,11 @@ class Manager(object):
     def info_session(self):
         self.session.info()
 
-    def add_packages(self, package_labels):
-        self.session.add(package_labels)
+    def add_packages(self, package_labels, resolution_level=0):
+        self.session.add(package_labels, resolution_level=resolution_level)
 
-    def remove_packages(self, package_labels):
-        self.session.remove(package_labels)
+    def remove_packages(self, package_labels, resolution_level=0):
+        self.session.remove(package_labels, resolution_level=resolution_level)
 
     def clear_packages(self):
         self.session.clear()

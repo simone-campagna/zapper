@@ -189,12 +189,18 @@ Change the current session""",
             help="remove all packages from current session")
         parser_package_clear.set_defaults(function=manager.clear_packages)
 
-        for subparser in parser_package_add, parser_package_remove:
+        for key, subparser in ('add', parser_package_add), ('remove', parser_package_remove):
             subparser.add_argument("package_labels",
-            type=str,
-            nargs='+',
-            default=None,
-            help="package name")
+                type=str,
+                nargs='+',
+                default=None,
+                help="package name")
+            subparser.add_argument("--resolve", "-r",
+                dest="resolution_level",
+                action="count",
+                default=0,
+                help="automatically resolve missing requirements (repeat to increase aggressivity level)")
+         
 
     ### package_dir subparsers
     parser_package_dir = top_level_subparsers.add_parser("package_dir",

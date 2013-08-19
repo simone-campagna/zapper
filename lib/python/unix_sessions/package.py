@@ -169,14 +169,14 @@ class Package(Transition):
     def conflicts(self, expression, *expressions):
         self._conflicts.append(self._create_expression(expression, *expressions))
 
-    def match_expressions(self, loaded_packages, expressions):
+    def match_expressions(self, packages, expressions):
         unmatched = []
         matched = []
         for expression in expressions:
-            for loaded_package in loaded_packages:
-                expression.bind(loaded_package)
+            for package in packages:
+                expression.bind(package)
                 if expression.get_value():
-                    matched.append((self, expression, loaded_package))
+                    matched.append((self, expression, package))
                     break
             else:
                 unmatched.append((self, expression))
@@ -188,10 +188,10 @@ class Package(Transition):
     def match_preferences(self, package):
         return self.match_expressions(package, self._preferences)
 
-    def match_conflicts(self, loaded_packages):
-        conflicts = self._match_conflicts(loaded_packages)
-        for loaded_package in loaded_packages:
-            conflicts.extend(loaded_package._match_conflicts([self]))
+    def match_conflicts(self, packages):
+        conflicts = self._match_conflicts(packages)
+        for package in packages:
+            conflicts.extend(package._match_conflicts([self]))
         return conflicts
         
     def _match_conflicts(self, loaded_packages):
