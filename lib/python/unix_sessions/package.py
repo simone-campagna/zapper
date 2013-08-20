@@ -17,15 +17,17 @@
 
 __author__ = 'Simone Campagna'
 
+import abc
+import collections
+
 from .transition import *
 from .version import Version
 from .registry import Registry
+from .package_family import PackageFamily
 from .expression import Expression, AttributeGetter, ConstExpression
 from .text import fill
 from .utils.show_table import show_table, show_title
 from .utils.debug import PRINT
-
-import abc
 
 __all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY']
 
@@ -33,48 +35,37 @@ NAME = AttributeGetter('name', 'NAME')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
 
-class Category(str):
-    __categories__ = ['application', 'tool', 'library', 'compiler']
-    def __init__(self, value):
-        if not value in self.__categories__:
-            raise KeyError("invalid category {0!r}".format(value))
-        super().__init__(value)
-
-    @classmethod
-    def add_category(cls, category):
-        if not category in cls.__categories__:
-            cls.__categories__.append(category)
-
 class Package(Transition):
     __registry__ = Registry()
     __version_class__ = Version
-    def __init__(self, name, version, category, short_description="", long_description=""):
-        if not isinstance(name, str):
-            name = str(name)
-        if ':' in name:
-            raise ValueError("invalid package name {0}: cannot contain ':'".format(name))
+    __package_dir__ = None
+    def __init__(self, package_family, version, short_description=None, long_description=None):
+        assert isinstance(package_family, PackageFamily)
+        self._package_family = package_family
         if not isinstance(version, Version):
             version = self.make_version(version)
-        if not isinstance(category, Category):
-            category = Category(category)
-        self.name = name
+        self.name = self._package_family.name
         self.version = version
-        self.category = category
-        self.short_description = short_description
-        self.long_description = long_description
+        self.category = self._package_family.category
+        self._short_description = short_description
+        self._long_description = long_description
+        self._package_dir = self.__package_dir__
         self._transitions = []
         self._requirements = []
         self._preferences = []
         self._conflicts = []
         self.register()
 
-    @classmethod
-    def set_module_dir(cls, module_dir):
-        cls.__registry__.set_default_key(module_dir)
+    def package_family(self):
+        return self._package_family
 
     @classmethod
-    def unset_module_dir(cls):
-        cls.__registry__.unset_default_key()
+    def set_package_dir(cls, package_dir):
+        cls.__package_dir__ = package_dir
+
+    @classmethod
+    def unset_package_dir(cls):
+        cls.__package_dir__ = None
 
     def get_transitions(self):
         for transition in self._transitions:
@@ -92,11 +83,27 @@ class Package(Transition):
         for conflict in self._conflicts:
             yield conflict
 
+    def get_short_description(self):
+        if self._short_description:
+            return self._short_description
+        else:
+            return self._package_family.short_description
+    
     def set_short_description(self, short_description):
-        self.short_description = short_description
+        self._short_description = short_description
+
+    short_description = property(get_short_description, set_short_description)
+   
+    def get_long_description(self):
+        if self._long_description:
+            return self._long_description
+        else:
+            return self._package_family.long_description
 
     def set_long_description(self, long_description):
-        self.long_description = long_description
+        self._long_description = long_description
+
+    long_description = property(get_long_description, set_long_description)
 
     def show(self):
         show_title("Package {0}".format(self.label()))
@@ -172,14 +179,20 @@ class Package(Transition):
     def match_expressions(self, packages, expressions):
         unmatched = []
         matched = []
+        matched_d = collections.defaultdict(list)
         for expression in expressions:
+            found = False
             for package in packages:
                 expression.bind(package)
                 if expression.get_value():
-                    matched.append((self, expression, package))
-                    break
-            else:
+                    #matched.append((self, expression, package))
+                    matched_d[package.package_family()].append((self, expression, package))
+                    found = True
+            if not found:
                 unmatched.append((self, expression))
+        for package_family, lst in matched_d.items():
+            lst.sort(key=lambda t: t[-1].version)
+            matched.append(lst[-1])
         return matched, unmatched
 
     def match_requirements(self, package):
@@ -204,7 +217,7 @@ class Package(Transition):
         return conflicts
 
     def register(self):
-        self.__class__.__registry__.register(self)
+        self.__class__.__registry__.register(self, self._package_dir)
 
     def add_transition(self, transition):
         assert isinstance(transition, Transition)

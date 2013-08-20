@@ -17,19 +17,6 @@
 
 __author__ = 'Simone Campagna'
 
-import abc
-import collections
-
-__all__ = ['Registry']
-
-class Registry(collections.defaultdict):
-    def __init__(self):
-        super().__init__(list)
-
-    def register(self, instance, key):
-        self[key].append(instance)
-
-#class Registry(object):
-#    __register__ = Registry()
-#    def __init__(self, key):
-#        self.register(self, key)
+from .package import Package, NAME, VERSION, CATEGORY
+from .package_family import PackageFamily
+from .suite import Suite

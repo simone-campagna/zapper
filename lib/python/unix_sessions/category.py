@@ -17,19 +17,14 @@
 
 __author__ = 'Simone Campagna'
 
-import abc
-import collections
+class Category(str):
+    __categories__ = ['application', 'tool', 'library', 'compiler']
+    def __init__(self, value):
+        if not value in self.__categories__:
+            raise KeyError("invalid category {0!r}".format(value))
+        super().__init__(value)
 
-__all__ = ['Registry']
-
-class Registry(collections.defaultdict):
-    def __init__(self):
-        super().__init__(list)
-
-    def register(self, instance, key):
-        self[key].append(instance)
-
-#class Registry(object):
-#    __register__ = Registry()
-#    def __init__(self, key):
-#        self.register(self, key)
+    @classmethod
+    def add_category(cls, category):
+        if not category in cls.__categories__:
+            cls.__categories__.append(category)

@@ -25,7 +25,7 @@ import shutil
 import collections
 
 from .environment import Environment
-from .package import Package, Category
+from .package import Package
 from .errors import *
 from .session_config import SessionConfig
 from .utils.debug import LOGGER
@@ -76,22 +76,22 @@ class Session(object):
         self._available_packages = Packages()
         self.load(session_root)
 
-    def _load_modules(self, module_dir):
-        #print("+++", module_dir)
+    def _load_modules(self, package_dir):
+        #print("+++", package_dir)
         modules = []
-        for module_path in glob.glob(os.path.join(module_dir, self.MODULE_PATTERN)):
-            Package.set_module_dir(module_dir)
+        for module_path in glob.glob(os.path.join(package_dir, self.MODULE_PATTERN)):
+            Package.set_package_dir(package_dir)
             try:
                 modules.append(self._load_module(module_path))
             finally:
-                Package.unset_module_dir()
+                Package.unset_package_dir()
         return modules
 
     def _load_module(self, module_path):
-        module_dirname, module_basename = os.path.split(module_path)
+        package_dirname, module_basename = os.path.split(module_path)
         module_name = module_basename[:-3]
         #print("---", module_path, module_name)
-        sys_path = [module_dirname]
+        sys_path = [package_dirname]
         module_info = imp.find_module(module_name, sys_path)
         if module_info:
             module = imp.load_module(module_name, *module_info)
@@ -233,8 +233,10 @@ class Session(object):
         for package in package_list:
             if package.name == package_name and operator(package.version, package_version):
                 packages.append(package)
+        LOGGER.debug("get_package({0!r}) : packages={1}".format(package_label, [str(p) for p in packages]))
         if packages:
             packages.sort(key=lambda x: x.version)
+            LOGGER.debug("get_package({0!r}) : sorted_packages={1}".format(package_label, [str(p) for p in packages]))
             package = packages[-1]
         else:
             package = None
@@ -348,7 +350,7 @@ class Session(object):
                     matched_requirements, unmatched_requirements = package.match_requirements(available_packages)
                     for pkg0, expression, pkg1 in matched_requirements:
                         if not pkg1 in simulated_loaded_packages:
-                            automatically_added_packages.append(pkg1)
+                            LOGGER.info("matching: {0}".format(pkg1))
                             if not pkg1 in automatically_added_packages:
                                 LOGGER.info("package {0} will be automatically added".format(pkg1))
                                 automatically_added_packages.append(pkg1)
@@ -363,16 +365,17 @@ class Session(object):
                 for pkg0, expression, pkg1 in matched_requirements:
                     package_dependencies[pkg0].add(pkg1)
                     conflicts = package.match_conflicts(self._loaded_packages.values())
-                if conflicts:
-                    for pkg0, expression, pkg1 in unmatched_requirements:
-                        LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
-                    if len(conflicts) > 1:
-                        s = 's'
-                    else:    
-                        s = ''
-                    raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
+                    if conflicts:
+                        for pkg0, expression, pkg1 in unmatched_requirements:
+                            LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
+                        if len(conflicts) > 1:
+                            s = 's'
+                        else:    
+                            s = ''
+                        raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
                 packages_to_load.update(packages)
                 #packages = list(sequences.difference(packages, simulated_loaded_packages))
+                LOGGER.debug("automatically_added_packages={0}".format([str(p) for p in automatically_added_packages]))
                 packages = list(sequences.unique(automatically_added_packages))
                 
 
