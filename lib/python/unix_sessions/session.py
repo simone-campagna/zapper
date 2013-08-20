@@ -101,7 +101,7 @@ class Session(object):
         self._available_packages.clear()
         for package_dir in self._package_directories:
             self._load_modules(package_dir)
-            for package in Package.__registry__[package_dir]:
+            for package in Package.registered_instances('package_dir', package_dir):
                 self._available_packages[package.label()] = package
 
     @classmethod

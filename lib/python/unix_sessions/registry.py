@@ -20,7 +20,7 @@ __author__ = 'Simone Campagna'
 import abc
 import collections
 
-__all__ = ['Registry']
+__all__ = ['Registry', 'MetaRegister', 'Register']
 
 class Registry(collections.defaultdict):
     def __init__(self):
@@ -29,7 +29,29 @@ class Registry(collections.defaultdict):
     def register(self, instance, key):
         self[key].append(instance)
 
-#class Registry(object):
-#    __register__ = Registry()
-#    def __init__(self, key):
-#        self.register(self, key)
+class MetaRegister(abc.ABCMeta):
+    def __new__(mcls, class_name, class_bases, class_dict):
+        cls = super().__new__(mcls, class_name, class_bases, class_dict)
+        if getattr(cls, '__registry__', None) is None:
+            cls.__registry__ = collections.defaultdict(Registry)
+        return cls
+
+class Register(metaclass=MetaRegister):
+    __registry__ = None
+    
+    @abc.abstractmethod
+    def register(self):
+        pass
+
+    def register_keys(self, **n_args):
+        for key, value in n_args.items():
+            self.__registry__[key][value].append(self)
+
+    @classmethod
+    def registry(cls, key):
+        return cls.__registry__[key]
+
+    @classmethod
+    def registered_instances(cls, key, value):
+        return cls.__registry__[key][value]
+

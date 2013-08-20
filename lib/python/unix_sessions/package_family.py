@@ -20,10 +20,9 @@ __author__ = 'Simone Campagna'
 import abc
 
 from .category import Category
-from .registry import Registry
+from .registry import Register
 
-class PackageFamily(object):
-    __registry__ = Registry()
+class PackageFamily(Register):
     def __init__(self, name, category, short_description="", long_description=""):
         if not isinstance(name, str):
             name = str(name)
@@ -61,5 +60,5 @@ class PackageFamily(object):
     long_description = property(get_long_description, set_long_description)
 
     def register(self):
-        self.__class__.__registry__.register(self)
+        self.register_keys(name=self._name)
 

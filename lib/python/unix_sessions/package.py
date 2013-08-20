@@ -22,7 +22,7 @@ import collections
 
 from .transition import *
 from .version import Version
-from .registry import Registry
+from .registry import Register
 from .package_family import PackageFamily
 from .expression import Expression, AttributeGetter, ConstExpression
 from .text import fill
@@ -35,11 +35,11 @@ NAME = AttributeGetter('name', 'NAME')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
 
-class Package(Transition):
-    __registry__ = Registry()
+class Package(Register, Transition):
     __version_class__ = Version
     __package_dir__ = None
     def __init__(self, package_family, version, short_description=None, long_description=None):
+        super().__init__()
         assert isinstance(package_family, PackageFamily)
         self._package_family = package_family
         if not isinstance(version, Version):
@@ -217,7 +217,7 @@ class Package(Transition):
         return conflicts
 
     def register(self):
-        self.__class__.__registry__.register(self, self._package_dir)
+        self.register_keys(package_dir=self._package_dir)
 
     def add_transition(self, transition):
         assert isinstance(transition, Transition)
