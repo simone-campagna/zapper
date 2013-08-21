@@ -388,7 +388,11 @@ class Session(object):
                 if missing_package_labels:
                     for package in missing_package_labels:
                         LOGGER.error("package {0} not found".format(package_label))
-                    raise PackageNotFoundError("#{0} packages not found".format(len(missing_package_labels)))
+                    if len(missing_package_labels) > 1:
+                        s = 's' 
+                    else:        
+                        s = ''
+                    raise PackageNotFoundError("#{0} package{1} not found".format(len(missing_package_labels), s))
             package_labels = missing_package_labels
 
     def add(self, package_labels, resolution_level=0):
@@ -420,18 +424,20 @@ class Session(object):
                         s = 's'
                     else:    
                         s = ''
-                    raise AddPackageError("cannot add package {0}: {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+                    raise AddPackageError("cannot add package {0}: #{1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
                 for pkg0, expression, pkg1 in matched_requirements:
                     package_dependencies[pkg0].add(pkg1)
-                    conflicts = package.match_conflicts(self._loaded_packages.values())
-                    if conflicts:
-                        for pkg0, expression, pkg1 in unmatched_requirements:
-                            LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
-                        if len(conflicts) > 1:
-                            s = 's'
-                        else:    
-                            s = ''
-                        raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
+
+                conflicts = package.match_conflicts(self._loaded_packages.values())
+                if conflicts:
+                    for pkg0, expression, pkg1 in conflicts:
+                        LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
+                    if len(conflicts) > 1:
+                        s = 's'
+                    else:    
+                        s = ''
+                    raise AddPackageError("cannot add package {0}: #{1} conflict{2}".format(package, len(conflicts), s))
+
                 packages_to_add.update(packages)
                 #packages = list(sequences.difference(packages, simulated_loaded_packages))
                 LOGGER.debug("automatically_added_packages={0}".format([str(p) for p in automatically_added_packages]))
@@ -504,7 +510,7 @@ class Session(object):
                                 s = 's'
                             else:    
                                 s = ''
-                            raise RemovePackageError("cannot remove package {0}: would leave {1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+                            raise RemovePackageError("cannot remove package {0}: would leave #{1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
             packages_to_remove.update(packages)
             packages = list(sequences.unique(automatically_removed_packages))
 

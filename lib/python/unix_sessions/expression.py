@@ -168,9 +168,7 @@ class MethodCaller(_Instance):
         self.method_n_args = method_n_args
 
     def get_value(self):
-        print("here", self.instance, self.method_name, self.method_p_args, self.method_n_args)
-        input("here")
-        return (self.instance, self.method_name)(*self.method_p_args, **self.method_n_args)
+        return getattr(self.instance, self.method_name)(*self.method_p_args, **self.method_n_args)
 
 class ConstExpression(Expression):
     def __init__(self, const_value):

@@ -38,8 +38,7 @@ CATEGORY = AttributeGetter('category', 'CATEGORY')
 PACKAGE = InstanceGetter('PACKAGE')
 
 def HAS_TAG(tag):
-    print("QUA", MethodCaller('has_tags', method_n_args=(tag, ), symbol='HAS_TAG({0!r})'.format(tag)))
-    return MethodCaller('has_tags', method_n_args=(tag, ), symbol='HAS_TAG({0!r})'.format(tag))
+    return MethodCaller('has_tag', method_p_args=(tag, ), symbol='HAS_TAG({0!r})'.format(tag))
 
 class Package(ListRegister, Transition):
     __version_factory__ = Version
@@ -217,6 +216,7 @@ class Package(ListRegister, Transition):
                 expression.bind(package)
                 if expression.get_value():
                     #matched.append((self, expression, package))
+                    input("... {0} vs {1} [{2}]".format(self, package, expression))
                     matched_d[package.package_family()].append((self, expression, package))
                     found = True
             if not found:
@@ -226,11 +226,11 @@ class Package(ListRegister, Transition):
             matched.append(lst[-1])
         return matched, unmatched
 
-    def match_requirements(self, package):
-        return self.match_expressions(package, self._requirements)
+    def match_requirements(self, packages):
+        return self.match_expressions(packages, self._requirements)
 
-    def match_preferences(self, package):
-        return self.match_expressions(package, self._preferences)
+    def match_preferences(self, packages):
+        return self.match_expressions(packages, self._preferences)
 
     def match_conflicts(self, packages):
         conflicts = self._match_conflicts(packages)
@@ -244,7 +244,7 @@ class Package(ListRegister, Transition):
             for loaded_package in loaded_packages:
                 expression.bind(loaded_package)
                 if expression.get_value():
-                    conflicts.append((self, expression, package))
+                    conflicts.append((self, expression, loaded_package))
         return conflicts
 
     def register(self):
