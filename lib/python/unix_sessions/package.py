@@ -22,7 +22,7 @@ import collections
 
 from .transition import *
 from .version import Version
-from .registry import Register
+from .registry import ListRegister
 from .package_family import PackageFamily
 from .expression import Expression, AttributeGetter, ConstExpression
 from .text import fill
@@ -35,10 +35,11 @@ NAME = AttributeGetter('name', 'NAME')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
 
-class Package(Register, Transition):
-    __version_class__ = Version
+class Package(ListRegister, Transition):
+    __version_factory__ = Version
     __package_dir__ = None
-    def __init__(self, package_family, version, short_description=None, long_description=None):
+    __registry__ = None
+    def __init__(self, package_family, version, *, short_description=None, long_description=None, suite=None):
         super().__init__()
         assert isinstance(package_family, PackageFamily)
         self._package_family = package_family
@@ -49,6 +50,9 @@ class Package(Register, Transition):
         self.category = self._package_family.category
         self._short_description = short_description
         self._long_description = long_description
+        if suite is None:
+            from .suite import ROOT
+            suite = ROOT
         self._package_dir = self.__package_dir__
         self._transitions = []
         self._requirements = []
@@ -122,35 +126,10 @@ class Package(Register, Transition):
             PRINT(fill(self.long_description))
 
     def make_version(self, version_string):
-        return self.__version_class__(version_string)
+        return self.__version_factory__(version_string)
 
     def label(self):
         return "{0}/{1}".format(self.name, self.version)
-
-#    def __filters(self, *filters):
-#        flt_funcs = []
-#        for flt in filters:
-#            if isinstance(flt, str):
-#                package_name = flt
-#                def create_func(package_name):
-#                    return lambda package: package.name == package_name
-#                flt_func = create_func(package_name)
-#            elif isinstance(flt, Version):
-#                package_version = flt
-#                def create_func(package_version):
-#                    return lambda package: package.version == package_version
-#                flt_func = create_func(package_version)
-#            else:
-#                flt_func = flt
-#            flt_funcs.append(flt_func)
-#        def create_func(*flt_funcs):
-#            def filter(package):
-#                for flt in flt_funcs:
-#                    if not flt(package):
-#                        return False
-#                return True
-#            return filter
-#        return create_func(*flt_funcs)
 
     def _create_expression(self, *expressions):
         result = None
@@ -260,3 +239,4 @@ class Package(Register, Transition):
 
     def __str__(self):
         return self.label()
+

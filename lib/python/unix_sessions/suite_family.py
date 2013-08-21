@@ -17,14 +17,20 @@
 
 __author__ = 'Simone Campagna'
 
-class Category(str):
-    __categories__ = ['suite', 'application', 'tool', 'library', 'compiler']
-    def __init__(self, value):
-        if not value in self.__categories__:
-            raise KeyError("invalid category {0!r}".format(value))
-        super().__init__(value)
+__all__ = ['SuiteFamily']
+
+import abc
+
+from .package_family import PackageFamily
+
+class SuiteFamily(PackageFamily):
+    def __init__(self, name, *, short_description=None, long_description=None):
+        super().__init__(name, 'suite', short_description=short_description, long_description=long_description)
 
     @classmethod
-    def add_category(cls, category):
-        if not category in cls.__categories__:
-            cls.__categories__.append(category)
+    def get_family(cls, name):
+        name_registry = cls.registry('name')
+        if name in name_registry:
+            return name_registry[name]
+        else:
+            return SuiteFamily(name)

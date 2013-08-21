@@ -17,13 +17,15 @@
 
 __author__ = 'Simone Campagna'
 
+__all__ = ['PackageFamily']
+
 import abc
 
 from .category import Category
-from .registry import Register
+from .registry import UniqueRegister
 
-class PackageFamily(Register):
-    def __init__(self, name, category, short_description="", long_description=""):
+class PackageFamily(UniqueRegister):
+    def __init__(self, name, category, *, short_description="", long_description=""):
         if not isinstance(name, str):
             name = str(name)
         if ':' in name:
@@ -34,6 +36,14 @@ class PackageFamily(Register):
         self._category = category
         self.short_description = short_description
         self.long_description = long_description
+
+    @classmethod
+    def get_family(cls, name, category):
+        name_registry = cls.registry('name')
+        if name in name_registry:
+            return name_registry[name]
+        else:
+            return PackageFamily(name, category)
 
     @property
     def name(self):

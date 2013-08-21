@@ -18,21 +18,35 @@
 __author__ = 'Simone Campagna'
 
 from .package import Package
+from .suite_family import SuiteFamily
 
 import abc
 
-__all__ = ['Suite']
+__all__ = ['Suite', 'ROOT']
 
 class Suite(Package):
-    def __init__(self, name, version, category):
-        super().__init__(name, version, category)
+    def __init__(self, suite_family, version, *, short_description=None, long_description=None, suite=None):
+        if isinstance(suite_family, str):
+            suite_family = SuiteFamily.get_family(suite_family)
+        assert isinstance(suite_family, SuiteFamily)
+        super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=suite)
         self._packages = []
 
     def add_package(self, package):
         assert isinstance(package, Package)
         self._packages.append(package)
-        
+
     def apply(self, session):
         for package in self._packages:
             package.apply(session)
+
+class _RootSuite(Suite):
+    def __init__(self):
+        suite_family = SuiteFamily.get_family('ROOT')
+        version = '0'
+        short_description = 'The Root suite'
+        long_description = 'The Root suite contains all available suites/packages'
+        super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=self)
+
+ROOT = _RootSuite()
 
