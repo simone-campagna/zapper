@@ -27,5 +27,5 @@ class Tag(str):
     @classmethod
     def add_tag(cls, tag):
         if not tag in cls.__tags__:
-            cls.__tags__.append(tag)
+            cls.__tags__.add(tag)
 

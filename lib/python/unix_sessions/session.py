@@ -555,8 +555,11 @@ class Session(object):
     
     def show_packages(self, title, packages):
         show_table(title,
-            [(package.category, package._suite.full_label(), package.label()) for package in packages],
-            header=('CATEGORY', 'SUITE', 'PACKAGE'),
+            [(package.category,
+              package._suite.full_label(),
+              package.label(),
+              ', '.join(repr(tag) for tag in package.tags)) for package in packages],
+            header=('CATEGORY', 'SUITE', 'PACKAGE', 'TAGS'),
         )
 
     def show_defined_packages(self):

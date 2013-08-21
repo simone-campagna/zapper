@@ -156,6 +156,22 @@ class InstanceGetter(_Instance):
     def get_value(self):
         return self.instance
 
+class MethodCaller(_Instance):
+    def __init__(self, method_name, method_p_args=None, method_n_args=None, symbol=None):
+        super().__init__(symbol=symbol)
+        self.method_name = method_name
+        if method_p_args is None:
+            method_p_args = ()
+        self.method_p_args = method_p_args
+        if method_n_args is None:
+            method_n_args = {}
+        self.method_n_args = method_n_args
+
+    def get_value(self):
+        print("here", self.instance, self.method_name, self.method_p_args, self.method_n_args)
+        input("here")
+        return (self.instance, self.method_name)(*self.method_p_args, **self.method_n_args)
+
 class ConstExpression(Expression):
     def __init__(self, const_value):
         self.const_value = const_value

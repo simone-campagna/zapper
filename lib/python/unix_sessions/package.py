@@ -25,17 +25,21 @@ from .version import Version
 from .registry import ListRegister
 from .package_family import PackageFamily
 from .tag import Tag
-from .expression import Expression, AttributeGetter, InstanceGetter, ConstExpression
+from .expression import Expression, AttributeGetter, InstanceGetter, MethodCaller, ConstExpression
 from .text import fill
 from .utils.show_table import show_table, show_title
 from .utils.debug import PRINT
 
-__all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY', 'PACKAGE']
+__all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY', 'PACKAGE', 'HAS_TAG']
 
 NAME = AttributeGetter('name', 'NAME')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
 PACKAGE = InstanceGetter('PACKAGE')
+
+def HAS_TAG(tag):
+    print("QUA", MethodCaller('has_tags', method_n_args=(tag, ), symbol='HAS_TAG({0!r})'.format(tag)))
+    return MethodCaller('has_tags', method_n_args=(tag, ), symbol='HAS_TAG({0!r})'.format(tag))
 
 class Package(ListRegister, Transition):
     __version_factory__ = Version
@@ -64,7 +68,7 @@ class Package(ListRegister, Transition):
         self._requirements = []
         self._preferences = []
         self._conflicts = []
-        self._tags = []
+        self._tags = set()
         self._suite.add_package(self)
         if self._suite is self:
             self._label = ""
@@ -161,6 +165,22 @@ class Package(ListRegister, Transition):
     def make_version(self, version_string):
         return self.__version_factory__(version_string)
 
+    def add_tag(self, tag):
+        if not isinstance(tag, Tag):
+            tag = Tag(tag)
+        self._tags.add(tag)
+
+    def has_tag(self, tag):
+        return tag in self._tags
+
+    def add_conflicting_tag(self, tag):
+        self.add_tag(tag)
+        self._conflicts.append(HAS_TAG(tag))
+
+    @property
+    def tags(self):
+        return iter(self._tags)
+
     def _create_expression(self, *expressions):
         result = None
         for e in expressions:
@@ -183,11 +203,6 @@ class Package(ListRegister, Transition):
 
     def prefers(self, expression, *expressions):
         self._preferences.append(self._create_expression(expression, *expressions))
-
-    def add_tag(self, tag):
-        if not isinstance(tag, Tag):
-            tag = Tag(tag)
-        self._tags.add(tag)
 
     def conflicts(self, expression, *expressions):
         self._conflicts.append(self._create_expression(expression, *expressions))
