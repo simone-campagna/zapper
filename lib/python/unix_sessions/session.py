@@ -278,13 +278,14 @@ class Session(object):
     def load_packages(self, packages_list):
         self.unload_environment_packages()
         self.unload_packages()
-        for package_label in packages_list:
-            package = self.get_available_package(package_label)
-            package_label = package.label()
-            #print("@@@ load_packages::applying {0}...".format(package_label))
-            LOGGER.info("adding package {0}...".format(package_label))
-            package.apply(self)
-            self._loaded_packages[package_label] = package
+        self.add(packages_list)
+#        for package_label in packages_list:
+#            package = self.get_available_package(package_label)
+#            package_label = package.label()
+#            #print("@@@ load_packages::applying {0}...".format(package_label))
+#            LOGGER.info("adding package {0}...".format(package_label))
+#            package.apply(self)
+#            self._loaded_packages[package_label] = package
                 
     def store(self):
         session_config_file = self.get_session_config_file(self.session_root)
