@@ -130,22 +130,31 @@ class Expression(metaclass=abc.ABCMeta):
     def __not__(self):
         return Not(self)
 
-class AttributeGetter(Expression):
-    def __init__(self, attribute_name, symbol=None):
-        self.attribute_name = attribute_name
-        if symbol is None:
-            symbol = attribute_name
+class _Instance(Expression):
+    def __init__(self, symbol=None):
         self.symbol = symbol
         self.instance = None
 
     def bind(self, instance):
         self.instance = instance
 
+    def __str__(self):
+        return self.symbol
+
+class AttributeGetter(_Instance):
+    def __init__(self, attribute_name, symbol=None):
+        self.attribute_name = attribute_name
+        super().__init__(symbol)
+
     def get_value(self):
         return getattr(self.instance, self.attribute_name)
 
-    def __str__(self):
-        return self.symbol
+class InstanceGetter(_Instance):
+    def __init__(self, symbol=None):
+        self.symbol = symbol
+
+    def get_value(self):
+        return self.instance
 
 class ConstExpression(Expression):
     def __init__(self, const_value):

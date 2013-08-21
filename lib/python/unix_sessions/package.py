@@ -24,16 +24,17 @@ from .transition import *
 from .version import Version
 from .registry import ListRegister
 from .package_family import PackageFamily
-from .expression import Expression, AttributeGetter, ConstExpression
+from .expression import Expression, AttributeGetter, InstanceGetter, ConstExpression
 from .text import fill
 from .utils.show_table import show_table, show_title
 from .utils.debug import PRINT
 
-__all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY']
+__all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY', 'PACKAGE']
 
 NAME = AttributeGetter('name', 'NAME')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
+PACKAGE = InstanceGetter('PACKAGE')
 
 class Package(ListRegister, Transition):
     __version_factory__ = Version
@@ -134,7 +135,9 @@ class Package(ListRegister, Transition):
     def _create_expression(self, *expressions):
         result = None
         for e in expressions:
-            if isinstance(e, str):
+            if isinstance(e, Package):
+                expression = PACKAGE == e
+            elif isinstance(e, str):
                 expression = NAME == e
             elif isinstance(e, Expression):
                 expression = e

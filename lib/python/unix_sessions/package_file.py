@@ -17,6 +17,6 @@
 
 __author__ = 'Simone Campagna'
 
-from .package import Package, NAME, VERSION, CATEGORY
+from .package import Package, NAME, VERSION, CATEGORY, PACKAGE
 from .package_family import PackageFamily
 from .suite import Suite
