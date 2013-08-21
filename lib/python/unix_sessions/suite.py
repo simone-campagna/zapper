@@ -19,6 +19,8 @@ __author__ = 'Simone Campagna'
 
 from .package import Package
 from .suite_family import SuiteFamily
+from .utils.show_table import show_table, show_title
+
 
 import abc
 
@@ -32,6 +34,9 @@ class Suite(Package):
         self._packages = []
         super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=suite)
 
+    def packages(self):
+        return iter(self._packages)
+
     def add_package(self, package):
         assert isinstance(package, Package)
         self._packages.append(package)
@@ -43,6 +48,11 @@ class Suite(Package):
     def apply(self, session):
         for package in self._packages:
             package.apply(session)
+
+    def show_content(self):
+        super().show_content()
+        show_table("Packages", self.packages())
+
 
 class _RootSuite(Suite):
     def __init__(self):

@@ -112,8 +112,8 @@ class Package(ListRegister, Transition):
 
     long_description = property(get_long_description, set_long_description)
 
-    def show(self):
-        show_title("Package {0}".format(self.label()))
+    def show_content(self):
+        show_title("{0} {1}".format(self.__class__.__name__, self.label()))
         PRINT("name     : {0}".format(self.name))
         PRINT("version  : {0}".format(self.version))
         PRINT("category : {0}".format(self.category))
@@ -121,6 +121,9 @@ class Package(ListRegister, Transition):
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())
         show_table("Conflicts", self.get_conflicts())
+
+    def show(self):
+        self.show_content()
         if self.short_description:
             show_title("Short description")
             PRINT(fill(self.short_description))
