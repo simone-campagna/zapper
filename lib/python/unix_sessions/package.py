@@ -63,6 +63,10 @@ class Package(ListRegister, Transition):
         self._suite.add_package(self)
         self.register()
 
+    @property
+    def suite(self):
+        return self._suite
+
     def package_family(self):
         return self._package_family
 
@@ -117,6 +121,8 @@ class Package(ListRegister, Transition):
         PRINT("name     : {0}".format(self.name))
         PRINT("version  : {0}".format(self.version))
         PRINT("category : {0}".format(self.category))
+        PRINT("suite    : {0}".format(self._suite.full_label()))
+        PRINT("full     : {0}".format(self.full_label()))
         show_table("Transitions", self.get_transitions())
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())
@@ -136,6 +142,9 @@ class Package(ListRegister, Transition):
 
     def label(self):
         return "{0}/{1}".format(self.name, self.version)
+
+    def full_label(self):
+        return "{0}::{1}".format(self._suite.full_label(), self.label())
 
     def _create_expression(self, *expressions):
         result = None

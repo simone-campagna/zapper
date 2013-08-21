@@ -53,6 +53,11 @@ class Suite(Package):
         super().show_content()
         show_table("Packages", self.packages())
 
+    def full_label(self):
+        if self._suite == self:
+            return super().label()
+        else:
+            return super().full_label()
 
 class _RootSuite(Suite):
     def __init__(self):

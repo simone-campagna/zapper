@@ -55,6 +55,12 @@ class Packages(collections.OrderedDict):
             self._changed_package_labels.append(package_label)
             super().__delitem__(package_label)
 
+    def add_package(self, package):
+        package_label = package.label()
+        if package_label in self:
+            raise SessionError("package {0} hides {1}".format(package.full_label(), self[package_label].full_label()))
+        self[package_label] = package
+
 class Session(object):
     SESSION_SUFFIX = ".session"
     MODULE_PATTERN = "uxs_*.py"
@@ -72,8 +78,10 @@ class Session(object):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
         self._loaded_packages = Packages()
+        self._loaded_suites = Packages()
         self._package_directories = []
         self._available_packages = Packages()
+        self._loadable_packages = Packages()
         self.load(session_root)
 
     def _load_modules(self, package_dir):
@@ -97,12 +105,18 @@ class Session(object):
             module = imp.load_module(module_name, *module_info)
         return module
 
-    def load_available_packages(self):
+    def set_available_packages(self):
         self._available_packages.clear()
         for package_dir in self._package_directories:
             self._load_modules(package_dir)
             for package in Package.registered_entry('package_dir', package_dir):
-                self._available_packages[package.label()] = package
+                self._available_packages.add_package(package)
+
+    def set_loadable_packages(self):
+        self._loadable_packages.clear()
+        for suite in self._loaded_suites:
+            for package in suite.packages():
+                self._loadable_packages.add_package(package)
 
     @classmethod
     def get_session_config_file(cls, session_root):
@@ -149,7 +163,8 @@ class Session(object):
         if uxs_package_dir:
             package_directories.extend(uxs_package_dir.split(':'))
         self._package_directories = package_directories
-        self.load_available_packages()
+        self.set_available_packages()
+        self.set_loadable_packages()
         packages_list_string = session_config['packages']['loaded_packages']
         if packages_list_string:
             packages_list = packages_list_string.split(':')
