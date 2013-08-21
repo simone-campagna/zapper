@@ -54,11 +54,13 @@ class Package(ListRegister, Transition):
         if suite is None:
             from .suite import ROOT
             suite = ROOT
+        self._suite = suite
         self._package_dir = self.__package_dir__
         self._transitions = []
         self._requirements = []
         self._preferences = []
         self._conflicts = []
+        self._suite.add_package(self)
         self.register()
 
     def package_family(self):

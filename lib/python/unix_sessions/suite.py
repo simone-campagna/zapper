@@ -29,12 +29,16 @@ class Suite(Package):
         if isinstance(suite_family, str):
             suite_family = SuiteFamily.get_family(suite_family)
         assert isinstance(suite_family, SuiteFamily)
-        super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=suite)
         self._packages = []
+        super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=suite)
 
     def add_package(self, package):
         assert isinstance(package, Package)
         self._packages.append(package)
+        self.add_package_requirement(package)
+
+    def add_package_requirement(self, package):
+        package.requires(self)
 
     def apply(self, session):
         for package in self._packages:
@@ -47,6 +51,9 @@ class _RootSuite(Suite):
         short_description = 'The Root suite'
         long_description = 'The Root suite contains all available suites/packages'
         super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=self)
+
+    def add_package_requirement(self, package):
+        pass
 
 ROOT = _RootSuite()
 
