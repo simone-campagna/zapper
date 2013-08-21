@@ -24,6 +24,7 @@ from .transition import *
 from .version import Version
 from .registry import ListRegister
 from .package_family import PackageFamily
+from .tag import Tag
 from .expression import Expression, AttributeGetter, InstanceGetter, ConstExpression
 from .text import fill
 from .utils.show_table import show_table, show_title
@@ -60,6 +61,7 @@ class Package(ListRegister, Transition):
         self._requirements = []
         self._preferences = []
         self._conflicts = []
+        self._tags = []
         self._suite.add_package(self)
         self.register()
 
@@ -168,6 +170,11 @@ class Package(ListRegister, Transition):
 
     def prefers(self, expression, *expressions):
         self._preferences.append(self._create_expression(expression, *expressions))
+
+    def add_tag(self, tag):
+        if not isinstance(tag, Tag):
+            tag = Tag(tag)
+        self._tags.add(tag)
 
     def conflicts(self, expression, *expressions):
         self._conflicts.append(self._create_expression(expression, *expressions))

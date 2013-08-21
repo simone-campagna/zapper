@@ -55,10 +55,11 @@ class Packages(collections.OrderedDict):
             self._changed_package_labels.append(package_label)
             super().__delitem__(package_label)
 
-    def add_package(self, package):
-        package_label = package.label()
-        if package_label in self:
-            raise SessionError("package {0} hides {1}".format(package.full_label(), self[package_label].full_label()))
+    def add_package(self, package, check_unique=False):
+        package_label = package.full_label()
+        if check_unique and package_label in self:
+            #raise SessionError("package {0} hides {1}".format(package.full_label(), self[package_label].full_label()))
+            LOGGER.warning("package {0} hides {1}".format(package.full_label(), self[package_label].full_label()))
         self[package_label] = package
 
 class Session(object):
@@ -116,7 +117,7 @@ class Session(object):
         self._loadable_packages.clear()
         for suite in self._loaded_suites:
             for package in suite.packages():
-                self._loadable_packages.add_package(package)
+                self._loadable_packages.add_package(package, check_unique=True)
 
     @classmethod
     def get_session_config_file(cls, session_root):
