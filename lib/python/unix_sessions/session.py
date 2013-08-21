@@ -564,7 +564,7 @@ class Session(object):
             [(package.category,
               package._suite.full_label(),
               package.label(),
-              ', '.join(repr(tag) for tag in package.tags)) for package in packages],
+              ', '.join(str(tag) for tag in package.tags)) for package in packages],
             header=('CATEGORY', 'SUITE', 'PACKAGE', 'TAGS'),
         )
 
