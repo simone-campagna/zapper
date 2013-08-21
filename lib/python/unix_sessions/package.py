@@ -55,6 +55,9 @@ class Package(ListRegister, Transition):
         if suite is None:
             from .suite import ROOT
             suite = ROOT
+        else:
+            from .suite import Suite
+            assert isinstance(suite, Suite)
         self._suite = suite
         self._package_dir = self.__package_dir__
         self._transitions = []
@@ -63,7 +66,23 @@ class Package(ListRegister, Transition):
         self._conflicts = []
         self._tags = []
         self._suite.add_package(self)
+        if self._suite is self:
+            self._label = ""
+            self._full_label = ""
+        else:
+            self._label = "{0}/{1}".format(self.name, self.version)
+            suite_label = self._suite._full_label
+            if suite_label:
+                self._full_label = "{0}::{1}".format(suite_label, self._label)
+            else:
+                self._full_label = self._label
         self.register()
+
+    def label(self):
+        return self._label
+
+    def full_label(self):
+        return self._full_label
 
     @property
     def suite(self):
@@ -141,12 +160,6 @@ class Package(ListRegister, Transition):
 
     def make_version(self, version_string):
         return self.__version_factory__(version_string)
-
-    def label(self):
-        return "{0}/{1}".format(self.name, self.version)
-
-    def full_label(self):
-        return "{0}::{1}".format(self._suite.full_label(), self.label())
 
     def _create_expression(self, *expressions):
         result = None
@@ -262,5 +275,5 @@ class Package(ListRegister, Transition):
         return "{0}(name={1!r}, version={2!r}, category={3!r})".format(self.__class__.__name__, self.name, self.version, self.category)
 
     def __str__(self):
-        return self.label()
+        return self.full_label()
 

@@ -24,9 +24,13 @@ def show_title(title, print_function=PRINT, max_width=70):
     t += "=" * (max_width - len(t))
     print_function(t)
 
-def show_table(title, table, min_number=3, separator=' ', print_function=PRINT, show_always_title=False):
+def show_table(title, table, min_number=3, separator=' ', print_function=PRINT, show_always_title=False, header=None):
     new_table = []
-    for row in table:
+    if header:
+        h_table = [header] + list(table)
+    else:
+        h_table = table
+    for row in h_table:
         if isinstance(row, (tuple, list)):
             new_table.append(tuple(str(item) for item in row))
         elif isinstance(row, str):
@@ -60,12 +64,19 @@ def show_table(title, table, min_number=3, separator=' ', print_function=PRINT, 
             mods.append("")
     mods.append("")
 
+    if header:
+        header = table.pop(0)
+
     fmts = ["{{{i}{m}}}".format(i=i + 1, m=m) for i, m in enumerate(mods)]
     fmt = separator.join(fmts)
 
     l = max(len(str(len(table) - 1)), min_number)
-    fmt = '{{0:{l}d}}) '.format(l=l) + fmt
+    r_fmt = '{{0:{l}d}}) '.format(l=l) + fmt
 
+    if header:
+        h_fmt = '{{0:{l}s}}  '.format(l=l) + fmt
+        print_function(h_fmt.format("", *header))
+        
     for i, row in enumerate(table):
-        print_function(fmt.format(i, *row))
+        print_function(r_fmt.format(i, *row))
 

@@ -19,6 +19,7 @@ __author__ = 'Simone Campagna'
 
 import os
 import configparser
+import datetime
 
 from .lock_file import Lock
 
@@ -34,12 +35,18 @@ class SessionConfig(configparser.ConfigParser):
             self['session']['name'] = ''
         if not 'type' in self['session']:
             self['session']['type'] = ''
+        if not 'creation_time' in self['session']:
+            self['session']['creation_time'] = self.current_time()
         if not 'packages' in self:
             self['packages'] = {}
         if not 'directories' in self['packages']:
             self['packages']['directories'] = ''
         if not 'loaded_packages' in self['packages']:
             self['packages']['loaded_packages'] = ''
+
+    @classmethod
+    def current_time(cls):
+        return datetime.datetime.now().strftime("%Y%m%d %H:%M:%S")
 
     def load(self):
         with Lock(self.filename, "r") as f_in:

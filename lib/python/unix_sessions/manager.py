@@ -39,9 +39,6 @@ class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
     TEMP_DIR_PREFIX = 'unix-sessions'
     SESSIONS_DIR_NAME = 'sessions'
-    SESSION_TYPE_TEMPORARY = 'temporary'
-    SESSION_TYPE_PERSISTENT = 'persistent'
-    SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     def __init__(self):
@@ -60,8 +57,8 @@ class Manager(object):
         self.persistent_sessions_dir = os.path.join(self.user_rc_dir, self.SESSIONS_DIR_NAME)
         self.temporary_sessions_dir = os.path.join(self.tmp_dir, self.SESSIONS_DIR_NAME)
         self.sessions_dir = {
-            self.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
-            self.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
+            Session.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
+            Session.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
         }
         for d in self.user_package_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
@@ -131,11 +128,11 @@ class Manager(object):
     def create_session(self, session_name=None):
         session_type = None
         if session_name is None:
-            session_type = self.SESSION_TYPE_TEMPORARY
+            session_type = Session.SESSION_TYPE_TEMPORARY
             session_root = Session.create_unique_session_root(self.temporary_sessions_dir)
             session_name = os.path.basename(session_root)
         else:
-            session_type = self.SESSION_TYPE_PERSISTENT
+            session_type = Session.SESSION_TYPE_PERSISTENT
             session_root = os.path.join(self.persistent_sessions_dir, session_name)
             #if os.path.lexists(session_root):
             #    raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
@@ -187,9 +184,9 @@ class Manager(object):
     def get_sessions(self, session_name_pattern, temporary=True, persistent=True):
         dl = []
         if temporary:
-            dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
+            dl.append((Session.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
-            dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
+            dl.append((Session.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         session_roots = []
         for session_type, sessions_dir in dl:
             session_roots.extend(Session.get_session_roots(sessions_dir, session_name_pattern))
@@ -201,9 +198,9 @@ class Manager(object):
     def _get_session_root(self, session_name, temporary=True, persistent=True, _check='must_exist'):
         dl = []
         if persistent:
-            dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
+            dl.append((Session.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         if temporary:
-            dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
+            dl.append((Session.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         for session_type, sessions_dir in dl:
             session_root = os.path.join(sessions_dir, session_name)
             session_config_file = Session.get_session_config_file(session_root)
@@ -219,9 +216,9 @@ class Manager(object):
     def show_available_sessions(self, temporary=True, persistent=True):
         dl = []
         if temporary:
-            dl.append((self.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
+            dl.append((Session.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
-            dl.append((self.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
+            dl.append((Session.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         for session_type, sessions_dir in dl:
             table = []
             session_root_pattern = os.path.join(sessions_dir, '*')
@@ -235,6 +232,9 @@ class Manager(object):
                 table.append((mark_current, session_name))
             title = "Available {t} sessions".format(t=session_type)
             show_table(title, table)
+
+    def show_defined_packages(self):
+        self.session.show_defined_packages()
 
     def show_available_packages(self):
         self.session.show_available_packages()

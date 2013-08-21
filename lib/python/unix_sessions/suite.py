@@ -39,8 +39,9 @@ class Suite(Package):
 
     def add_package(self, package):
         assert isinstance(package, Package)
-        self._packages.append(package)
-        self.add_package_requirement(package)
+        if package is not self:
+            self._packages.append(package)
+            self.add_package_requirement(package)
 
     def add_package_requirement(self, package):
         package.requires(self)
@@ -52,12 +53,6 @@ class Suite(Package):
     def show_content(self):
         super().show_content()
         show_table("Packages", self.packages())
-
-    def full_label(self):
-        if self._suite == self:
-            return super().label()
-        else:
-            return super().full_label()
 
 class _RootSuite(Suite):
     def __init__(self):

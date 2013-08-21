@@ -21,14 +21,15 @@ import os
 import sys
 import imp
 import glob
-import shutil
+#import shutil
 import collections
 
 from .environment import Environment
 from .package import Package
+from .suite import Suite, ROOT
 from .errors import *
 from .session_config import SessionConfig
-from .utils.debug import LOGGER
+from .utils.debug import LOGGER, PRINT
 from .utils.trace import trace
 from .utils.show_table import show_table, show_title
 from .utils.sorted_dependencies import sorted_dependencies
@@ -39,28 +40,32 @@ from .utils import sequences
 class Packages(collections.OrderedDict):
     def __init__(self):
         super().__init__(self)
-        self._changed_package_labels = []
+        self._changed_package_full_labels = []
 
     def is_changed(self):
-        return bool(self._changed_package_labels)
+        return bool(self._changed_package_full_labels)
 
-    def __setitem__(self, package_label, package):
-        old_package = super().get(package_label, None)
+    def __setitem__(self, package_full_label, package):
+        old_package = super().get(package_full_label, None)
         if old_package != package:
-            self._changed_package_labels.append(package_label)
-        super().__setitem__(package_label, package)
+            self._changed_package_full_labels.append(package_full_label)
+        super().__setitem__(package_full_label, package)
        
-    def __delitem__(self, package_label):
-        if package_label in self:
-            self._changed_package_labels.append(package_label)
-            super().__delitem__(package_label)
+    def __delitem__(self, package_full_label):
+        if package_full_label in self:
+            self._changed_package_full_labels.append(package_full_label)
+            super().__delitem__(package_full_label)
 
-    def add_package(self, package, check_unique=False):
-        package_label = package.full_label()
-        if check_unique and package_label in self:
-            #raise SessionError("package {0} hides {1}".format(package.full_label(), self[package_label].full_label()))
-            LOGGER.warning("package {0} hides {1}".format(package.full_label(), self[package_label].full_label()))
-        self[package_label] = package
+    def add_package(self, package):
+        package_full_label = package.full_label()
+        if package_full_label in self and self[package_full_label] is not package:
+            #raise SessionError("package {0} hides {1}".format(package.full_label(), self[package_full_label].full_label()))
+            LOGGER.warning("package {0} hides {1}".format(package.full_label(), self[package_full_label].full_label()))
+        self[package_full_label] = package
+
+    def remove_package(self, package):
+        package_full_label = package.full_label()
+        del self[package_full_label]
 
 class Session(object):
     SESSION_SUFFIX = ".session"
@@ -74,6 +79,9 @@ class Session(object):
         ('>=',          lambda x, v: x >= v),
     )
     RANDOM_NAME_SEQUENCE = RandomNameSequence(width=5)
+    SESSION_TYPE_TEMPORARY = 'temporary'
+    SESSION_TYPE_PERSISTENT = 'persistent'
+    SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
 
     def __init__(self, manager, session_root):
         self._environment = Environment()
@@ -81,43 +89,49 @@ class Session(object):
         self._loaded_packages = Packages()
         self._loaded_suites = Packages()
         self._package_directories = []
+        self._defined_packages = Packages()
         self._available_packages = Packages()
-        self._loadable_packages = Packages()
+        self._modules = {}
         self.load(session_root)
 
     def _load_modules(self, package_dir):
         #print("+++", package_dir)
         modules = []
         for module_path in glob.glob(os.path.join(package_dir, self.MODULE_PATTERN)):
-            Package.set_package_dir(package_dir)
-            try:
-                modules.append(self._load_module(module_path))
-            finally:
-                Package.unset_package_dir()
+            module_path = os.path.normpath(os.path.abspath(module_path))
+            if not module_path in self._modules:
+                Package.set_package_dir(package_dir)
+                try:
+                    module = self._load_module(module_path)
+                finally:
+                    Package.unset_package_dir()
+                self._modules[module_path] = module
+                modules.append(module)
+            else:
+                modules.append(self._modules[module_path])
         return modules
 
     def _load_module(self, module_path):
         package_dirname, module_basename = os.path.split(module_path)
         module_name = module_basename[:-3]
-        #print("---", module_path, module_name)
         sys_path = [package_dirname]
         module_info = imp.find_module(module_name, sys_path)
         if module_info:
             module = imp.load_module(module_name, *module_info)
         return module
 
-    def set_available_packages(self):
-        self._available_packages.clear()
+    def set_defined_packages(self):
+        self._defined_packages.clear()
         for package_dir in self._package_directories:
             self._load_modules(package_dir)
             for package in Package.registered_entry('package_dir', package_dir):
-                self._available_packages.add_package(package)
+                self._defined_packages.add_package(package)
 
-    def set_loadable_packages(self):
-        self._loadable_packages.clear()
-        for suite in self._loaded_suites:
+    def set_available_packages(self):
+        self._available_packages.clear()
+        for suite in self._loaded_suites.values():
             for package in suite.packages():
-                self._loadable_packages.add_package(package, check_unique=True)
+                self._available_packages.add_package(package)
 
     @classmethod
     def get_session_config_file(cls, session_root):
@@ -144,8 +158,12 @@ class Session(object):
     @classmethod
     def copy(cls, source_session_root, target_session_root):
         source_session_config_file = cls.get_session_config_file(source_session_root)
+        source_session_config = cls.get_session_config(source_session_config_file)
+        source_session_config['session']['name'] = os.path.basename(target_session_root)
+        source_session_config['session']['type'] = cls.SESSION_TYPE_PERSISTENT
+        source_session_config['session']['creation_time'] = SessionConfig.current_time()
         target_session_config_file = cls.get_session_config_file(target_session_root)
-        shutil.copy(source_session_config_file, target_session_config_file)
+        cls.write_session_config(source_session_config, target_session_config_file)
 
     def load(self, session_root):
         self.session_root = os.path.abspath(session_root)
@@ -155,6 +173,7 @@ class Session(object):
         session_config = self.get_session_config(session_config_file)
         self.session_name = session_config['session']['name']
         self.session_type = session_config['session']['type']
+        self.session_creation_time = session_config['session']['creation_time']
         package_directories_string = session_config['packages']['directories']
         if package_directories_string:
             package_directories = package_directories_string.split(':')
@@ -164,8 +183,8 @@ class Session(object):
         if uxs_package_dir:
             package_directories.extend(uxs_package_dir.split(':'))
         self._package_directories = package_directories
+        self.set_defined_packages()
         self.set_available_packages()
-        self.set_loadable_packages()
         packages_list_string = session_config['packages']['loaded_packages']
         if packages_list_string:
             packages_list = packages_list_string.split(':')
@@ -258,6 +277,10 @@ class Session(object):
             package = None
         return package
 
+#    def get_defined_package(self, package_label):
+#        WRONG: labels are not unique in defined packages
+#        return self.get_package(package_label, self._defined_packages.values())
+
     def get_available_package(self, package_label):
         return self.get_package(package_label, self._available_packages.values())
 
@@ -267,6 +290,9 @@ class Session(object):
     def loaded_packages(self):
         return self._loaded_packages.values()
 
+    def defined_packages(self):
+        return self._defined_packages.values()
+
     def available_packages(self):
         return self._available_packages.values()
 
@@ -275,6 +301,13 @@ class Session(object):
         if not loaded_package_labels_string:
             return
         loaded_package_labels = loaded_package_labels_string.split(':')
+
+        # loading necessary suites
+        for packages in self.iteradd(loaded_package_labels):
+            for package in packages:
+                if isinstance(package, Suite):
+                    self._add_suite(package)
+
         for loaded_package_label in loaded_package_labels:
             loaded_package = self.get_available_package(loaded_package_label)
             if loaded_package is None:
@@ -286,19 +319,18 @@ class Session(object):
 
     def unload_packages(self):
         for package_label, package in self._loaded_packages.items():
-            #print("@@@ unload_packages::reverting {0}...".format(package_label))
             LOGGER.info("removing package {0}...".format(package_label))
             package.revert(self)
         self._loaded_packages.clear()
 
     def load_packages(self, packages_list):
+        self._add_suite(ROOT)
         self.unload_environment_packages()
         self.unload_packages()
         self.add(packages_list)
 #        for package_label in packages_list:
 #            package = self.get_available_package(package_label)
 #            package_label = package.label()
-#            #print("@@@ load_packages::applying {0}...".format(package_label))
 #            LOGGER.info("adding package {0}...".format(package_label))
 #            package.apply(self)
 #            self._loaded_packages[package_label] = package
@@ -335,39 +367,49 @@ class Session(object):
             session_config['packages']['directories'] = ':'.join(self._package_directories)
             session_config.store()
         
+    def iteradd(self, package_labels):
+        while package_labels:
+            packages = []
+            missing_package_labels = []
+            for package_label in package_labels:
+                package = self.get_available_package(package_label)
+                if package is None:
+                    missing_package_labels.append(package_label)
+                    continue
+                    #LOGGER.error("package {0} not found".format(package_label))
+                    #raise PackageNotFoundError("package {0} not found".format(package_label))
+                package_label = package.label()
+                if package_label in self._loaded_packages:
+                    LOGGER.info("package {0} already loaded".format(package_label))
+                    continue
+                packages.append(package)
+                yield packages
+            if not packages:
+                if missing_package_labels:
+                    for package in missing_package_labels:
+                        LOGGER.error("package {0} not found".format(package_label))
+                    raise PackageNotFoundError("#{0} packages not found".format(len(missing_package_labels)))
+            package_labels = missing_package_labels
+
     def add(self, package_labels, resolution_level=0):
-        packages = []
-        current_package_labels = []
-        for package_label in package_labels:
-            package = self.get_available_package(package_label)
-            if package is None:
-                LOGGER.error("package {0} not found".format(package_label))
-                raise PackageNotFoundError("package {0} not found".format(package_label))
-            package_label = package.label()
-            if package_label in self._loaded_packages:
-                LOGGER.info("package {0} already loaded".format(package_label))
-                continue
-            package = self.get_available_package(package_label)
-            if package is None:
-                raise AddPackageError("no such package: {0}".format(package_label))
-            packages.append(package)
-            current_package_labels.append(package_label)
-        package_labels = current_package_labels
+        for packages in self.iteradd(package_labels):
+            self.add_packages(packages, resolution_level=resolution_level)
+        
+    def add_packages(self, packages, resolution_level=0):
         package_dependencies = collections.defaultdict(set)
         available_packages = self.available_packages()
-        packages_to_load = set()
+        packages_to_add = set()
         while packages:
             simulated_loaded_packages = list(sequences.unique(list(self._loaded_packages.values()) + packages))
             automatically_added_packages = []
             for package_index, package in enumerate(packages):
                 package_label = package.label()
-                #print("@@@ add::applying {0}...".format(package_label))
                 matched_requirements, unmatched_requirements = package.match_requirements(simulated_loaded_packages)
                 if unmatched_requirements and resolution_level > 0:
                     matched_requirements, unmatched_requirements = package.match_requirements(available_packages)
                     for pkg0, expression, pkg1 in matched_requirements:
                         if not pkg1 in simulated_loaded_packages:
-                            LOGGER.info("matching: {0}".format(pkg1))
+                            #LOGGER.debug("matching: {0}".format(pkg1))
                             if not pkg1 in automatically_added_packages:
                                 LOGGER.info("package {0} will be automatically added".format(pkg1))
                                 automatically_added_packages.append(pkg1)
@@ -390,22 +432,42 @@ class Session(object):
                         else:    
                             s = ''
                         raise AddPackageError("cannot add package {0}: {1} conflict{2}".format(package, len(unmatched_requirements), s))
-                packages_to_load.update(packages)
+                packages_to_add.update(packages)
                 #packages = list(sequences.difference(packages, simulated_loaded_packages))
                 LOGGER.debug("automatically_added_packages={0}".format([str(p) for p in automatically_added_packages]))
                 packages = list(sequences.unique(automatically_added_packages))
-                
+        suites_to_add, packages_to_add = self._separate_suites(packages_to_add)
+        for packages in suites_to_add, packages_to_add:
+            sorted_packages = sorted_dependencies(package_dependencies, packages)
+            self._add_packages(sorted_packages)
 
-        for package in sorted_dependencies(package_dependencies, packages_to_load):
+    def _separate_suites(self, packages):
+        suites = []
+        non_suites = []
+        for package in packages:
+            if isinstance(package, Suite):
+                suites.append(package)
+            else:
+                non_suites.append(package)
+        return suites, non_suites
+
+    def _add_packages(self, packages):
+        for package in packages:
             LOGGER.info("adding package {0}...".format(package))
             package.apply(self)
             self._loaded_packages[package.label()] = package
+            if isinstance(package, Suite):
+                self._add_suite(package)
         if self._loaded_packages.is_changed():
             self.store()
         
+    def _add_suite(self, suite):
+        self._loaded_suites.add_package(suite)
+        for package in suite.packages():
+            self._available_packages.add_package(package)
+
     def remove(self, package_labels, resolution_level=0):
         packages = []
-        current_package_labels = []
         for package_label in package_labels:
             package = self.get_loaded_package(package_label)
             if package is None:
@@ -419,8 +481,6 @@ class Session(object):
             if package is None:
                 raise AddPackageError("no such package: {0}".format(package_label))
             packages.append(package)
-            current_package_labels.append(package_label)
-        package_labels = current_package_labels
 
         packages_to_remove = set()
 
@@ -456,20 +516,29 @@ class Session(object):
             for pkg0, expression, pkg1 in matched_requirements:
                 package_dependencies[pkg0].add(pkg1)
 
-        sorted_packages = sorted_dependencies(package_dependencies, packages_to_remove, reverse=True)
-        self.remove_packages(sorted_packages)
+        suites_to_remove, packages_to_remove = self._separate_suites(packages_to_remove)
+        for packages in packages_to_remove, suites_to_remove:
+            sorted_packages = sorted_dependencies(package_dependencies, packages)
+            self._remove_packages(sorted_packages)
 
-    def remove_packages(self, packages):
+    def _remove_packages(self, packages):
         for package in packages:
             LOGGER.info("removing package {0}...".format(package))
             package.revert(self)
             del self._loaded_packages[package.label()]
+            if isinstance(package, Suite):
+                self._remove_suite(package)
             
         if self._loaded_packages.is_changed():
             self.store()
 
+    def _remove_suite(self, suite):
+        self._loaded_suites.remove_package(suite)
+        for package in suite.packages():
+            self._available_packages.remove_package(package)
+
     def clear(self):
-        self.remove_packages(reversed(list(self._loaded_packages.values())))
+        self._remove_packages(reversed(list(self._loaded_packages.values())))
             
     @property
     def environment(self):
@@ -485,7 +554,13 @@ class Session(object):
     
     
     def show_packages(self, title, packages):
-        show_table(title, [(package.category, package.label()) for package in packages])
+        show_table(title,
+            [(package.category, package._suite.full_label(), package.label()) for package in packages],
+            header=('CATEGORY', 'SUITE', 'PACKAGE'),
+        )
+
+    def show_defined_packages(self):
+        self.show_packages("Defined packages", self.defined_packages())
 
     def show_available_packages(self):
         self.show_packages("Available packages", self.available_packages())
@@ -505,6 +580,9 @@ class Session(object):
 
     def info(self):
         show_title("Session {0} at {1}".format(self.session_name, self.session_root))
+        PRINT("name          : {0}".format(self.session_name))
+        PRINT("type          : {0}".format(self.session_type))
+        PRINT("creation time : {0}".format(self.session_creation_time))
         show_table("Package directories", self._package_directories)
         self.show_packages("Loaded packages", self.loaded_packages())
 
