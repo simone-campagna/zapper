@@ -83,7 +83,12 @@ class Manager(object):
             categories = categories_s.split(':')
             Category.add_category(*categories)
 
-        self.load_defaults()
+        try:
+            self.load_defaults()
+        except Exception as e:
+            msg = "configuration file {0}: {1}: {2}".format(user_config_file, e.__class__.__name__, e)
+            LOGGER.error(msg)
+            raise SessionConfigError(msg)
         self.load_translator()
         self.load_session()
 
@@ -181,7 +186,10 @@ class Manager(object):
         for key in {'resolution_level'}:
             defaults[key] = self._int2str(self.defaults[key])
 
-    def load_session(self, session_name=None, _depth=0):
+    def load_session(self, session_name=None):
+        return self._load_session(session_name=None, _depth=0)
+
+    def _load_session(self, session_name=None, _depth=0):
         if session_name is None:
             session_root = os.environ.get("UXS_SESSION", None)
             if session_root is None:
@@ -212,7 +220,7 @@ class Manager(object):
             os.environ.pop('UXS_SESSION', None)
             if _depth == 0:
                 try:
-                    self.load_session(_depth=_depth + 1)
+                    self._load_session(session_name=None, _depth=_depth + 1)
                 except Exception as e:
                     raise
             else:

@@ -22,6 +22,7 @@ import sys
 import argparse
 
 from unix_sessions.manager import Manager
+from unix_sessions.errors import SessionConfigError
 from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
 from unix_sessions.utils.trace import set_trace, trace
 from unix_sessions.utils.home import set_home_dir
@@ -34,6 +35,8 @@ def main():
     except Exception as e:
         trace(True)
         LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+        if not isinstance(e, SessionConfigError):
+            LOGGER.error("Session is corrupted. Unset environment variable UXS_SESSION and try again with a new session.")
         sys.exit(1)
 
     class Formatter(argparse.HelpFormatter):

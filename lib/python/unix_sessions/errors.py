@@ -32,6 +32,9 @@ class AddPackageError(SessionError):
 class RemovePackageError(SessionError):
     pass
 
+class SessionConfigError(SessionError):
+    pass
+
 class LoadSuiteError(SessionError):
     pass
 
