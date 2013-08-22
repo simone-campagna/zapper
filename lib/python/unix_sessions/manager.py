@@ -27,10 +27,12 @@ import collections
 
 from .errors import *
 from .session import *
+from .category import Category
 from .package import Package
 from .translator import Translator
 from .translators import *
 from .user_config import UserConfig
+from .global_config import GlobalConfig
 from .utils.home import get_home_dir
 from .utils.random_name import RandomNameSequence
 from .utils.show_table import show_table
@@ -52,6 +54,12 @@ class Manager(object):
         if uxs_home_dir and os.path.lexists(uxs_home_dir):
             uxs_etc_dir = os.path.join(uxs_home_dir, 'etc', 'unix-sessions')
             self.uxs_package_dir = os.path.join(uxs_etc_dir, self.PACKAGES_DIR_NAME)
+            global_config_file = os.path.join(uxs_etc_dir, 'global.config')
+            global_config = GlobalConfig(global_config_file)
+            categories_s = global_config['global']['categories']
+            if categories_s:
+                categories = categories_s.split(':')
+                Category.add_category(*categories)
         else:
             self.uxs_package_dir = None
         tmpdir = os.environ.get("TMPDIR", "/tmp")

@@ -95,6 +95,7 @@ setup(
 	'bin/session',
     ],
     data_files = [
+        ('etc/unix-sessions', glob.glob('etc/unix-sessions/*.config')),
         ('etc/unix-sessions/init.d', glob.glob('etc/unix-sessions/init.d/*.rc')),
         ('etc/unix-sessions/packages', []),
     ],
