@@ -89,7 +89,7 @@ setup(
     author = "Simone Campagna",
     author_email = "simone.campagna@tiscali.it",
     url="https://github.com/simone-campagna/unix-sessions",
-    packages = ["unix_sessions", "unix_sessions.serializers", "unix_sessions.utils"],
+    packages = ["unix_sessions", "unix_sessions.translators", "unix_sessions.utils"],
     package_dir = {"unix_sessions": "lib/python/unix_sessions"},
     scripts = [
 	'bin/session',

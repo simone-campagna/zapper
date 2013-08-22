@@ -170,8 +170,10 @@ class Manager(object):
             session_name_pattern = self.session.session_name
         for session_root in self.get_sessions(session_name_pattern):
             if session_root == self.session.session_root:
-                del os.environ['UXS_SESSION']
-                self.load_session()
+                LOGGER.warning("cannot delete current session {0}".format(self.session.session_name))
+                continue
+                #os.environ.pop('UXS_SESSION', None)
+                #self.load_session()
             #print(self.session)
             Session.delete_session_root(session_root)
             #session_config_file = Session.get_session_config_file(session_root)
