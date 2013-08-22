@@ -20,10 +20,14 @@ __author__ = 'Simone Campagna'
 from .config import Config
 
 class UserConfig(Config):
-    def set_defaults(self):
-        if not 'sessions' in self:
-            self['sessions'] = {}
-        if not 'last_session' in self['sessions']:
-            self['sessions']['last_session'] = ''
-
-
+    __defaults__ = {
+        'sessions': {
+            'last_session': ''
+        },
+        'defaults': {
+            'verbose': False,
+            'debug': False,
+            'trace': False,
+            'resolution_level': 0,
+        }
+    }

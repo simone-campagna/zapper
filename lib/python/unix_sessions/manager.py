@@ -78,6 +78,7 @@ class Manager(object):
         user_config_file = os.path.join(self.user_rc_dir, self.USER_CONFIG_FILE)
         self.user_config = UserConfig(user_config_file)
 
+        self.load_defaults()
         self.load_translator()
         self.load_session()
 
@@ -91,6 +92,89 @@ class Manager(object):
         self._session = session
 
     session = property(get_session, set_session)
+
+    def show_defaults(self, keys):
+        if not keys:
+            keys = self.defaults.keys()
+        lst = []
+        for key in keys:
+            if not key in self.defaults:
+                LOGGER.error("no such key: {0}".format(key))
+                continue
+            value = self.defaults[key]
+            lst.append((key, ':', value))
+        show_table("Defaults", lst, header=('KEY', '', 'VALUE'))
+     
+    def set_defaults(self, key_values):
+        changed = False
+        for key_value in key_values:
+            if not '=' in key_value:
+                raise ValueError("invalid key=value pair {0!r}".format(key_value))
+            key, value = key_value.split('=')
+            if not key in self.defaults:
+                LOGGER.error("no such key: {0}".format(key))
+                continue
+            changed = self.set_default_key(key, value) or changed
+        if changed:
+            self.store_defaults()    
+
+    @classmethod
+    def _str2bool(cls, s):
+        try:
+            i = int(s)
+            return bool(i)
+        except ValueError as e:
+            pass
+        if s.lower() in {'true', 'on'}:
+            return True
+        elif s.lower() in {'false', 'off'}:
+            return False
+        else:
+            raise ValueError("invalid value {0!r} for bool".format(s))
+
+    @classmethod
+    def _str2int(cls, s):
+        return int(s)
+
+    @classmethod
+    def _bool2str(cls, b):
+        return str(b)
+
+    @classmethod
+    def _int2str(cls, i):
+        return str(i)
+
+    def set_default_key(self, key, value):
+        #if not key in self.defaults:
+        #     raise ValueError("invalid key {0!r}".format(key))
+        if key in {'verbose', 'debug', 'trace'}:
+            value = self._str2bool(value)
+        elif key in {'resolution_level'}:
+            value = self._str2int(value)
+        if self.defaults.get(key, None) != value:
+            LOGGER.info("setting defaults[{0!r}] = {1!r}".format(key, value))
+            self.defaults[key] = value
+            return True
+        else:
+            return False
+
+    def get_default_key(self, key):
+        if not key in self.defaults:
+             raise ValueError("invalid key {0!r}".format(key))
+        return self.defaults[key]
+
+    def load_defaults(self):
+        defaults = self.user_config['defaults']
+        self.defaults = {}
+        for key, value in defaults.items():
+            self.set_default_key(key, value)
+
+    def store_defaults(self):
+        defaults = self.user_config['defaults']
+        defaults['verbose'] = self._bool2str(self.defaults['verbose'])
+        defaults['debug'] = self._bool2str(self.defaults['debug'])
+        defaults['trace'] = self._bool2str(self.defaults['trace'])
+        defaults['resolution_level'] = self._int2str(self.defaults['resolution_level'])
 
     def load_session(self, session_name=None):
         if session_name is None:

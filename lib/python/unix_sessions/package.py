@@ -242,6 +242,9 @@ class Package(ListRegister, Transition):
         conflicts = []
         for expression in self._conflicts:
             for loaded_package in loaded_packages:
+                if loaded_package is self:
+                    # a package cannot conflicts with itself
+                    continue
                 expression.bind(loaded_package)
                 if expression.get_value():
                     conflicts.append((self, expression, loaded_package))

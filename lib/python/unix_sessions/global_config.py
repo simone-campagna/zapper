@@ -20,10 +20,8 @@ __author__ = 'Simone Campagna'
 from .config import Config
 
 class GlobalConfig(Config):
-    def set_defaults(self):
-        if not 'global' in self:
-            self['global'] = {}
-        if not 'categories' in self['global']:
-            self['global']['categories'] = 'compiler:library:tool:application'
-
-
+    __defaults__ = {
+        'global': {
+            'categories': 'compiler:library:tool:application',
+        }
+    }

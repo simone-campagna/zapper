@@ -18,13 +18,14 @@
 __author__ = 'Simone Campagna'
 
 import os
-import abc
 import configparser
 import datetime
 
 from .lock_file import Lock
 
 class Config(configparser.ConfigParser):
+    __defaults__ = {}
+        
     def __init__(self, filename=None):
         super().__init__()
         self.filename = filename
@@ -32,9 +33,20 @@ class Config(configparser.ConfigParser):
             self.load()
         self.set_defaults()
 
-    @abc.abstractmethod
     def set_defaults(self):
-        pass
+        lst = [(self, self.__defaults__)]
+        while lst:
+            lst_copy = lst[:]
+            del lst[:]
+            for section, defaults in lst_copy:
+                for key, value in defaults.items():
+                    if isinstance(value, dict):
+                        if not key in section:
+                            section[key] = {}
+                        lst.append((section[key], value))
+                    else:
+                        if not key in section:
+                            section[key] = str(value)
 
     @classmethod
     def current_time(cls):

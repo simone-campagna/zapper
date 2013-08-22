@@ -44,17 +44,17 @@ def main():
     )
     common_parser.add_argument("--verbose", "-v",
         action="store_true",
-        default=False,
+        default=manager.get_default_key('verbose'),
         help="set verbose on")
 
     common_parser.add_argument("--debug", "-d",
         action="store_true",
-        default=False,
+        default=manager.get_default_key('debug'),
         help="set debug on")
 
     common_parser.add_argument("--trace", "-t",
         action="store_true",
-        default=False,
+        default=manager.get_default_key('trace'),
         help="show traceback on errors")
 
     ### Top-level parser
@@ -68,6 +68,30 @@ Change the current session""",
     ### Subparsers
     top_level_subparsers = top_level_parser.add_subparsers(
         help="commands")
+
+    ### Defaults subparser
+    parser_defaults = top_level_subparsers.add_parser("defaults",
+        parents=[common_parser],
+        help="defaults management")
+
+    defaults_subparsers = parser_defaults.add_subparsers(
+        help="defaults subcommand")
+
+    parser_defaults_show = defaults_subparsers.add_parser("show",
+        parents=[common_parser],
+        help="show current defaults")
+    parser_defaults_show.add_argument("keys",
+        nargs='*',
+        help="show keys")
+    parser_defaults_show.set_defaults(function=manager.show_defaults)
+
+    parser_defaults_set = defaults_subparsers.add_parser("set",
+        parents=[common_parser],
+        help="set defaults")
+    parser_defaults_set.add_argument("key_values",
+        nargs='*',
+        help="key=value pairs")
+    parser_defaults_set.set_defaults(function=manager.set_defaults)
 
     ### Session subparser
     parser_session = top_level_subparsers.add_parser("session",
@@ -197,7 +221,7 @@ Change the current session""",
             subparser.add_argument("--resolve", "-r",
                 dest="resolution_level",
                 action="count",
-                default=0,
+                default=manager.get_default_key('resolution_level'),
                 help="automatically resolve missing requirements (repeat to increase aggressivity level)")
          
 

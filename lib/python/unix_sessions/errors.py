@@ -20,6 +20,9 @@ __author__ = 'Simone Campagna'
 class SessionError(Exception):
     pass
 
+class SessionInternalError(Exception):
+    pass
+
 class SessionCreationError(SessionError):
     pass
 
