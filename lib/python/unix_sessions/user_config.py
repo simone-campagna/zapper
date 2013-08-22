@@ -19,21 +19,11 @@ __author__ = 'Simone Campagna'
 
 from .config import Config
 
-class SessionConfig(Config):
+class UserConfig(Config):
     def set_defaults(self):
-        if not 'session' in self:
-            self['session'] = {}
-        if not 'name' in self['session']:
-            self['session']['name'] = ''
-        if not 'type' in self['session']:
-            self['session']['type'] = ''
-        if not 'creation_time' in self['session']:
-            self['session']['creation_time'] = self.current_time()
-        if not 'packages' in self:
-            self['packages'] = {}
-        if not 'directories' in self['packages']:
-            self['packages']['directories'] = ''
-        if not 'loaded_packages' in self['packages']:
-            self['packages']['loaded_packages'] = ''
+        if not 'sessions' in self:
+            self['sessions'] = {}
+        if not 'last_session' in self['sessions']:
+            self['sessions']['last_session'] = ''
 
 

@@ -30,6 +30,7 @@ from .session import *
 from .package import Package
 from .translator import Translator
 from .translators import *
+from .user_config import UserConfig
 from .utils.home import get_home_dir
 from .utils.random_name import RandomNameSequence
 from .utils.show_table import show_table
@@ -41,6 +42,7 @@ class Manager(object):
     SESSIONS_DIR_NAME = 'sessions'
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
+    USER_CONFIG_FILE = 'user.config'
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
         username = getpass.getuser()
@@ -64,6 +66,10 @@ class Manager(object):
             if not os.path.lexists(d):
                 os.makedirs(d)
         self._session = None
+
+        user_config_file = os.path.join(self.user_rc_dir, self.USER_CONFIG_FILE)
+        self.user_config = UserConfig(user_config_file)
+
         self.load_translator()
         self.load_session()
 
@@ -81,6 +87,8 @@ class Manager(object):
     def load_session(self, session_name=None):
         if session_name is None:
             session_root = os.environ.get("UXS_SESSION", None)
+            if session_root is None:
+                session_root = self.user_config['sessions']['last_session']
             if session_root:
                 session_config_file = Session.get_session_config_file(session_root)
                 if not os.path.lexists(session_config_file):
@@ -273,6 +281,11 @@ class Manager(object):
 
     def revert(self, translator=None, translation_filename=None):
         pass
+
+    def finalize(self):
+        self.user_config['sessions']['last_session'] = self.session.session_root
+        self.user_config.store()
+        self.translate()
 
     def translate(self, translator=None, translation_filename=None):
         if translator is None:

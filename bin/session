@@ -268,7 +268,7 @@ Change the current session""",
         trace()
         LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
     else:
-        manager.translate()
+        manager.finalize()
 
 if __name__ == "__main__":
     main()
