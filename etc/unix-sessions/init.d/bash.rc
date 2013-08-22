@@ -9,7 +9,7 @@ function uxs {
         while [[ -f ${_filename:="$_tmpdir/bash.$$.$RANDOM"} ]] ; do
             unset _filename
         done
-        env UXS_SERIALIZATION="bash:$_filename" ${UXS_HOME_DIR}/bin/session init
+        env UXS_TARGET_TRANSLATION="bash:$_filename" ${UXS_HOME_DIR}/bin/session init
         #echo "---> $_filename"
         #cat "$_filename"
         . "$_filename"
@@ -18,8 +18,8 @@ function uxs {
     while [[ -f ${_filename:="${UXS_SESSION}.bash.$$.$RANDOM"} ]] ; do
         unset _filename
     done
-    #echo env UXS_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
-    env UXS_SERIALIZATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
+    #echo env UXS_TARGET_TRANSLATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
+    env UXS_TARGET_TRANSLATION="bash:${_filename}" ${UXS_HOME_DIR}/bin/session "$@"
     if [[ -f ${_filename} ]] ; then
         #echo "---> $_filename"
         #cat "$_filename"

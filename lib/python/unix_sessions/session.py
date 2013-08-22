@@ -595,30 +595,29 @@ class Session(object):
         show_table("Package directories", self._package_directories)
         self.show_packages("Loaded packages", self.loaded_packages())
 
-    def serialize(self, serializer):
+    def translate(self, translator):
         for var_name, var_value in self._environment.changeditems():
             orig_var_value = self._orig_environment.get(var_name, None)
             if var_value is None and orig_var_value is not None:
                 # removed
-                serializer.var_unset(var_name)
+                translator.var_unset(var_name)
             elif var_value != orig_var_value:
                 # set
-                serializer.var_set(var_name, var_value)
-        serializer.var_set("UXS_SESSION", self.session_root)
+                translator.var_set(var_name, var_value)
+        translator.var_set("UXS_SESSION", self.session_root)
         loaded_packages = ':'.join(self._loaded_packages.keys())
-        serializer.var_set("UXS_LOADED_PACKAGES", loaded_packages)
+        translator.var_set("UXS_LOADED_PACKAGES", loaded_packages)
 
-    def serialize_stream(self, serializer, stream=None, serialization_filename=None):
-        self.serialize(serializer)
-        serializer.serialize(stream)
-        if serialization_filename:
-            serializer.serialize_remove_filename(stream, serialization_filename)
-            #serializer.serialize_remove_empty_directory(stream, os.path.dirname(serialization_filename))
+    def translate_stream(self, translator, stream=None, translation_filename=None):
+        self.translate(translator)
+        translator.translate(stream)
+        if translation_filename:
+            translator.translate_remove_filename(stream, translation_filename)
 
-    def serialize_file(self, serializer, serialization_filename):
+    def translate_file(self, translator, translation_filename):
         try:
-            with open(serialization_filename, "w") as f_out:
-                self.serialize_stream(serializer, stream=f_out, serialization_filename=serialization_filename)
+            with open(translation_filename, "w") as f_out:
+                self.translate_stream(translator, stream=f_out, translation_filename=translation_filename)
         except Exception as e:
             trace()
-            LOGGER.warning("cannot serialize {0}".format(serialization_filename))
+            LOGGER.warning("cannot translate {0}".format(translation_filename))

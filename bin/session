@@ -22,7 +22,6 @@ import sys
 import argparse
 
 from unix_sessions.manager import Manager
-from unix_sessions.serializer import Serializer
 from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
 from unix_sessions.utils.trace import set_trace, trace
 from unix_sessions.utils.home import set_home_dir
@@ -264,14 +263,12 @@ Change the current session""",
             del n_args[key]
 
     try:
-        #print(manager.session)
         args.function(*p_args, **n_args)
-        #print(manager.session)
-    
-        manager.serialize()
     except Exception as e:
         trace()
         LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+    else:
+        manager.translate()
 
 if __name__ == "__main__":
     main()

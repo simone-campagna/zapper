@@ -21,7 +21,7 @@ import sys
 import abc
 import collections
 
-class MetaSerializer(abc.ABCMeta):
+class MetaTranslator(abc.ABCMeta):
     __registry__ = collections.OrderedDict()
     def __new__(mcls, class_name, class_bases, class_dict):
         cls = super().__new__(mcls, class_name, class_bases, class_dict)
@@ -41,9 +41,9 @@ class MetaSerializer(abc.ABCMeta):
         if name in self.__registry__:
             return self.__registry__[name]()
         else:
-            raise KeyError("invalid serializer: {0!r}".format(name))
+            raise KeyError("invalid translator: {0!r}".format(name))
 
-class Serializer(object, metaclass=MetaSerializer):
+class Translator(object, metaclass=MetaTranslator):
     def __init__(self):
         self._vars = []
 
@@ -53,43 +53,39 @@ class Serializer(object, metaclass=MetaSerializer):
     def var_unset(self, var_name):
         self._vars.append((var_name, None))
 
-    def serialize(self, stream=None):
+    def translate(self, stream=None):
         if stream is None:
             stream = sys.stdout
         for var_name, var_value in self._vars:
             if var_value is None:
                 #print("SER: unset({0!r})".format(var_name))
-                self.serialize_var_unset(stream, var_name)
+                self.translate_var_unset(stream, var_name)
             else:
                 #print("SER: set({0!r}, {1!r})".format(var_name, var_value))
-                self.serialize_var_set(stream, var_name, var_value)
+                self.translate_var_set(stream, var_name, var_value)
         self.clear()
 
     def clear(self):
         del self._vars[:]
 
     @abc.abstractmethod
-    def serialize_var_unset(self, stream, var_name):
+    def translate_var_unset(self, stream, var_name):
         pass
 
     @abc.abstractmethod
-    def serialize_var_set(self, stream, var_name, var_value):
+    def translate_var_set(self, stream, var_name, var_value):
         pass
 
     @abc.abstractmethod
-    def serialize_remove_filename(self, stream, filename):
+    def translate_remove_filename(self, stream, filename):
         pass
 
     @abc.abstractmethod
-    def serialize_remove_empty_directory(self, stream, directory):
+    def translate_remove_empty_directory(self, stream, directory):
         pass
 
     @abc.abstractmethod
-    def serialize_remove_directory(self, stream, directory):
-        pass
-
-    @abc.abstractmethod
-    def serialize_init(self, stream):
+    def translate_remove_directory(self, stream, directory):
         pass
 
     def __repr__(self):

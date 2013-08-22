@@ -28,8 +28,8 @@ import collections
 from .errors import *
 from .session import *
 from .package import Package
-from .serializer import Serializer
-from .serializers import *
+from .translator import Translator
+from .translators import *
 from .utils.home import get_home_dir
 from .utils.random_name import RandomNameSequence
 from .utils.show_table import show_table
@@ -64,7 +64,7 @@ class Manager(object):
             if not os.path.lexists(d):
                 os.makedirs(d)
         self._session = None
-        self.load_serialization()
+        self.load_translator()
         self.load_session()
 
     def get_session(self):
@@ -73,7 +73,7 @@ class Manager(object):
     def set_session(self, session):
         if self._session is not None:
             self.session.unload_packages()
-            self.session.serialize(self.serializer)
+            self.session.translate(self.translator)
         self._session = session
 
     session = property(get_session, set_session)
@@ -108,22 +108,22 @@ class Manager(object):
             del os.environ['UXS_SESSION']
             self.load_session()
                     
-    def load_serialization(self):
-        serialization = os.environ.get("UXS_SERIALIZATION", None)
-        self.serialization_filename = None
-        self.serializer = None
-        if serialization is None:
+    def load_translator(self):
+        target_translator = os.environ.get("UXS_TARGET_TRANSLATOR", None)
+        self.translation_filename = None
+        self.translator = None
+        if target_translator is None:
             return
-        l = serialization.split(':', 1)
-        serialization_name = l[0]
+        l = target_translator.split(':', 1)
+        translation_name = l[0]
         if len(l) == 1:
-            self.serialization_filename = None
+            self.translation_filename = None
         else:
-            self.serialization_filename = os.path.abspath(l[1])
+            self.translation_filename = os.path.abspath(l[1])
         try:
-            self.serializer = Serializer.createbyname(serialization_name)
+            self.translator = Translator.createbyname(translation_name)
         except Exception as e:
-            raise SessionError("invalid serialization {0!r}: {1}: {2}".format(serialization_name, e.__class__.__name__, e))
+            raise SessionError("invalid target translation {0!r}: {1}: {2}".format(translation_name, e.__class__.__name__, e))
 
     def create_session(self, session_name=None):
         session_type = None
@@ -266,30 +266,30 @@ class Manager(object):
     def remove_package_directories(self, package_directories):
         self.session.remove_directories(package_directories)
 
-    def apply(self, serializer=None, serialization_filename=None):
+    def apply(self, translator=None, translation_filename=None):
         pass
 
-    def revert(self, serializer=None, serialization_filename=None):
+    def revert(self, translator=None, translation_filename=None):
         pass
 
-    def serialize(self, serializer=None, serialization_filename=None):
-        if serializer is None:
-            serializer = self.serializer
-        if serialization_filename is None:
-            serialization_filename = self.serialization_filename
-        if serializer and serialization_filename:
-            self.session.serialize_file(serializer, serialization_filename)
+    def translate(self, translator=None, translation_filename=None):
+        if translator is None:
+            translator = self.translator
+        if translation_filename is None:
+            translation_filename = self.translation_filename
+        if translator and translation_filename:
+            self.session.translate_file(translator, translation_filename)
             
-    def init(self, serializer=None, serialization_filename=None):
+    def init(self, translator=None, translation_filename=None):
         environment = self.session.environment
         #print("UXS_SESSION={0}".format(environment.get('UXS_SESSION', None)))
         if not 'UXS_SESSION' in environment:
             environment['UXS_SESSION'] = self.session.session_root
-        #print(serializer, serialization_filename)
-        if serializer:
-            if serialization_filename:
-                self.session.serialize_file(serializer, serialization_filename=os.path.abspath(serialization_filename))
+        #print(translator, translation_filename)
+        if translator:
+            if translation_filename:
+                self.session.translate_file(translator, translation_filename=os.path.abspath(translation_filename))
             else:
-                self.session.serialize_stream(serializer, stream=sys.stdout)
+                self.session.translate_stream(translator, stream=sys.stdout)
         
 
