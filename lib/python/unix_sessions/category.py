@@ -25,6 +25,10 @@ class Category(str):
         super().__init__(value)
 
     @classmethod
+    def categories(cls):
+        return iter(cls.__categories__)
+
+    @classmethod
     def add_category(cls, *categories):
         for category in categories:
             if not category in cls.__categories__:

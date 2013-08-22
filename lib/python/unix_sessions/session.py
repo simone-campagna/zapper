@@ -25,6 +25,7 @@ import glob
 import collections
 
 from .environment import Environment
+from .category import Category
 from .package import Package
 from .suite import Suite, ROOT
 from .errors import *
@@ -560,6 +561,8 @@ class Session(object):
     
     
     def show_packages(self, title, packages):
+        d = {c: o for o, c in enumerate(Category.categories())}
+        packages = sorted(packages, key=lambda package: d[package.category])
         show_table(title,
             [(package.category,
               package._suite.full_label(),

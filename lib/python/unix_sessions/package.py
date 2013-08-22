@@ -216,7 +216,7 @@ class Package(ListRegister, Transition):
                 expression.bind(package)
                 if expression.get_value():
                     #matched.append((self, expression, package))
-                    input("... {0} vs {1} [{2}]".format(self, package, expression))
+                    #input("... {0} vs {1} [{2}]".format(self, package, expression))
                     matched_d[package.package_family()].append((self, expression, package))
                     found = True
             if not found:
