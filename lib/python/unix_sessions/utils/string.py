@@ -18,16 +18,19 @@
 
 __author__ = 'Simone Campagna'
 
-import traceback
 
-TRACE = False
 
-def set_trace(enable_trace):
-    global TRACE
-    TRACE = enable_trace
+def plural(s, number):
+    if number == 1:
+        return s
+    else:
+        s = s.strip()
+        if s[-1] == 'y':
+            p = s[:-1] + 'ies'
+        else:
+            p = s + 's'
+    return p
 
-def trace(force=False):
-    if TRACE or force:
-        traceback.print_exc()
-    
+def plural_string(s, number):
+    return "#{0} {1}".format(number, plural(s, number))
 

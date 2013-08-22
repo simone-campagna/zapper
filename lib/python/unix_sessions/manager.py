@@ -37,6 +37,7 @@ from .utils.home import get_home_dir
 from .utils.random_name import RandomNameSequence
 from .utils.show_table import show_table
 from .utils.debug import PRINT
+from .utils.trace import trace
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -77,6 +78,10 @@ class Manager(object):
 
         user_config_file = os.path.join(self.user_rc_dir, self.USER_CONFIG_FILE)
         self.user_config = UserConfig(user_config_file)
+        categories_s = self.user_config['global']['categories']
+        if categories_s:
+            categories = categories_s.split(':')
+            Category.add_category(*categories)
 
         self.load_defaults()
         self.load_translator()
@@ -176,7 +181,7 @@ class Manager(object):
         for key in {'resolution_level'}:
             defaults[key] = self._int2str(self.defaults[key])
 
-    def load_session(self, session_name=None):
+    def load_session(self, session_name=None, _depth=0):
         if session_name is None:
             session_root = os.environ.get("UXS_SESSION", None)
             if session_root is None:
@@ -202,11 +207,16 @@ class Manager(object):
                 self.session.load(session_root)
             else:
                 self.session = Session(self, session_root)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            del os.environ['UXS_SESSION']
-            self.load_session()
+        except SessionError as e:
+            trace()
+            os.environ.pop('UXS_SESSION', None)
+            if _depth == 0:
+                try:
+                    self.load_session(_depth=_depth + 1)
+                except Exception as e:
+                    raise
+            else:
+                raise
                     
     def load_translator(self):
         target_translator = os.environ.get("UXS_TARGET_TRANSLATOR", None)

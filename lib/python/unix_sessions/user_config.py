@@ -21,6 +21,9 @@ from .config import Config
 
 class UserConfig(Config):
     __defaults__ = {
+        'global': {
+            'categories': '',
+        },
         'sessions': {
             'last_session': ''
         },

@@ -35,6 +35,7 @@ from .utils.trace import trace
 from .utils.show_table import show_table, show_title
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
+from .utils.string import plural_string
 from .utils import sequences
 
 
@@ -346,7 +347,10 @@ class Session(object):
         changed = False
         for directory in directories:
             directory = os.path.normpath(os.path.abspath(directory))
-            if not directory in self._package_directories:
+            if directory in self._package_directories:
+                LOGGER.warning("package directory {0} already in use".format(directory))
+            else:
+                LOGGER.info("adding package directory {0}...".format(directory))
                 self._package_directories.append(directory)
                 changed = True
         if changed:
@@ -360,7 +364,20 @@ class Session(object):
         for directory in directories:
             directory = os.path.normpath(os.path.abspath(directory))
             if directory in self._package_directories:
-                self._package_directories.remove(directory)
+                num_loaded_packages = 0
+                for package in self._loaded_packages.values():
+                    if package.package_dir == directory:
+                        LOGGER.error("cannot remove directory {0}, since package {1} has been loaded from it".format(directory, package))
+                        num_loaded_packages += 1
+                if num_loaded_packages:
+                    raise SessionError("cannot remove directory {0}: {1} loaded from it".format(
+                        directory,
+                        plural_string('package', num_loaded_packages)))
+                if directory in self._package_directories:
+                    LOGGER.info("removing package directory {0}...".format(directory))
+                    self._package_directories.remove(directory)
+                else:
+                    LOGGER.warning("package directory {0} not in use".format(directory))
                 changed = True
         if changed:
             session_config_file = self.get_session_config_file(self.session_root)
@@ -389,11 +406,8 @@ class Session(object):
                 if missing_package_labels:
                     for package in missing_package_labels:
                         LOGGER.error("package {0} not found".format(package_label))
-                    if len(missing_package_labels) > 1:
-                        s = 's' 
-                    else:        
-                        s = ''
-                    raise PackageNotFoundError("#{0} package{1} not found".format(len(missing_package_labels), s))
+                    raise PackageNotFoundError("{0} not found".format(
+                        plural_string('package', len(missing_package_labels))))
             package_labels = missing_package_labels
 
     def _get_subpackages(self, packages):
@@ -448,11 +462,9 @@ class Session(object):
                 if unmatched_requirements:
                     for pkg, expression in unmatched_requirements:
                         LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
-                    if len(unmatched_requirements) > 1:
-                        s = 's'
-                    else:    
-                        s = ''
-                    raise AddPackageError("cannot add package {0}: #{1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+                    raise AddPackageError("cannot add package {0}: {1}".format(
+                        package,
+                        plural_string('unmatched requirements', len(unmatched_requirements))))
                 for pkg0, expression, pkg1 in matched_requirements:
                     package_dependencies[pkg0].add(pkg1)
 
@@ -460,11 +472,9 @@ class Session(object):
                 if conflicts:
                     for pkg0, expression, pkg1 in conflicts:
                         LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
-                    if len(conflicts) > 1:
-                        s = 's'
-                    else:    
-                        s = ''
-                    raise AddPackageError("cannot add package {0}: #{1} conflict{2}".format(package, len(conflicts), s))
+                    raise AddPackageError("cannot add package {0}: {1}".format(
+                        package,
+                        plural_string('conflict', len(conflicts))))
 
                 packages_to_add.update(packages)
                 #packages = list(sequences.difference(packages, simulated_loaded_packages))
@@ -537,11 +547,9 @@ class Session(object):
                         else:
                             for pkg0, expression in unmatched_requirements:
                                 LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg, expression))
-                            if len(unmatched_requirements) > 1:
-                                s = 's'
-                            else:    
-                                s = ''
-                            raise RemovePackageError("cannot remove package {0}: would leave #{1} unmatched requirement{2}".format(package, len(unmatched_requirements), s))
+                            raise RemovePackageError("cannot remove package {0}: would leave {1}".format(
+                                package,
+                                plural_string('unmatched requirement', len(unmatched_requirements))))
             packages_to_remove.update(packages)
             packages = list(sequences.unique(automatically_removed_packages))
 

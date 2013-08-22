@@ -98,6 +98,10 @@ class Package(ListRegister, Transition):
     def set_package_dir(cls, package_dir):
         cls.__package_dir__ = package_dir
 
+    @property
+    def package_dir(self):
+        return self._package_dir
+
     @classmethod
     def unset_package_dir(cls):
         cls.__package_dir__ = None

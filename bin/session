@@ -29,7 +29,12 @@ from unix_sessions.utils.home import set_home_dir
 
 def main():
     set_home_dir("@UXS_HOME_DIR@")
-    manager = Manager()
+    try:
+        manager = Manager()
+    except Exception as e:
+        trace(True)
+        LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+        sys.exit(1)
 
     class Formatter(argparse.HelpFormatter):
         def __init__(self, prog, indent_increment=2, max_help_position=26, width=None):
@@ -176,6 +181,39 @@ Change the current session""",
     package_subparsers = parser_package.add_subparsers(
         help="package subcommand")
 
+    ### Package_dir subparsers
+    parser_package_dir = top_level_subparsers.add_parser("package_dir",
+        aliases=["dir"],
+        parents=[common_parser],
+        help="package directory management")
+
+    package_dir_subparsers = parser_package_dir.add_subparsers(
+        help="package directory subcommand")
+
+    parser_package_dir_list = package_dir_subparsers.add_parser("list",
+        aliases=["li"],
+        parents=[common_parser],
+        help="list current package directories")
+    parser_package_dir_list.set_defaults(function=manager.show_package_directories)
+
+    parser_package_dir_add = package_dir_subparsers.add_parser("add",
+        parents=[common_parser],
+        help="add a package directory to current session")
+    parser_package_dir_add.set_defaults(function=manager.add_package_directories)
+
+    parser_package_dir_remove = package_dir_subparsers.add_parser("remove",
+        aliases=['rem'],
+        parents=[common_parser],
+        help="remove a package directory from current session")
+    parser_package_dir_remove.set_defaults(function=manager.remove_package_directories)
+
+    for subparser in parser_package_dir_add, parser_package_dir_remove:
+        subparser.add_argument("package_directories",
+        type=str,
+        nargs='+',
+        default=None,
+        help="package directory")
+
     for subparsers in top_level_subparsers, package_subparsers:
         parser_package_show_available_packages = subparsers.add_parser("avail",
             aliases=["av"],
@@ -230,39 +268,6 @@ Change the current session""",
                 default=manager.get_default_key('subpackages'),
                 help="automatically {0} all suite's packages".format(key))
          
-
-    ### package_dir subparsers
-    parser_package_dir = top_level_subparsers.add_parser("package_dir",
-        aliases=["dir"],
-        parents=[common_parser],
-        help="package directory management")
-
-    package_dir_subparsers = parser_package_dir.add_subparsers(
-        help="package directory subcommand")
-
-    parser_package_dir_list = package_dir_subparsers.add_parser("list",
-        aliases=["li"],
-        parents=[common_parser],
-        help="list current package directories")
-    parser_package_dir_list.set_defaults(function=manager.show_package_directories)
-
-    parser_package_dir_add = package_dir_subparsers.add_parser("add",
-        parents=[common_parser],
-        help="add a package directory to current session")
-    parser_package_dir_add.set_defaults(function=manager.add_package_directories)
-
-    parser_package_dir_remove = package_dir_subparsers.add_parser("remove",
-        aliases=['rem'],
-        parents=[common_parser],
-        help="remove a package directory from current session")
-    parser_package_dir_remove.set_defaults(function=manager.remove_package_directories)
-
-    for subparser in parser_package_dir_add, parser_package_dir_remove:
-        subparser.add_argument("package_directories",
-        type=str,
-        nargs='+',
-        default=None,
-        help="package directory")
 
     ### other subparsers
     parser_init = top_level_subparsers.add_parser("init",
