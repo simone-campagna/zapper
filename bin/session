@@ -71,6 +71,7 @@ Change the current session""",
 
     ### Defaults subparser
     parser_defaults = top_level_subparsers.add_parser("defaults",
+        aliases=['def'],
         parents=[common_parser],
         help="defaults management")
 
@@ -223,11 +224,16 @@ Change the current session""",
                 action="count",
                 default=manager.get_default_key('resolution_level'),
                 help="automatically resolve missing requirements (repeat to increase aggressivity level)")
+            subparser.add_argument("--subpackages", "-s",
+                dest="subpackages",
+                action="store_true",
+                default=manager.get_default_key('subpackages'),
+                help="automatically {0} all suite's packages".format(key))
          
 
     ### package_dir subparsers
     parser_package_dir = top_level_subparsers.add_parser("package_dir",
-        aliases=["dir", "d"],
+        aliases=["dir"],
         parents=[common_parser],
         help="package directory management")
 

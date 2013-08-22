@@ -380,9 +380,9 @@ class Session(object):
                     #LOGGER.error("package {0} not found".format(package_label))
                     #raise PackageNotFoundError("package {0} not found".format(package_label))
                 package_label = package.label()
-                if package_label in self._loaded_packages:
-                    LOGGER.info("package {0} already loaded".format(package_label))
-                    continue
+#                if package_label in self._loaded_packages:
+#                    LOGGER.info("package {0} already loaded".format(package_label))
+#                    continue
                 packages.append(package)
                 yield packages
             if not packages:
@@ -396,8 +396,35 @@ class Session(object):
                     raise PackageNotFoundError("#{0} package{1} not found".format(len(missing_package_labels), s))
             package_labels = missing_package_labels
 
-    def add(self, package_labels, resolution_level=0):
+    def _get_subpackages(self, packages):
+        all_packages = []
+        while packages:
+            new_packages = []
+            for package in packages:
+                if package in all_packages:
+                    continue
+                all_packages.append(package)
+                if isinstance(package, Suite):
+                    for subpackage in package.packages():
+                        new_packages.append(subpackage)
+            packages = new_packages
+        return all_packages
+
+    def _unloaded_packages(self, packages):
+        unloaded_packages = []
+        for package in packages:
+            package_label = package.full_label()
+            if package_label in self._loaded_packages:
+                LOGGER.info("package {0} already loaded".format(package_label))
+                continue
+            unloaded_packages.append(package)
+        return unloaded_packages
+
+    def add(self, package_labels, resolution_level=0, subpackages=False):
         for packages in self.iteradd(package_labels):
+            if subpackages:
+                packages = self._get_subpackages(packages)
+            packages = self._unloaded_packages(packages)
             self.add_packages(packages, resolution_level=resolution_level)
         
     def add_packages(self, packages, resolution_level=0):
@@ -473,7 +500,7 @@ class Session(object):
         for package in suite.packages():
             self._available_packages.add_package(package)
 
-    def remove(self, package_labels, resolution_level=0):
+    def remove(self, package_labels, resolution_level=0, subpackages=False):
         packages = []
         for package_label in package_labels:
             package = self.get_loaded_package(package_label)
@@ -488,6 +515,9 @@ class Session(object):
             if package is None:
                 raise AddPackageError("no such package: {0}".format(package_label))
             packages.append(package)
+
+        if subpackages:
+            packages = self._get_subpackages(packages)
 
         packages_to_remove = set()
 

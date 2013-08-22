@@ -147,7 +147,7 @@ class Manager(object):
     def set_default_key(self, key, value):
         #if not key in self.defaults:
         #     raise ValueError("invalid key {0!r}".format(key))
-        if key in {'verbose', 'debug', 'trace'}:
+        if key in {'verbose', 'debug', 'trace', 'subpackages'}:
             value = self._str2bool(value)
         elif key in {'resolution_level'}:
             value = self._str2int(value)
@@ -171,10 +171,10 @@ class Manager(object):
 
     def store_defaults(self):
         defaults = self.user_config['defaults']
-        defaults['verbose'] = self._bool2str(self.defaults['verbose'])
-        defaults['debug'] = self._bool2str(self.defaults['debug'])
-        defaults['trace'] = self._bool2str(self.defaults['trace'])
-        defaults['resolution_level'] = self._int2str(self.defaults['resolution_level'])
+        for key in {'verbose', 'debug', 'trace', 'subpackages'}:
+            defaults[key] = self._bool2str(self.defaults[key])
+        for key in {'resolution_level'}:
+            defaults[key] = self._int2str(self.defaults[key])
 
     def load_session(self, session_name=None):
         if session_name is None:
@@ -353,11 +353,11 @@ class Manager(object):
     def info_session(self):
         self.session.info()
 
-    def add_packages(self, package_labels, resolution_level=0):
-        self.session.add(package_labels, resolution_level=resolution_level)
+    def add_packages(self, package_labels, resolution_level=0, subpackages=False):
+        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages)
 
-    def remove_packages(self, package_labels, resolution_level=0):
-        self.session.remove(package_labels, resolution_level=resolution_level)
+    def remove_packages(self, package_labels, resolution_level=0, subpackages=False):
+        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages)
 
     def clear_packages(self):
         self.session.clear()

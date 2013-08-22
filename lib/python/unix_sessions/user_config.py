@@ -28,6 +28,7 @@ class UserConfig(Config):
             'verbose': False,
             'debug': False,
             'trace': False,
+            'subpackages': False,
             'resolution_level': 0,
         }
     }
