@@ -172,11 +172,11 @@ class Session(object):
         session_config_file = self.get_session_config_file(session_root)
         if not os.path.lexists(session_config_file):
             LOGGER.warning("cannot load session config file {0}".format(session_config_file))
-        session_config = self.get_session_config(session_config_file)
-        self.session_name = session_config['session']['name']
-        self.session_type = session_config['session']['type']
-        self.session_creation_time = session_config['session']['creation_time']
-        package_directories_string = session_config['packages']['directories']
+        self.session_config = self.get_session_config(session_config_file)
+        self.session_name = self.session_config['session']['name']
+        self.session_type = self.session_config['session']['type']
+        self.session_creation_time = self.session_config['session']['creation_time']
+        package_directories_string = self.session_config['packages']['directories']
         if package_directories_string:
             package_directories = package_directories_string.split(':')
         else:
@@ -187,7 +187,7 @@ class Session(object):
         self._package_directories = package_directories
         self.set_defined_packages()
         self.set_available_packages()
-        packages_list_string = session_config['packages']['loaded_packages']
+        packages_list_string = self.session_config['packages']['loaded_packages']
         if packages_list_string:
             packages_list = packages_list_string.split(':')
         else:
@@ -338,10 +338,8 @@ class Session(object):
 #            self._loaded_packages[package_label] = package
                 
     def store(self):
-        session_config_file = self.get_session_config_file(self.session_root)
-        session_config = self.get_session_config(session_config_file)
-        session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
-        session_config.store()
+        self.session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
+        self.session_config.store()
         
     def add_directories(self, directories):
         changed = False
@@ -354,10 +352,8 @@ class Session(object):
                 self._package_directories.append(directory)
                 changed = True
         if changed:
-            session_config_file = self.get_session_config_file(self.session_root)
-            session_config = self.get_session_config(session_config_file)
-            session_config['packages']['directories'] = ':'.join(self._package_directories)
-            session_config.store()
+            self.session_config['packages']['directories'] = ':'.join(self._package_directories)
+            self.session_config.store()
         
     def remove_directories(self, directories):
         changed = False
@@ -380,10 +376,8 @@ class Session(object):
                     LOGGER.warning("package directory {0} not in use".format(directory))
                 changed = True
         if changed:
-            session_config_file = self.get_session_config_file(self.session_root)
-            session_config = self.get_session_config(session_config_file)
-            session_config['packages']['directories'] = ':'.join(self._package_directories)
-            session_config.store()
+            self.session_config['packages']['directories'] = ':'.join(self._package_directories)
+            self.session_config.store()
         
     def iteradd(self, package_labels):
         while package_labels:

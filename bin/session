@@ -78,29 +78,43 @@ Change the current session""",
         help="commands")
 
     ### Defaults subparser
-    parser_defaults = top_level_subparsers.add_parser("defaults",
-        aliases=['def'],
+    parser_defaults =  top_level_subparsers.add_parser("defaults",
+        aliases=["def"],
         parents=[common_parser],
         help="defaults management")
 
     defaults_subparsers = parser_defaults.add_subparsers(
         help="defaults subcommand")
 
-    parser_defaults_show = defaults_subparsers.add_parser("show",
+    ### Site subparser
+    parser_site = top_level_subparsers.add_parser("site",
         parents=[common_parser],
-        help="show current defaults")
-    parser_defaults_show.add_argument("keys",
-        nargs='*',
-        help="show keys")
-    parser_defaults_show.set_defaults(function=manager.show_defaults)
+        help="site management")
 
-    parser_defaults_set = defaults_subparsers.add_parser("set",
+    site_subparsers = parser_site.add_subparsers(
+        help="site subcommand")
+
+    parser_site_defaults = site_subparsers.add_parser("defaults",
+        aliases=["def"],
+        help="site defaults management")
+
+    site_defaults_subparsers = parser_site_defaults.add_subparsers(
+        help="site default management")
+
+    ### User subparser
+    parser_user = top_level_subparsers.add_parser("user",
         parents=[common_parser],
-        help="set defaults")
-    parser_defaults_set.add_argument("key_values",
-        nargs='*',
-        help="key=value pairs")
-    parser_defaults_set.set_defaults(function=manager.set_defaults)
+        help="user management")
+
+    user_subparsers = parser_user.add_subparsers(
+        help="user subcommand")
+    
+    parser_user_defaults = user_subparsers.add_parser("defaults",
+        aliases=["def"],
+        help="user defaults management")
+
+    user_defaults_subparsers = parser_user_defaults.add_subparsers(
+        help="user default management")
 
     ### Session subparser
     parser_session = top_level_subparsers.add_parser("session",
@@ -174,6 +188,50 @@ Change the current session""",
             nargs='+',
             default=None,
             help="session names")
+
+    parser_session_defaults = session_subparsers.add_parser("defaults",
+        aliases=["def"],
+        help="session defaults management")
+
+    session_defaults_subparsers = parser_session_defaults.add_subparsers(
+        help="session default management")
+
+    parser_defaults_show = {}
+    for subparsers in defaults_subparsers, site_defaults_subparsers, user_defaults_subparsers, session_defaults_subparsers:
+        parser_defaults_show[subparsers] = subparsers.add_parser("show",
+            parents=[common_parser],
+            help="show current defaults")
+        parser_defaults_show[subparsers].add_argument("keys",
+            nargs='*',
+            help="show keys")
+    
+    parser_defaults_show[defaults_subparsers].set_defaults(function=manager.show_current_defaults)
+    parser_defaults_show[site_defaults_subparsers].set_defaults(function=manager.show_site_defaults)
+    parser_defaults_show[user_defaults_subparsers].set_defaults(function=manager.show_user_defaults)
+    parser_defaults_show[session_defaults_subparsers].set_defaults(function=manager.show_session_defaults)
+
+
+    parser_defaults_set = {}
+    parser_defaults_unset = {}
+    for subparsers in user_defaults_subparsers, session_defaults_subparsers:
+        parser_defaults_set[subparsers] = subparsers.add_parser("set",
+            parents=[common_parser],
+            help="set defaults")
+        parser_defaults_set[subparsers].add_argument("key_values",
+            nargs='*',
+            help="set key=value pairs")
+        parser_defaults_unset[subparsers] = subparsers.add_parser("unset",
+            parents=[common_parser],
+            help="set defaults")
+        parser_defaults_unset[subparsers].add_argument("keys",
+            nargs='*',
+            help="unset keys")
+
+    parser_defaults_set[user_defaults_subparsers].set_defaults(function=manager.set_user_defaults)
+    parser_defaults_set[session_defaults_subparsers].set_defaults(function=manager.set_session_defaults)
+
+    parser_defaults_unset[user_defaults_subparsers].set_defaults(function=manager.unset_user_defaults)
+    parser_defaults_unset[session_defaults_subparsers].set_defaults(function=manager.unset_session_defaults)
 
     ### Package subparser
     parser_package = top_level_subparsers.add_parser("package",

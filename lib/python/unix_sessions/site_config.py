@@ -18,10 +18,10 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
+from .config_commons import GENERAL, DEFAULTS
 
-class GlobalConfig(Config):
+class SiteConfig(Config):
     __defaults__ = {
-        'global': {
-            'categories': 'compiler:library:tool:application',
-        }
+        'general': GENERAL,
+        'defaults': DEFAULTS,
     }

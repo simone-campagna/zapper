@@ -18,20 +18,13 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
+from .config_commons import GENERAL, DEFAULTS
 
 class UserConfig(Config):
     __defaults__ = {
-        'global': {
-            'categories': '',
-        },
+        'general': GENERAL,
+        'defaults': DEFAULTS,
         'sessions': {
             'last_session': ''
         },
-        'defaults': {
-            'verbose': False,
-            'debug': False,
-            'trace': False,
-            'subpackages': False,
-            'resolution_level': 0,
-        }
     }
