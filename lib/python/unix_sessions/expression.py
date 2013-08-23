@@ -127,8 +127,11 @@ class Expression(metaclass=abc.ABCMeta):
     def __abs__(self):
         return Abs(self)
 
-    def __not__(self):
+    def __invert__(self):
         return Not(self)
+
+    def __repr__(self):
+        return repr(self.__str__())
 
 class _Instance(Expression):
     def __init__(self, symbol=None):
@@ -219,12 +222,12 @@ class UnaryOperator(Expression):
         return "({s} {o})".format(s=self.__symbol__, o=self.operand)
     
 class And(BinaryOperator):
-    __symbol__ = "and"
+    __symbol__ = "&"
     def compute(self, l, r):
         return l and r
 
 class Or(BinaryOperator):
-    __symbol__ = "or"
+    __symbol__ = "|"
     def compute(self, l, r):
         return l or r
 
@@ -316,7 +319,7 @@ class Neg(UnaryOperator):
         return -o
 
 class Not(UnaryOperator):
-    __symbol__ = "not"
+    __symbol__ = "~"
     def compute(self, o):
         return not o
 

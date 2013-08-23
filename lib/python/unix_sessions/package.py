@@ -257,6 +257,13 @@ class Package(ListRegister, Transition):
                     conflicts.append((self, expression, loaded_package))
         return conflicts
 
+    @classmethod
+    def filter(cls, packages, expression):
+        for package in packages:
+            expression.bind(package)
+            if expression.get_value():
+                yield package
+ 
     def register(self):
         self.register_keys(package_dir=self._package_dir)
 

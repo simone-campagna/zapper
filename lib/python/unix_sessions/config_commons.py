@@ -25,6 +25,7 @@ DEFAULTS = {
     'trace': '',
     'subpackages': '',
     'resolution_level': '',
+    'filter_packages': '',
 }
 
 GENERAL = {

@@ -28,7 +28,7 @@ import collections
 from .errors import *
 from .session import *
 from .category import Category
-from .package import Package
+from .package import *
 from .translator import Translator
 from .translators import *
 from .user_config import UserConfig
@@ -46,12 +46,21 @@ class Manager(object):
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
+    MANAGER_DEFAULTS_KEYS = (
+        'verbose',
+        'debug',
+        'trace',
+        'subpackages',
+        'resolution_level',
+        'filter_packages',
+    )
     MANAGER_DEFAULTS = {
         'verbose': False,
         'debug': False,
         'trace': False,
         'subpackages': False,
         'resolution_level': 0,
+        'filter_packages': []
     }
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
@@ -117,14 +126,19 @@ class Manager(object):
 
     def show_defaults(self, label, defaults, keys):
         if not keys:
-            keys = self.MANAGER_DEFAULTS.keys()
+            keys = self.MANAGER_DEFAULTS_KEYS
+        if not isinstance(defaults, dict):
+            # convert configparser.SectionProxies -> dict
+            defaults_dict = {} #dict((key, '') for key in defaults)
+            self._update_defaults(label, defaults, defaults_dict)
+            defaults = defaults_dict
         lst = []
         for key in keys:
             if not key in defaults:
                 LOGGER.error("no such key: {0}".format(key))
                 continue
             value = defaults[key]
-            lst.append((key, ':', value))
+            lst.append((key, ':', repr(value)))
         show_table("{0} defaults".format(label.title()), lst, header=('KEY', '', 'VALUE'))
      
     def show_site_defaults(self, keys):
@@ -139,44 +153,44 @@ class Manager(object):
     def show_current_defaults(self, keys):
         return self.show_defaults('current', self.defaults, keys)
 
-    def set_defaults(self, label, defaults, key_values):
+    def _set_config_defaults(self, label, defaults, key_values):
         changed = False
         for key_value in key_values:
             if not '=' in key_value:
-                raise ValueError("{0} defaults: invalid key=value pair {1!r}".format(label, key_value))
+                raise ValueError("{0}: invalid key=value pair {1!r}".format(label, key_value))
             key, value = key_value.split('=')
             if not key in defaults:
-                LOGGER.error("{0} defaults: no such key: {1}".format(label, key))
+                LOGGER.error("{0}: no such key: {1}".format(label, key))
                 continue
-            changed = self.set_default_key(defaults, key, value) or changed
+            changed = self._set_config_default_key(label, defaults, key, value) or changed
         return changed
 
     def set_user_defaults(self, key_values):
-        if self.set_defaults('user', self.user_config['defaults'], key_values):
+        if self._set_config_defaults('user', self.user_config['defaults'], key_values):
             self.user_config.store()
 
     def set_session_defaults(self, key_values):
-        if self.set_defaults('session', self.session_config['defaults'], key_values):
+        if self._set_config_defaults('session', self.session_config['defaults'], key_values):
             self.session_config.store()
 
-    def unset_defaults(self, label, defaults, keys):
+    def _unset_config_defaults(self, label, defaults, keys):
         if not keys:
-            keys = self.MANAGER_DEFAULTS.keys()
+            keys = self.MANAGER_DEFAULTS_KEYS
         changed = False
         for key in keys:
             if not key in defaults:
-                LOGGER.error("{0} defaults: no such key {1}".format(label, key))
+                LOGGER.error("{0}: no such key {1}".format(label, key))
             if defaults[key] != '':
                 defaults[key] = ''
                 changed = True
         return changed
 
     def unset_user_defaults(self, keys):
-        if self.unset_defaults('user', self.user_config['defaults'], keys):
+        if self._unset_config_defaults('user', self.user_config['defaults'], keys):
             self.user_config.store()
 
     def unset_session_defaults(self, keys):
-        if self.unset_defaults('session', self.session_config['defaults'], keys):
+        if self._unset_config_defaults('session', self.session_config['defaults'], keys):
             self.session_config.store()
 
     @classmethod
@@ -198,12 +212,25 @@ class Manager(object):
         return int(s)
 
     @classmethod
+    def _str2expressions(cls, s):
+        expressions = []
+        for expression_r in s.split(':'):
+            expression_s = eval(expression_r)
+            expression = eval(expression_s)
+            expressions.append(expression)
+        return expressions
+
+    @classmethod
     def _bool2str(cls, b):
         return str(b)
 
     @classmethod
     def _int2str(cls, i):
         return str(i)
+
+    @classmethod
+    def _expressions2str(cls, expressions):
+        return ':'.join(repr(str(expression)) for expression in expressions)
 
     def get_default_key(self, key):
         if not key in self.defaults:
@@ -215,34 +242,58 @@ class Manager(object):
         user_defaults = self.user_config['defaults']
         self.defaults = {}
         for from_defaults in self.MANAGER_DEFAULTS, site_defaults, user_defaults:
-            self.update_defaults(from_defaults, self.defaults)
+            self._update_defaults('defaults', from_defaults, self.defaults)
 
-    def update_defaults(self, from_defaults, to_defaults):
+    def _update_defaults(self, label, from_defaults, defaults_dict):
+        assert isinstance(defaults_dict, dict)
         changed = False
         for key in self.MANAGER_DEFAULTS.keys():
             value = from_defaults.get(key, '')
-            if value != '':
-                changed = self.set_default_key(to_defaults, key, value) or changed
+            if value == '':
+                if not key in defaults_dict:
+                    defaults_dict[key] = ''
+                    changed = True
+            else:
+                changed = self._set_default_key(label, defaults_dict, key, value) or changed
         return changed
 
-    def set_default_key(self, defaults, key, value):
-        #if not key in self.defaults:
-        #     raise ValueError("invalid key {0!r}".format(key))
-        if key in {'verbose', 'debug', 'trace', 'subpackages'}:
-            value = self._str2bool(value)
-        elif key in {'resolution_level'}:
-            value = self._str2int(value)
+    def _set_config_default_key(self, label, defaults, key, value):
         if defaults.get(key, None) != value:
-            LOGGER.info("setting defaults[{0!r}] = {1!r}".format(key, value))
+            if label is not None:
+                LOGGER.info("setting {0}[{1!r}] = {2!r}".format(label, key, value))
             defaults[key] = str(value)
+            return True
+        else:
+            return False
+
+    def _set_default_key(self, label, defaults_dict, key, value):
+        assert isinstance(defaults_dict, dict)
+        if key in {'verbose', 'debug', 'trace', 'subpackages'}:
+            if isinstance(value, str):
+                value = self._str2bool(value)
+            else:
+                assert isinstance(value, bool)
+        elif key in {'resolution_level'}:
+            if isinstance(value, str):
+                value = self._str2int(value)
+            else:
+                assert isinstance(value, int)
+        elif key in {'filter_packages'}:
+            if isinstance(value, str):
+                value = self._str2expressions(value)
+            else:
+                assert isinstance(value, (list, tuple))
+        if defaults_dict.get(key, None) != value:
+            if label is not None:
+                LOGGER.info("setting {0}[{1!r}] = {2!r}".format(label, key, value))
+            defaults_dict[key] = value
             return True
         else:
             return False
 
     def load_session_defaults(self):
         session_defaults = self.session_config['defaults']
-        if self.update_defaults(session_defaults, self.defaults):
-            self.session_config.store()
+        self._update_defaults('defaults', session_defaults, self.defaults)
 
 #    def store_defaults(self):
 #        defaults = self.user_config['defaults']
@@ -357,16 +408,7 @@ class Manager(object):
             if session_root == self.session.session_root:
                 LOGGER.warning("cannot delete current session {0}".format(self.session.session_name))
                 continue
-                #os.environ.pop('UXS_SESSION', None)
-                #self.load_session()
-            #print(self.session)
             Session.delete_session_root(session_root)
-            #session_config_file = Session.get_session_config_file(session_root)
-            #os.remove(session_config_file)
-            #try:
-            #    os.rmdir(session_root)
-            #except OSError:
-            #    pass
         
     def get_sessions(self, session_name_pattern, temporary=True, persistent=True):
         dl = []
@@ -474,10 +516,8 @@ class Manager(object):
             
     def init(self, translator=None, translation_filename=None):
         environment = self.session.environment
-        #print("UXS_SESSION={0}".format(environment.get('UXS_SESSION', None)))
         if not 'UXS_SESSION' in environment:
             environment['UXS_SESSION'] = self.session.session_root
-        #print(translator, translation_filename)
         if translator:
             if translation_filename:
                 self.session.translate_file(translator, translation_filename=os.path.abspath(translation_filename))
