@@ -28,7 +28,8 @@ import collections
 from .errors import *
 from .session import *
 from .category import Category
-from .package import *
+from .package import Package
+from .package_expressions import ALL_EXPRESSIONS
 from .translator import Translator
 from .translators import *
 from .user_config import UserConfig
@@ -129,7 +130,7 @@ class Manager(object):
             keys = self.MANAGER_DEFAULTS_KEYS
         if not isinstance(defaults, dict):
             # convert configparser.SectionProxies -> dict
-            defaults_dict = {} #dict((key, '') for key in defaults)
+            defaults_dict = {}
             self._update_defaults(label, defaults, defaults_dict)
             defaults = defaults_dict
         lst = []
@@ -212,13 +213,8 @@ class Manager(object):
         return int(s)
 
     @classmethod
-    def _str2expressions(cls, s):
-        expressions = []
-        for expression_r in s.split(':'):
-            expression_s = eval(expression_r)
-            expression = eval(expression_s)
-            expressions.append(expression)
-        return expressions
+    def _str2expression(cls, s):
+        return eval(s, ALL_EXPRESSIONS, {})
 
     @classmethod
     def _bool2str(cls, b):
@@ -229,8 +225,8 @@ class Manager(object):
         return str(i)
 
     @classmethod
-    def _expressions2str(cls, expressions):
-        return ':'.join(repr(str(expression)) for expression in expressions)
+    def _expression2str(cls, expression):
+        return str(expression)
 
     def get_default_key(self, key):
         if not key in self.defaults:
@@ -266,26 +262,29 @@ class Manager(object):
         else:
             return False
 
-    def _set_default_key(self, label, defaults_dict, key, value):
+    def _set_default_key(self, label, defaults_dict, key, s_value):
         assert isinstance(defaults_dict, dict)
         if key in {'verbose', 'debug', 'trace', 'subpackages'}:
-            if isinstance(value, str):
-                value = self._str2bool(value)
+            if isinstance(s_value, str):
+                value = self._str2bool(s_value)
             else:
-                assert isinstance(value, bool)
+                value = s_value
+                assert isinstance(s_value, bool)
         elif key in {'resolution_level'}:
-            if isinstance(value, str):
-                value = self._str2int(value)
+            if isinstance(s_value, str):
+                value = self._str2int(s_value)
             else:
-                assert isinstance(value, int)
+                value = s_value
+                assert isinstance(s_value, int)
         elif key in {'filter_packages'}:
-            if isinstance(value, str):
-                value = self._str2expressions(value)
+            if isinstance(s_value, str):
+                value = self._str2expression(s_value)
             else:
+                value = s_value
                 assert isinstance(value, (list, tuple))
-        if defaults_dict.get(key, None) != value:
-            if label is not None:
-                LOGGER.info("setting {0}[{1!r}] = {2!r}".format(label, key, value))
+        if str(defaults_dict.get(key, None)) != str(value):
+            #if label is not None:
+            #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
             defaults_dict[key] = value
             return True
         else:

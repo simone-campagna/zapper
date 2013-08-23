@@ -131,7 +131,7 @@ class Expression(metaclass=abc.ABCMeta):
         return Not(self)
 
     def __repr__(self):
-        return repr(self.__str__())
+        return self.__str__()
 
 class _Instance(Expression):
     def __init__(self, symbol=None):

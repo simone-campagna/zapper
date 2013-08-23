@@ -24,21 +24,15 @@ from .transition import *
 from .version import Version
 from .registry import ListRegister
 from .package_family import PackageFamily
+from .package_expressions import NAME, PACKAGE, HAS_TAG
 from .tag import Tag
-from .expression import Expression, AttributeGetter, InstanceGetter, MethodCaller, ConstExpression
+from .expression import Expression, ConstExpression
 from .text import fill
 from .utils.show_table import show_table, show_title
 from .utils.debug import PRINT
 
-__all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY', 'PACKAGE', 'HAS_TAG']
+__all__ = ['Package']
 
-NAME = AttributeGetter('name', 'NAME')
-VERSION = AttributeGetter('version', 'VERSION')
-CATEGORY = AttributeGetter('category', 'CATEGORY')
-PACKAGE = InstanceGetter('PACKAGE')
-
-def HAS_TAG(tag):
-    return MethodCaller('has_tag', method_p_args=(tag, ), symbol='HAS_TAG({0!r})'.format(tag))
 
 class Package(ListRegister, Transition):
     __version_factory__ = Version
