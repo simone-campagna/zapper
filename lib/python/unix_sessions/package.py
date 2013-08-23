@@ -217,6 +217,9 @@ class Package(ListRegister, Transition):
         for expression in expressions:
             found = False
             for package in packages:
+                if package is self:
+                    # a package cannot require/prefer itself
+                    continue
                 expression.bind(package)
                 if expression.get_value():
                     #matched.append((self, expression, package))
