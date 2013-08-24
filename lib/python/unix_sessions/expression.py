@@ -133,6 +133,9 @@ class Expression(metaclass=abc.ABCMeta):
     def __repr__(self):
         return self.__str__()
 
+    def __bool__(self):
+        raise NotImplementedError("Expression objects cannot be converted to bool")
+
 class _Instance(Expression):
     def __init__(self, symbol=None):
         self.symbol = symbol

@@ -34,6 +34,7 @@ from .translator import Translator
 from .translators import *
 from .user_config import UserConfig
 from .site_config import SiteConfig
+from .expression import Expression
 from .utils.home import get_home_dir
 from .utils.random_name import RandomNameSequence
 from .utils.show_table import show_table
@@ -61,7 +62,7 @@ class Manager(object):
         'trace': False,
         'subpackages': False,
         'resolution_level': 0,
-        'filter_packages': []
+        'filter_packages': None,
     }
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
@@ -281,7 +282,7 @@ class Manager(object):
                 value = self._str2expression(s_value)
             else:
                 value = s_value
-                assert isinstance(value, (list, tuple))
+                assert isinstance(value, Expression) or value is None
         if str(defaults_dict.get(key, None)) != str(value):
             #if label is not None:
             #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
@@ -499,6 +500,12 @@ class Manager(object):
 
     def revert(self, translator=None, translation_filename=None):
         pass
+
+    def initialize(self):
+        filter_packages = self.defaults['filter_packages']
+        print(filter_packages, repr(filter_packages), type(filter_packages))
+        if isinstance(filter_packages, Expression):
+            self.session.filter_packages(self.defaults['filter_packages'])
 
     def finalize(self):
         self.user_config['sessions']['last_session'] = self.session.session_root

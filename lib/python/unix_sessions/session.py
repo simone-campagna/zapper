@@ -30,6 +30,7 @@ from .package import Package
 from .suite import Suite, ROOT
 from .errors import *
 from .session_config import SessionConfig
+from .package_collection import PackageCollection
 from .utils.debug import LOGGER, PRINT
 from .utils.trace import trace
 from .utils.show_table import show_table, show_title
@@ -38,36 +39,6 @@ from .utils.random_name import RandomNameSequence
 from .utils.string import plural_string
 from .utils import sequences
 
-
-class Packages(collections.OrderedDict):
-    def __init__(self):
-        super().__init__(self)
-        self._changed_package_full_labels = []
-
-    def is_changed(self):
-        return bool(self._changed_package_full_labels)
-
-    def __setitem__(self, package_full_label, package):
-        old_package = super().get(package_full_label, None)
-        if old_package != package:
-            self._changed_package_full_labels.append(package_full_label)
-        super().__setitem__(package_full_label, package)
-       
-    def __delitem__(self, package_full_label):
-        if package_full_label in self:
-            self._changed_package_full_labels.append(package_full_label)
-            super().__delitem__(package_full_label)
-
-    def add_package(self, package):
-        package_full_label = package.full_label()
-        if package_full_label in self and self[package_full_label] is not package:
-            #raise SessionError("package {0} hides {1}".format(package.full_label(), self[package_full_label].full_label()))
-            LOGGER.warning("package {0} hides {1}".format(package.full_label(), self[package_full_label].full_label()))
-        self[package_full_label] = package
-
-    def remove_package(self, package):
-        package_full_label = package.full_label()
-        del self[package_full_label]
 
 class Session(object):
     SESSION_SUFFIX = ".session"
@@ -88,13 +59,24 @@ class Session(object):
     def __init__(self, manager, session_root):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
-        self._loaded_packages = Packages()
-        self._loaded_suites = Packages()
+        self._loaded_packages = PackageCollection()
+        self._loaded_suites = PackageCollection()
         self._package_directories = []
-        self._defined_packages = Packages()
-        self._available_packages = Packages()
+        self._defined_packages = PackageCollection()
+        self._available_packages = PackageCollection()
         self._modules = {}
         self.load(session_root)
+
+    def filter_packages(self, expression):
+        for package_collection in self._defined_packages, self._available_packages:
+            to_remove = set()
+            for package_label, package in package_collection.items():
+                expression.bind(package)
+                if not expression.get_value():
+                    to_remove.add(package_label)
+            for package_label in to_remove:
+                package = package_collection.pop(package_label)
+                LOGGER.debug("discarding package {0} not matching expression {1}".format(package, expression))
 
     def _load_modules(self, package_dir):
         #print("+++", package_dir)

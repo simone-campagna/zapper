@@ -358,6 +358,7 @@ Change the current session""",
         if key in n_args:
             del n_args[key]
 
+    manager.initialize()
     try:
         args.function(*p_args, **n_args)
     except Exception as e:
