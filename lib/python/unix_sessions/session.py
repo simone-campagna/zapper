@@ -65,7 +65,16 @@ class Session(object):
         self._defined_packages = PackageCollection()
         self._available_packages = PackageCollection()
         self._modules = {}
+        self._show_full_label = False
         self.load(session_root)
+
+    def set_show_full_label(self, value):
+        self._show_full_label = value
+
+    def get_show_full_label(self):
+        return self._show_full_label
+
+    show_full_label = property(get_show_full_label, set_show_full_label)
 
     def filter_packages(self, expression):
         for package_collection in self._defined_packages, self._available_packages:
@@ -235,6 +244,10 @@ class Session(object):
     def get_package(self, package_label, package_list):
         l = package_label.split('/', 1)
         package_name = l[0]
+        if '::' in package_name:
+            name_attr = 'full_name'
+        else:
+            name_attr = 'name'
         if len(l) > 1:
             package_version = l[1]
         else:
@@ -250,10 +263,13 @@ class Session(object):
             operator = lambda x, v: True
         packages = []
         for package in package_list:
-            if package.name == package_name and operator(package.version, package_version):
+            if getattr(package, name_attr) == package_name and operator(package.version, package_version):
                 packages.append(package)
         LOGGER.debug("get_package({0!r}) : packages={1}".format(package_label, [str(p) for p in packages]))
         if packages:
+            for package in packages:
+                if package_label in (package.label, package.full_label):
+                    return package
             packages.sort(key=lambda x: x.version)
             LOGGER.debug("get_package({0!r}) : sorted_packages={1}".format(package_label, [str(p) for p in packages]))
             package = packages[-1]
@@ -576,11 +592,17 @@ class Session(object):
     
     def show_packages(self, title, packages):
         d = {c: o for o, c in enumerate(Category.categories())}
-        packages = sorted(packages, key=lambda package: d[package.category])
+        packages = list(packages)
+        packages.sort(key=lambda package: d[package.category])
+        packages.sort(key=lambda package: package.suite.full_label)
+        if self._show_full_label:
+            package_label_attr = 'full_label'
+        else:
+            package_label_attr = 'label'
         show_table(title,
             [(package.category,
               package._suite.full_label,
-              package.label,
+              getattr(package, package_label_attr),
               ', '.join(str(tag) for tag in package.tags)) for package in packages],
             header=('CATEGORY', 'SUITE', 'PACKAGE', 'TAGS'),
         )

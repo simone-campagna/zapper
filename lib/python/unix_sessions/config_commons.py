@@ -24,6 +24,7 @@ DEFAULTS = {
     'debug': '',
     'trace': '',
     'subpackages': '',
+    'full_label': '',
     'resolution_level': '',
     'filter_packages': '',
 }

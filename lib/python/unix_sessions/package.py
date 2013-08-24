@@ -42,6 +42,8 @@ class Package(ListRegister, Transition):
         super().__init__()
         assert isinstance(package_family, PackageFamily)
         self._package_family = package_family
+        if version is None:
+            version = ''
         if not isinstance(version, Version):
             version = self.make_version(version)
         self._name = self._package_family._name
@@ -63,22 +65,32 @@ class Package(ListRegister, Transition):
         self._conflicts = []
         self._tags = set()
         self._suite.add_package(self)
-        if self._suite is self:
-            self._label = ""
-            self._full_label = ""
-            self._full_name = ""
+        if self._version:
+             suffix = '/' + self._version
         else:
-            suite_label = self._suite._full_label
-            if suite_label:
-                self._full_name = "{0}::{1}".format(suite_label, self._name)
-            else:
-                self._full_name = self._name
-            if self._version:
-                self._label = "{0}/{1}".format(self._name, self._version)
-                self._full_label = "{0}/{1}".format(self._full_name, self._label)
-            else:
-                self._label = self._name
-                self._full_label = self._full_name
+             suffix = ''
+        if self._suite is self:
+             self._full_name = self._name
+        else:
+             self._full_name = "{0}::{1}".format(self._suite._full_label, self._name)
+        self._full_label = self._full_name + suffix
+        self._label = self._name + suffix
+#        if self._suite is self:
+#            self._label = ""
+#            self._full_label = ""
+#            self._full_name = ""
+#        else:
+#            suite_label = self._suite._full_label
+#            if suite_label:
+#                self._full_name = "{0}::{1}".format(suite_label, self._name)
+#            else:
+#                self._full_name = self._name
+#            if self._version:
+#                self._label = "{0}/{1}".format(self._name, self._version)
+#                self._full_label = "{0}/{1}".format(self._full_name, self._label)
+#            else:
+#                self._label = self._name
+#                self._full_label = self._full_name
         self.register()
 
     @property

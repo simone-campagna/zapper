@@ -53,6 +53,7 @@ class Manager(object):
         'debug',
         'trace',
         'subpackages',
+        'full_label',
         'resolution_level',
         'filter_packages',
     )
@@ -61,6 +62,7 @@ class Manager(object):
         'debug': False,
         'trace': False,
         'subpackages': False,
+        'full_label': False,
         'resolution_level': 0,
         'filter_packages': None,
     }
@@ -100,6 +102,9 @@ class Manager(object):
 
         self.load_translator()
         self.load_session()
+
+    def set_show_full_label(self, value):
+        self.session.set_show_full_label(value)
 
     def load_general(self):
         # site categories:
@@ -265,7 +270,7 @@ class Manager(object):
 
     def _set_default_key(self, label, defaults_dict, key, s_value):
         assert isinstance(defaults_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages'}:
+        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label'}:
             if isinstance(s_value, str):
                 value = self._str2bool(s_value)
             else:
@@ -295,12 +300,6 @@ class Manager(object):
         session_defaults = self.session_config['defaults']
         self._update_defaults('defaults', session_defaults, self.defaults)
 
-#    def store_defaults(self):
-#        defaults = self.user_config['defaults']
-#        for key in {'verbose', 'debug', 'trace', 'subpackages'}:
-#            defaults[key] = self._bool2str(self.defaults[key])
-#        for key in {'resolution_level'}:
-#            defaults[key] = self._int2str(self.defaults[key])
 
     def load_session(self, session_name=None):
         return self._load_session(session_name=None, _depth=0)
@@ -502,6 +501,7 @@ class Manager(object):
         pass
 
     def initialize(self):
+        #self.session.show_full_label = self.defaults['full_label']
         filter_packages = self.defaults['filter_packages']
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.defaults['filter_packages'])
