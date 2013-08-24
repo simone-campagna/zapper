@@ -46,10 +46,6 @@ class Suite(Package):
     def add_package_requirement(self, package):
         package.requires(self)
 
-    def apply(self, session):
-        for package in self._packages:
-            package.apply(session)
-
     def show_content(self):
         super().show_content()
         show_table("Packages", self.packages())

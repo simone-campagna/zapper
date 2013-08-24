@@ -328,12 +328,6 @@ class Session(object):
         self.unload_environment_packages()
         self.unload_packages()
         self.add(packages_list)
-#        for package_label in packages_list:
-#            package = self.get_available_package(package_label)
-#            package_label = package.label
-#            LOGGER.info("adding package {0}...".format(package_label))
-#            package.apply(self)
-#            self._loaded_packages[package_label] = package
                 
     def store(self):
         self.session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())

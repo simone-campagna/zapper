@@ -29,7 +29,7 @@ from .tag import Tag
 from .expression import Expression, ConstExpression
 from .text import fill
 from .utils.show_table import show_table, show_title
-from .utils.debug import PRINT
+from .utils.debug import PRINT, LOGGER
 
 __all__ = ['Package']
 
@@ -326,10 +326,12 @@ class Package(ListRegister, Transition):
         self.add_transition(RemovePath(var_name, var_value, separator))
 
     def apply(self, session):
+        LOGGER.debug("{0}[{1}]: applying...".format(self.__class__.__name__, self))
         for transition in self._transitions:
             transition.apply(session)
 
     def revert(self, session):
+        LOGGER.debug("{0}[{1}]: reverting...".format(self.__class__.__name__, self))
         for transition in self._transitions:
             transition.revert(session)
 
