@@ -170,6 +170,9 @@ class Manager(object):
                 LOGGER.error("{0}: no such key: {1}".format(label, key))
                 continue
             changed = self._set_config_default_key(label, defaults, key, value) or changed
+        # check:
+        defaults_dict = {}
+        self._update_defaults(label, defaults, defaults_dict)
         return changed
 
     def set_user_defaults(self, key_values):

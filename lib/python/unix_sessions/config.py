@@ -18,8 +18,8 @@
 __author__ = 'Simone Campagna'
 
 import os
-import configparser
 import datetime
+import configparser
 
 from .lock_file import Lock
 
