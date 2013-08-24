@@ -44,9 +44,9 @@ class Package(ListRegister, Transition):
         self._package_family = package_family
         if not isinstance(version, Version):
             version = self.make_version(version)
-        self.name = self._package_family.name
-        self.version = version
-        self.category = self._package_family.category
+        self._name = self._package_family._name
+        self._version = version
+        self._category = self._package_family._category
         self._short_description = short_description
         self._long_description = long_description
         if suite is None:
@@ -66,20 +66,44 @@ class Package(ListRegister, Transition):
         if self._suite is self:
             self._label = ""
             self._full_label = ""
+            self._full_name = ""
         else:
-            self._label = "{0}/{1}".format(self.name, self.version)
             suite_label = self._suite._full_label
             if suite_label:
-                self._full_label = "{0}::{1}".format(suite_label, self._label)
+                self._full_name = "{0}::{1}".format(suite_label, self._name)
             else:
-                self._full_label = self._label
+                self._full_name = self._name
+            if self._version:
+                self._label = "{0}/{1}".format(self._name, self._version)
+                self._full_label = "{0}/{1}".format(self._full_name, self._label)
+            else:
+                self._label = self._name
+                self._full_label = self._full_name
         self.register()
 
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def version(self):
+        return self._version
+
+    @property
+    def category(self):
+        return self._category
+
+    @property
     def label(self):
         return self._label
 
+    @property
     def full_label(self):
         return self._full_label
+
+    @property
+    def full_name(self):
+        return self._full_name
 
     @property
     def suite(self):
@@ -139,12 +163,12 @@ class Package(ListRegister, Transition):
     long_description = property(get_long_description, set_long_description)
 
     def show_content(self):
-        show_title("{0} {1}".format(self.__class__.__name__, self.label()))
-        PRINT("name     : {0}".format(self.name))
-        PRINT("version  : {0}".format(self.version))
-        PRINT("category : {0}".format(self.category))
-        PRINT("suite    : {0}".format(self._suite.full_label()))
-        PRINT("full     : {0}".format(self.full_label()))
+        show_title("{0} {1}".format(self.__class__.__name__, self._label))
+        PRINT("name     : {0}".format(self._name))
+        PRINT("version  : {0}".format(self._version))
+        PRINT("category : {0}".format(self._category))
+        PRINT("suite    : {0}".format(self._suite._full_label))
+        PRINT("full     : {0}".format(self._full_label))
         show_table("Transitions", self.get_transitions())
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())
@@ -223,7 +247,7 @@ class Package(ListRegister, Transition):
             if not found:
                 unmatched.append((self, expression))
         for package_family, lst in matched_d.items():
-            lst.sort(key=lambda t: t[-1].version)
+            lst.sort(key=lambda t: t[-1]._version)
             matched.append(lst[-1])
         return matched, unmatched
 
@@ -298,8 +322,8 @@ class Package(ListRegister, Transition):
             transition.revert(session)
 
     def __repr__(self):
-        return "{0}(name={1!r}, version={2!r}, category={3!r})".format(self.__class__.__name__, self.name, self.version, self.category)
+        return "{0}(name={1!r}, version={2!r}, category={3!r})".format(self.__class__.__name__, self._name, self._version, self._category)
 
     def __str__(self):
-        return self.full_label()
+        return self.full_label
 

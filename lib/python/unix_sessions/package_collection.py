@@ -42,13 +42,13 @@ class PackageCollection(collections.OrderedDict):
             super().__delitem__(package_full_label)
 
     def add_package(self, package):
-        package_full_label = package.full_label()
+        package_full_label = package.full_label
         if package_full_label in self and self[package_full_label] is not package:
-            #raise SessionError("package {0} hides {1}".format(package.full_label(), self[package_full_label].full_label()))
-            LOGGER.warning("package {0} hides {1}".format(package.full_label(), self[package_full_label].full_label()))
+            #raise SessionError("package {0} hides {1}".format(package.full_label, self[package_full_label].full_label))
+            LOGGER.warning("package {0} hides {1}".format(package.full_label, self[package_full_label].full_label))
         self[package_full_label] = package
 
     def remove_package(self, package):
-        package_full_label = package.full_label()
+        package_full_label = package.full_label
         del self[package_full_label]
 

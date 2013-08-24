@@ -22,9 +22,21 @@ import collections
 
 from .expression import Expression, AttributeGetter, InstanceGetter, MethodCaller, ConstExpression
 
-__all__ = ['Package', 'NAME', 'VERSION', 'CATEGORY', 'PACKAGE', 'HAS_TAG', 'ALL_EXPRESSIONS']
+__all__ = ['Package',
+           'NAME',
+           'FULL_NAME',
+           'LABEL',
+           'FULL_LABEL',
+           'VERSION',
+           'CATEGORY',
+           'PACKAGE',
+           'HAS_TAG',
+           'ALL_EXPRESSIONS']
 
 NAME = AttributeGetter('name', 'NAME')
+FULL_NAME = AttributeGetter('full_name', 'FULL_NAME')
+LABEL = AttributeGetter('label', 'LABEL')
+FULL_LABEL = AttributeGetter('full_label', 'FULL_LABEL')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
 PACKAGE = InstanceGetter('PACKAGE')
@@ -34,6 +46,9 @@ def HAS_TAG(tag):
 
 ALL_EXPRESSIONS = {
     'NAME': NAME,
+    'FULL_NAME': FULL_NAME,
+    'LABEL': LABEL,
+    'FULL_LABEL': FULL_LABEL,
     'VERSION': VERSION,
     'CATEGORY': CATEGORY,
     'PACKAGE': PACKAGE,

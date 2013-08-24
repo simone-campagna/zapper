@@ -314,7 +314,7 @@ class Session(object):
         self.add(packages_list)
 #        for package_label in packages_list:
 #            package = self.get_available_package(package_label)
-#            package_label = package.label()
+#            package_label = package.label
 #            LOGGER.info("adding package {0}...".format(package_label))
 #            package.apply(self)
 #            self._loaded_packages[package_label] = package
@@ -372,7 +372,7 @@ class Session(object):
                     continue
                     #LOGGER.error("package {0} not found".format(package_label))
                     #raise PackageNotFoundError("package {0} not found".format(package_label))
-                package_label = package.label()
+                package_label = package.label
 #                if package_label in self._loaded_packages:
 #                    LOGGER.info("package {0} already loaded".format(package_label))
 #                    continue
@@ -403,7 +403,7 @@ class Session(object):
     def _unloaded_packages(self, packages):
         unloaded_packages = []
         for package in packages:
-            package_label = package.full_label()
+            package_label = package.full_label
             if package_label in self._loaded_packages:
                 LOGGER.info("package {0} already loaded".format(package_label))
                 continue
@@ -425,7 +425,7 @@ class Session(object):
             simulated_loaded_packages = list(sequences.unique(list(self._loaded_packages.values()) + packages))
             automatically_added_packages = []
             for package_index, package in enumerate(packages):
-                package_label = package.label()
+                package_label = package.label
                 matched_requirements, unmatched_requirements = package.match_requirements(simulated_loaded_packages)
                 if unmatched_requirements and resolution_level > 0:
                     matched_requirements, unmatched_requirements = package.match_requirements(available_packages)
@@ -475,7 +475,7 @@ class Session(object):
         for package in packages:
             LOGGER.info("adding package {0}...".format(package))
             package.apply(self)
-            self._loaded_packages[package.label()] = package
+            self._loaded_packages[package.label] = package
             if isinstance(package, Suite):
                 self._add_suite(package)
         if self._loaded_packages.is_changed():
@@ -493,7 +493,7 @@ class Session(object):
             if package is None:
                 LOGGER.error("package {0} not loaded".format(package_label))
                 raise PackageNotFoundError("package {0} not loaded".format(package_label))
-            package_label = package.label()
+            package_label = package.label
             if not package_label in self._loaded_packages:
                 LOGGER.info("package {0} not loaded".format(package_label))
                 continue
@@ -546,7 +546,7 @@ class Session(object):
         for package in packages:
             LOGGER.info("removing package {0}...".format(package))
             package.revert(self)
-            del self._loaded_packages[package.label()]
+            del self._loaded_packages[package.label]
             if isinstance(package, Suite):
                 self._remove_suite(package)
             
@@ -579,8 +579,8 @@ class Session(object):
         packages = sorted(packages, key=lambda package: d[package.category])
         show_table(title,
             [(package.category,
-              package._suite.full_label(),
-              package.label(),
+              package._suite.full_label,
+              package.label,
               ', '.join(str(tag) for tag in package.tags)) for package in packages],
             header=('CATEGORY', 'SUITE', 'PACKAGE', 'TAGS'),
         )

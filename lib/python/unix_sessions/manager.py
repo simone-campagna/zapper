@@ -503,7 +503,6 @@ class Manager(object):
 
     def initialize(self):
         filter_packages = self.defaults['filter_packages']
-        print(filter_packages, repr(filter_packages), type(filter_packages))
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.defaults['filter_packages'])
 
