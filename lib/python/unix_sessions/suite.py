@@ -56,7 +56,7 @@ class Suite(Package):
 
 class _RootSuite(Suite):
     def __init__(self):
-        suite_family = SuiteFamily.get_family('ROOT')
+        suite_family = SuiteFamily.get_family('')
         version = ''
         short_description = 'The Root suite'
         long_description = 'The Root suite contains all available suites/packages'
