@@ -48,7 +48,7 @@ class Manager(object):
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
-    MANAGER_DEFAULTS_KEYS = (
+    MANAGER_CONFIG_KEYS = (
         'verbose',
         'debug',
         'trace',
@@ -57,7 +57,7 @@ class Manager(object):
         'resolution_level',
         'filter_packages',
     )
-    MANAGER_DEFAULTS = {
+    MANAGER_CONFIG = {
         'verbose': False,
         'debug': False,
         'trace': False,
@@ -98,7 +98,9 @@ class Manager(object):
 
         self.load_general()
 
-        self.load_user_defaults()
+        self.load_user_config()
+
+        self.load_user_default_versions()
 
         self.load_translator()
         self.load_session()
@@ -131,76 +133,239 @@ class Manager(object):
 
     session = property(get_session, set_session)
 
-    def show_defaults(self, label, defaults, keys):
+    ### Default_versions
+    def _update_default_versions(self, label, from_default_versions, default_versions_dict):
+        assert isinstance(default_versions_dict, dict)
+        changed = False
+        for key, value in from_default_versions.items():
+            if value == '':
+                if not key in default_versions_dict:
+                    default_versions_dict[key] = ''
+                    changed = True
+            else:
+                changed = self._set_default_versions_key(label, default_versions_dict, key, value) or changed
+        return changed
+
+    def _set_generic_default_versions_key(self, label, default_versions, key, value):
+        if default_versions.get(key, None) != value:
+            if label is not None:
+                LOGGER.info("setting {0} default version {1!r}={2!r}".format(label, key, value))
+            default_versions[key] = str(value)
+            return True
+        else:
+            return False
+
+    def _set_default_versions_key(self, label, default_versions_dict, key, value):
+        assert isinstance(default_versions_dict, dict)
+        if str(default_versions_dict.get(key, None)) != str(value):
+            #if label is not None:
+            #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
+            default_versions_dict[key] = value
+            return True
+        else:
+            return False
+
+    def show_default_versions(self, label, default_versions, keys):
         if not keys:
-            keys = self.MANAGER_DEFAULTS_KEYS
-        if not isinstance(defaults, dict):
+            keys = default_versions.keys()
+        if not isinstance(default_versions, dict):
             # convert configparser.SectionProxies -> dict
-            defaults_dict = {}
-            self._update_defaults(label, defaults, defaults_dict)
-            defaults = defaults_dict
+            default_versions_dict = {}
+            self._update_default_versions(label, default_versions, default_versions_dict)
+            default_versions = default_versions_dict
         lst = []
         for key in keys:
-            if not key in defaults:
-                LOGGER.error("no such key: {0}".format(key))
+            if not key in default_versions:
+                LOGGER.error("no such default version: {0}".format(key))
                 continue
-            value = defaults[key]
+            value = default_versions[key]
             lst.append((key, ':', repr(value)))
-        show_table("{0} defaults".format(label.title()), lst, header=('KEY', '', 'VALUE'))
-     
-    def show_site_defaults(self, keys):
-        return self.show_defaults('site', self.site_config['defaults'], keys)
+        show_table("{0} default versions".format(label.title()), lst, header=('KEY', '', 'VALUE'))
+      
+    def show_site_default_versions(self, keys):
+        return self.show_default_versions('site', self.site_config['default_versions'], keys)
 
-    def show_user_defaults(self, keys):
-        return self.show_defaults('user', self.user_config['defaults'], keys)
+    def show_user_default_versions(self, keys):
+        return self.show_default_versions('user', self.user_config['default_versions'], keys)
 
-    def show_session_defaults(self, keys):
-        return self.show_defaults('session', self.session_config['defaults'], keys)
+    def show_session_default_versions(self, keys):
+        return self.show_default_versions('session', self.session_config['default_versions'], keys)
 
-    def show_current_defaults(self, keys):
-        return self.show_defaults('current', self.defaults, keys)
+    def show_current_default_versions(self, keys):
+        return self.show_default_versions('current', self.default_versions, keys)
 
-    def _set_config_defaults(self, label, defaults, key_values):
+    def _set_generic_default_versions(self, label, default_versions, key_values):
         changed = False
         for key_value in key_values:
             if not '=' in key_value:
                 raise ValueError("{0}: invalid key=value pair {1!r}".format(label, key_value))
             key, value = key_value.split('=')
-            if not key in defaults:
-                LOGGER.error("{0}: no such key: {1}".format(label, key))
-                continue
-            changed = self._set_config_default_key(label, defaults, key, value) or changed
+            changed = self._set_generic_default_versions_key(label, default_versions, key, value) or changed
         # check:
-        defaults_dict = {}
-        self._update_defaults(label, defaults, defaults_dict)
+        default_versions_dict = {}
+        self._update_default_versions(label, default_versions, default_versions_dict)
         return changed
 
-    def set_user_defaults(self, key_values):
-        if self._set_config_defaults('user', self.user_config['defaults'], key_values):
+    def set_user_default_versions(self, key_values):
+        if self._set_generic_default_versions('user', self.user_config['default_versions'], key_values):
             self.user_config.store()
 
-    def set_session_defaults(self, key_values):
-        if self._set_config_defaults('session', self.session_config['defaults'], key_values):
+    def set_session_default_versions(self, key_values):
+        if self._set_generic_default_versions('session', self.session_config['default_versions'], key_values):
             self.session_config.store()
 
-    def _unset_config_defaults(self, label, defaults, keys):
+    def _reset_generic_default_versions(self, label, default_versions, keys):
         if not keys:
-            keys = self.MANAGER_DEFAULTS_KEYS
+            keys = default_versions.keys()
         changed = False
         for key in keys:
-            if not key in defaults:
-                LOGGER.error("{0}: no such key {1}".format(label, key))
-            if defaults[key] != '':
-                defaults[key] = ''
+            if not key in default_versions:
+                LOGGER.warning("{0}: no such version: {1}".format(label, key))
+            else:
+                del default_versions[key]
                 changed = True
         return changed
 
-    def unset_user_defaults(self, keys):
-        if self._unset_config_defaults('user', self.user_config['defaults'], keys):
+    def reset_user_default_versions(self, keys):
+        if self._reset_generic_default_versions('user', self.user_config['default_versions'], keys):
             self.user_config.store()
 
-    def unset_session_defaults(self, keys):
-        if self._unset_config_defaults('session', self.session_config['defaults'], keys):
+    def reset_session_default_versions(self, keys):
+        if self._reset_generic_default_versions('session', self.session_config['default_versions'], keys):
+            self.session_config.store()
+
+    def load_user_default_versions(self):
+        site_default_versions = self.user_config['default_versions']
+        user_default_versions = self.user_config['default_versions']
+        self.default_versions = {}
+        for from_label, from_default_versions in ('site', site_default_versions), ('user', user_default_versions):
+            self._update_default_versions(from_label, from_default_versions, self.default_versions)
+
+    def load_session_default_versions(self):
+        session_default_versions = self.session_config['default_versions']
+        self._update_default_versions('session', session_default_versions, self.default_versions)
+
+    ### Config
+    def _update_config(self, label, from_config, config_dict):
+        assert isinstance(config_dict, dict)
+        changed = False
+        for key in self.MANAGER_CONFIG.keys():
+            value = from_config.get(key, '')
+            if value == '':
+                if not key in config_dict:
+                    config_dict[key] = ''
+                    changed = True
+            else:
+                changed = self._set_config_key(label, config_dict, key, value) or changed
+        return changed
+
+    def _set_generic_config_key(self, label, config, key, value):
+        if config.get(key, None) != value:
+            if label is not None:
+                LOGGER.info("setting {0} config {1!r}={2!r}".format(label, key, value))
+            config[key] = str(value)
+            return True
+        else:
+            return False
+
+    def _set_config_key(self, label, config_dict, key, s_value):
+        assert isinstance(config_dict, dict)
+        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label'}:
+            if isinstance(s_value, str):
+                value = self._str2bool(s_value)
+            else:
+                value = s_value
+                assert isinstance(s_value, bool)
+        elif key in {'resolution_level'}:
+            if isinstance(s_value, str):
+                value = self._str2int(s_value)
+            else:
+                value = s_value
+                assert isinstance(s_value, int)
+        elif key in {'filter_packages'}:
+            if isinstance(s_value, str):
+                value = self._str2expression(s_value)
+            else:
+                value = s_value
+                assert isinstance(value, Expression) or value is None
+        if str(config_dict.get(key, None)) != str(value):
+            #if label is not None:
+            #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
+            config_dict[key] = value
+            return True
+        else:
+            return False
+
+    def show_config(self, label, config, keys):
+        if not keys:
+            keys = self.MANAGER_CONFIG_KEYS
+        if not isinstance(config, dict):
+            # convert configparser.SectionProxies -> dict
+            config_dict = {}
+            self._update_config(label, config, config_dict)
+            config = config_dict
+        lst = []
+        for key in keys:
+            if not key in config:
+                LOGGER.error("no such key: {0}".format(key))
+                continue
+            value = config[key]
+            lst.append((key, ':', repr(value)))
+        show_table("{0} config".format(label.title()), lst, header=('KEY', '', 'VALUE'))
+     
+    def show_site_config(self, keys):
+        return self.show_config('site', self.site_config['config'], keys)
+
+    def show_user_config(self, keys):
+        return self.show_config('user', self.user_config['config'], keys)
+
+    def show_session_config(self, keys):
+        return self.show_config('session', self.session_config['config'], keys)
+
+    def show_current_config(self, keys):
+        return self.show_config('current', self.config, keys)
+
+    def _set_generic_config(self, label, config, key_values):
+        changed = False
+        for key_value in key_values:
+            if not '=' in key_value:
+                raise ValueError("{0}: invalid key=value pair {1!r}".format(label, key_value))
+            key, value = key_value.split('=')
+            if not key in config:
+                LOGGER.error("{0}: no such key: {1}".format(label, key))
+                continue
+            changed = self._set_generic_config_key(label, config, key, value) or changed
+        # check:
+        config_dict = {}
+        self._update_config(label, config, config_dict)
+        return changed
+
+    def set_user_config(self, key_values):
+        if self._set_generic_config('user', self.user_config['config'], key_values):
+            self.user_config.store()
+
+    def set_session_config(self, key_values):
+        if self._set_generic_config('session', self.session_config['config'], key_values):
+            self.session_config.store()
+
+    def _reset_generic_config(self, label, config, keys):
+        if not keys:
+            keys = self.MANAGER_CONFIG_KEYS
+        changed = False
+        for key in keys:
+            if not key in config:
+                LOGGER.error("{0}: no such key {1}".format(label, key))
+            if config[key] != '':
+                config[key] = ''
+                changed = True
+        return changed
+
+    def reset_user_config(self, keys):
+        if self._reset_generic_config('user', self.user_config['config'], keys):
+            self.user_config.store()
+
+    def reset_session_config(self, keys):
+        if self._reset_generic_config('session', self.session_config['config'], keys):
             self.session_config.store()
 
     @classmethod
@@ -237,72 +402,21 @@ class Manager(object):
     def _expression2str(cls, expression):
         return str(expression)
 
-    def get_default_key(self, key):
-        if not key in self.defaults:
+    def get_config_key(self, key):
+        if not key in self.config:
              raise ValueError("invalid key {0!r}".format(key))
-        return self.defaults[key]
+        return self.config[key]
 
-    def load_user_defaults(self):
-        site_defaults = self.user_config['defaults']
-        user_defaults = self.user_config['defaults']
-        self.defaults = {}
-        for from_defaults in self.MANAGER_DEFAULTS, site_defaults, user_defaults:
-            self._update_defaults('defaults', from_defaults, self.defaults)
+    def load_user_config(self):
+        site_config = self.user_config['config']
+        user_config = self.user_config['config']
+        self.config = {}
+        for from_label, from_config in ('manager', self.MANAGER_CONFIG), ('site', site_config), ('user', user_config):
+            self._update_config(from_label, from_config, self.config)
 
-    def _update_defaults(self, label, from_defaults, defaults_dict):
-        assert isinstance(defaults_dict, dict)
-        changed = False
-        for key in self.MANAGER_DEFAULTS.keys():
-            value = from_defaults.get(key, '')
-            if value == '':
-                if not key in defaults_dict:
-                    defaults_dict[key] = ''
-                    changed = True
-            else:
-                changed = self._set_default_key(label, defaults_dict, key, value) or changed
-        return changed
-
-    def _set_config_default_key(self, label, defaults, key, value):
-        if defaults.get(key, None) != value:
-            if label is not None:
-                LOGGER.info("setting {0}[{1!r}] = {2!r}".format(label, key, value))
-            defaults[key] = str(value)
-            return True
-        else:
-            return False
-
-    def _set_default_key(self, label, defaults_dict, key, s_value):
-        assert isinstance(defaults_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label'}:
-            if isinstance(s_value, str):
-                value = self._str2bool(s_value)
-            else:
-                value = s_value
-                assert isinstance(s_value, bool)
-        elif key in {'resolution_level'}:
-            if isinstance(s_value, str):
-                value = self._str2int(s_value)
-            else:
-                value = s_value
-                assert isinstance(s_value, int)
-        elif key in {'filter_packages'}:
-            if isinstance(s_value, str):
-                value = self._str2expression(s_value)
-            else:
-                value = s_value
-                assert isinstance(value, Expression) or value is None
-        if str(defaults_dict.get(key, None)) != str(value):
-            #if label is not None:
-            #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
-            defaults_dict[key] = value
-            return True
-        else:
-            return False
-
-    def load_session_defaults(self):
-        session_defaults = self.session_config['defaults']
-        self._update_defaults('defaults', session_defaults, self.defaults)
-
+    def load_session_config(self):
+        session_config = self.session_config['config']
+        self._update_config('session', session_config, self.config)
 
     def load_session(self, session_name=None):
         return self._load_session(session_name=None, _depth=0)
@@ -312,6 +426,10 @@ class Manager(object):
             session_root = os.environ.get("UXS_SESSION", None)
             if session_root is None:
                 session_root = self.user_config['sessions']['last_session']
+                if session_root:
+                    session_config_file = Session.get_session_config_file(session_root)
+                    if not os.path.lexists(session_config_file):
+                        session_root = None
             if session_root:
                 session_config_file = Session.get_session_config_file(session_root)
                 if not os.path.lexists(session_config_file):
@@ -344,7 +462,8 @@ class Manager(object):
             else:
                 raise
         self.session_config = self.session.session_config
-        self.load_session_defaults()
+        self.load_session_config()
+        self.load_session_default_versions()
                     
     def load_translator(self):
         target_translator = os.environ.get("UXS_TARGET_TRANSLATOR", None)
@@ -504,10 +623,11 @@ class Manager(object):
         pass
 
     def initialize(self):
-        #self.session.show_full_label = self.defaults['full_label']
-        filter_packages = self.defaults['filter_packages']
+        #self.session.show_full_label = self.config['full_label']
+        filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
-            self.session.filter_packages(self.defaults['filter_packages'])
+            self.session.filter_packages(self.config['filter_packages'])
+        self.session.set_default_versions(self.default_versions)
 
     def finalize(self):
         self.user_config['sessions']['last_session'] = self.session.session_root

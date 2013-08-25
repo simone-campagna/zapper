@@ -25,11 +25,13 @@ from .category import Category
 from .registry import UniqueRegister
 
 class PackageFamily(UniqueRegister):
+    INVALID_CHARACTERS = '.:'
     def __init__(self, name, category, *, short_description="", long_description=""):
         if not isinstance(name, str):
             name = str(name)
-        if ':' in name:
-            raise ValueError("invalid package name {0}: cannot contain ':'".format(name))
+        for ch in self.INVALID_CHARACTERS:
+            if ch in name:
+                raise ValueError("invalid package name {0}: cannot contain {1!r}".format(name, self.INVALID_CHARACTERS))
         if not isinstance(category, Category):
             category = Category(category)
         self._name = name

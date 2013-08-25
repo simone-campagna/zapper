@@ -18,10 +18,11 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
-from .config_commons import GENERAL, DEFAULTS
+from .config_commons import GENERAL, CONFIG, DEFAULT_VERSIONS
 
 class SiteConfig(Config):
     __defaults__ = {
         'general': GENERAL,
-        'defaults': DEFAULTS,
+        'config': CONFIG,
+        'default_versions': DEFAULT_VERSIONS,
     }

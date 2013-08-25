@@ -86,6 +86,8 @@ class Version(str):
     def __ge__(self, other):
         return self.__COMPARE(other, self.__GT, self.__GE)
 
+NULL_VERSION = Version('')
+
 if __name__ == "__main__":
     vas = input("a version: ")
     va = Version(vas)

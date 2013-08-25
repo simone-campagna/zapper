@@ -38,6 +38,7 @@ class Package(ListRegister, Transition):
     __version_factory__ = Version
     __package_dir__ = None
     __registry__ = None
+    SUITE_SEPARATOR = '.'
     def __init__(self, package_family, version, *, short_description=None, long_description=None, suite=None):
         super().__init__()
         assert isinstance(package_family, PackageFamily)
@@ -72,7 +73,7 @@ class Package(ListRegister, Transition):
         if self._suite is self:
              self._full_name = self._name
         else:
-             self._full_name = "{0}::{1}".format(self._suite._full_label, self._name)
+             self._full_name = "{0}{1}{2}".format(self._suite._full_label, self.SUITE_SEPARATOR, self._name)
         self._full_label = self._full_name + suffix
         self._label = self._name + suffix
 #        if self._suite is self:

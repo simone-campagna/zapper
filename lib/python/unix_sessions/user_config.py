@@ -18,13 +18,14 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
-from .config_commons import GENERAL, DEFAULTS
+from .config_commons import GENERAL, CONFIG, DEFAULT_VERSIONS
 
 class UserConfig(Config):
     __defaults__ = {
         'general': GENERAL,
-        'defaults': DEFAULTS,
+        'config': CONFIG,
         'sessions': {
             'last_session': ''
         },
+        'default_versions': DEFAULT_VERSIONS,
     }

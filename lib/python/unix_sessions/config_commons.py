@@ -19,7 +19,7 @@ __author__ = 'Simone Campagna'
 
 from .config import Config
 
-DEFAULTS = {
+CONFIG = {
     'verbose': '',
     'debug': '',
     'trace': '',
@@ -27,6 +27,9 @@ DEFAULTS = {
     'full_label': '',
     'resolution_level': '',
     'filter_packages': '',
+}
+
+DEFAULT_VERSIONS = {
 }
 
 GENERAL = {

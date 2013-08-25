@@ -21,13 +21,14 @@ import os
 import sys
 import imp
 import glob
-#import shutil
+import itertools
 import collections
 
 from .environment import Environment
 from .category import Category
 from .package import Package
 from .suite import Suite, ROOT
+from .version_operators import get_version_operator
 from .errors import *
 from .session_config import SessionConfig
 from .package_collection import PackageCollection
@@ -43,14 +44,6 @@ from .utils import sequences
 class Session(object):
     SESSION_SUFFIX = ".session"
     MODULE_PATTERN = "uxs_*.py"
-    VERSION_OPERATORS = (
-        ('==',          lambda x, v: x == v),
-        ('!=',          lambda x, v: x != v),
-        ('<',           lambda x, v: x <  v),
-        ('<=',          lambda x, v: x <= v),
-        ('>',           lambda x, v: x >  v),
-        ('>=',          lambda x, v: x >= v),
-    )
     RANDOM_NAME_SEQUENCE = RandomNameSequence(width=5)
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
@@ -66,7 +59,12 @@ class Session(object):
         self._available_packages = PackageCollection()
         self._modules = {}
         self._show_full_label = False
+        self._default_versions = {}
         self.load(session_root)
+
+    def set_default_versions(self, default_versions):
+        assert isinstance(default_versions, collections.Mapping)
+        self._default_versions = default_versions.copy()
 
     def set_show_full_label(self, value):
         self._show_full_label = value
@@ -88,7 +86,6 @@ class Session(object):
                 LOGGER.debug("discarding package {0} not matching expression {1}".format(package, expression))
 
     def _load_modules(self, package_dir):
-        #print("+++", package_dir)
         modules = []
         for module_path in glob.glob(os.path.join(package_dir, self.MODULE_PATTERN)):
             module_path = os.path.normpath(os.path.abspath(module_path))
@@ -244,7 +241,7 @@ class Session(object):
     def get_package(self, package_label, package_list):
         l = package_label.split('/', 1)
         package_name = l[0]
-        if '::' in package_name:
+        if Package.SUITE_SEPARATOR in package_name:
             name_attr = 'full_name'
         else:
             name_attr = 'name'
@@ -252,31 +249,61 @@ class Session(object):
             package_version = l[1]
         else:
             package_version = None
-        if package_version is not None:
-            for op_symbol, operator in self.VERSION_OPERATORS:
-                if package_version.startswith(op_symbol):
-                    package_version = package_version[len(op_symbol):]
-                    break
-            else:
-                operator = lambda x, v: x == v
-        else:
-            operator = lambda x, v: True
+        match_operator = get_version_operator(package_version)
         packages = []
         for package in package_list:
-            if getattr(package, name_attr) == package_name and operator(package.version, package_version):
+            if getattr(package, name_attr) == package_name and match_operator(package.version):
                 packages.append(package)
         LOGGER.debug("get_package({0!r}) : packages={1}".format(package_label, [str(p) for p in packages]))
         if packages:
-            for package in packages:
-                if package_label in (package.label, package.full_label):
-                    return package
-            packages.sort(key=lambda x: x.version)
-            LOGGER.debug("get_package({0!r}) : sorted_packages={1}".format(package_label, [str(p) for p in packages]))
-            package = packages[-1]
+             package = self._choose_package(packages)
         else:
             package = None
         return package
 
+    def _choose_package(self, packages):
+        name_dict = {}
+        full_name_dict = {}
+        full_name_match_level = 0
+        name_match_level = 1
+        no_match_level = 2
+        matches = []
+        for package in packages:
+            full_name = package.full_name
+            if not full_name in full_name_dict:
+                default_version = self._default_versions.get(full_name, None)
+                if default_version is None:
+                    full_name_dict[full_name] = None
+                else:
+                    full_name_dict[full_name] = get_version_operator(default_version)
+            full_name_operator = full_name_dict[full_name]
+            #print("full name {0} operator: {1}".format(full_name, full_name_operator))
+            if full_name_operator is not None and full_name_operator(package.version):
+                LOGGER.debug("found full name matching version {0}".format(package))
+                matches.append((full_name_match_level, package))
+                continue
+            name = package.name
+            if not name in name_dict:
+                default_version = self._default_versions.get(name, None)
+                if default_version is None:
+                    name_dict[name] = None
+                else:
+                    name_dict[name] = get_version_operator(default_version)
+            name_operator = name_dict[name]
+            #print("name {0} operator: {1}".format(name, name_operator))
+            if name_operator is not None and name_operator(package.version):
+                LOGGER.debug("found name matching version {0}".format(package))
+                matches.append((name_match_level, package))
+                continue
+            matches.append((no_match_level, package))
+        keyfunc = lambda x: x[0]
+        matches.sort(key=keyfunc)
+        it = itertools.groupby(matches, keyfunc)
+        level, level_matches = next(it)
+        level_packages = sorted((package for l, package in level_matches), key=lambda package: package.version)
+        return level_packages[-1]
+
+        
 #    def get_defined_package(self, package_label):
 #        WRONG: labels are not unique in defined packages
 #        return self.get_package(package_label, self._defined_packages.values())

@@ -18,7 +18,7 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
-from .config_commons import DEFAULTS
+from .config_commons import CONFIG, DEFAULT_VERSIONS
 
 class SessionConfig(Config):
     __defaults__ = {
@@ -31,5 +31,6 @@ class SessionConfig(Config):
             'directories': '',
             'loaded_packages': '',
         },
-        'defaults': DEFAULTS,
+        'config': CONFIG,
+        'default_versions': DEFAULT_VERSIONS,
     }
