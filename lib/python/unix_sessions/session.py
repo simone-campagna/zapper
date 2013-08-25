@@ -59,12 +59,12 @@ class Session(object):
         self._available_packages = PackageCollection()
         self._modules = {}
         self._show_full_label = False
-        self._default_versions = {}
+        self._version_defaults = {}
         self.load(session_root)
 
-    def set_default_versions(self, default_versions):
-        assert isinstance(default_versions, collections.Mapping)
-        self._default_versions = default_versions.copy()
+    def set_version_defaults(self, version_defaults):
+        assert isinstance(version_defaults, collections.Mapping)
+        self._version_defaults = version_defaults.copy()
 
     def set_show_full_label(self, value):
         self._show_full_label = value
@@ -271,7 +271,7 @@ class Session(object):
         for package in packages:
             full_name = package.full_name
             if not full_name in full_name_dict:
-                default_version = self._default_versions.get(full_name, None)
+                default_version = self._version_defaults.get(full_name, None)
                 if default_version is None:
                     full_name_dict[full_name] = None
                 else:
@@ -284,7 +284,7 @@ class Session(object):
                 continue
             name = package.name
             if not name in name_dict:
-                default_version = self._default_versions.get(name, None)
+                default_version = self._version_defaults.get(name, None)
                 if default_version is None:
                     name_dict[name] = None
                 else:

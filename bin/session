@@ -82,14 +82,14 @@ Change the current session""",
     top_level_subparsers = top_level_parser.add_subparsers(
         help="commands")
 
-    ### Default_versions subparser
-    parser_default_versions =  top_level_subparsers.add_parser("defaults",
-        aliases=["def"],
+    ### Version_defaults subparser
+    parser_version_defaults =  top_level_subparsers.add_parser("versions",
+        aliases=["v"],
         parents=[common_parser],
-        help="default versions management")
+        help="version defaults management")
 
-    default_versions_subparsers = parser_default_versions.add_subparsers(
-        help="default versions subcommand")
+    version_defaults_subparsers = parser_version_defaults.add_subparsers(
+        help="version defaults subcommand")
 
     ### Config subparser
     parser_config =  top_level_subparsers.add_parser("config",
@@ -108,12 +108,12 @@ Change the current session""",
     site_subparsers = parser_site.add_subparsers(
         help="site subcommand")
 
-    parser_site_default_versions = site_subparsers.add_parser("defaults",
-        aliases=["def"],
-        help="site default versions management")
+    parser_site_version_defaults = site_subparsers.add_parser("versions",
+        aliases=["v"],
+        help="site version defaults management")
 
-    site_default_versions_subparsers = parser_site_default_versions.add_subparsers(
-        help="site default versions management")
+    site_version_defaults_subparsers = parser_site_version_defaults.add_subparsers(
+        help="site version defaults management")
 
     parser_site_config = site_subparsers.add_parser("config",
         aliases=["c"],
@@ -130,12 +130,12 @@ Change the current session""",
     user_subparsers = parser_user.add_subparsers(
         help="user subcommand")
     
-    parser_user_default_versions = user_subparsers.add_parser("defaults",
-        aliases=["def"],
-        help="user default versions management")
+    parser_user_version_defaults = user_subparsers.add_parser("versions",
+        aliases=["v"],
+        help="user version defaults management")
 
-    user_default_versions_subparsers = parser_user_default_versions.add_subparsers(
-        help="user default versions management")
+    user_version_defaults_subparsers = parser_user_version_defaults.add_subparsers(
+        help="user version defaults management")
 
     parser_user_config = user_subparsers.add_parser("config",
         aliases=["c"],
@@ -217,12 +217,12 @@ Change the current session""",
             default=None,
             help="session names")
 
-    parser_session_default_versions = session_subparsers.add_parser("defaults",
-        aliases=["def"],
-        help="session default versions management")
+    parser_session_version_defaults = session_subparsers.add_parser("versions",
+        aliases=["v"],
+        help="session version defaults management")
 
-    session_default_versions_subparsers = parser_session_default_versions.add_subparsers(
-        help="session default versions management")
+    session_version_defaults_subparsers = parser_session_version_defaults.add_subparsers(
+        help="session version defaults management")
 
     parser_session_config = session_subparsers.add_parser("config",
         aliases=["c"],
@@ -231,42 +231,42 @@ Change the current session""",
     session_config_subparsers = parser_session_config.add_subparsers(
         help="session config management")
 
-    parser_default_versions_show = {}
-    for subparsers in default_versions_subparsers, site_default_versions_subparsers, user_default_versions_subparsers, session_default_versions_subparsers:
-        parser_default_versions_show[subparsers] = subparsers.add_parser("show",
+    parser_version_defaults_show = {}
+    for subparsers in version_defaults_subparsers, site_version_defaults_subparsers, user_version_defaults_subparsers, session_version_defaults_subparsers:
+        parser_version_defaults_show[subparsers] = subparsers.add_parser("show",
             parents=[common_parser],
-            help="show current default versions")
-        parser_default_versions_show[subparsers].add_argument("keys",
+            help="show current version defaults")
+        parser_version_defaults_show[subparsers].add_argument("keys",
             nargs='*',
             help="show keys")
     
-    parser_default_versions_show[default_versions_subparsers].set_defaults(function=manager.show_current_default_versions)
-    parser_default_versions_show[site_default_versions_subparsers].set_defaults(function=manager.show_site_default_versions)
-    parser_default_versions_show[user_default_versions_subparsers].set_defaults(function=manager.show_user_default_versions)
-    parser_default_versions_show[session_default_versions_subparsers].set_defaults(function=manager.show_session_default_versions)
+    parser_version_defaults_show[version_defaults_subparsers].set_defaults(function=manager.show_current_version_defaults)
+    parser_version_defaults_show[site_version_defaults_subparsers].set_defaults(function=manager.show_site_version_defaults)
+    parser_version_defaults_show[user_version_defaults_subparsers].set_defaults(function=manager.show_user_version_defaults)
+    parser_version_defaults_show[session_version_defaults_subparsers].set_defaults(function=manager.show_session_version_defaults)
 
 
-    parser_default_versions_set = {}
-    parser_default_versions_reset = {}
-    for subparsers in user_default_versions_subparsers, session_default_versions_subparsers:
-        parser_default_versions_set[subparsers] = subparsers.add_parser("set",
+    parser_version_defaults_set = {}
+    parser_version_defaults_reset = {}
+    for subparsers in user_version_defaults_subparsers, session_version_defaults_subparsers:
+        parser_version_defaults_set[subparsers] = subparsers.add_parser("set",
             parents=[common_parser],
-            help="set default versions")
-        parser_default_versions_set[subparsers].add_argument("key_values",
+            help="set version defaults")
+        parser_version_defaults_set[subparsers].add_argument("key_values",
             nargs='*',
             help="set key=value pairs")
-        parser_default_versions_reset[subparsers] = subparsers.add_parser("reset",
+        parser_version_defaults_reset[subparsers] = subparsers.add_parser("reset",
             parents=[common_parser],
-            help="set default versions")
-        parser_default_versions_reset[subparsers].add_argument("keys",
+            help="set version defaults")
+        parser_version_defaults_reset[subparsers].add_argument("keys",
             nargs='*',
             help="reset keys")
 
-    parser_default_versions_set[user_default_versions_subparsers].set_defaults(function=manager.set_user_default_versions)
-    parser_default_versions_set[session_default_versions_subparsers].set_defaults(function=manager.set_session_default_versions)
+    parser_version_defaults_set[user_version_defaults_subparsers].set_defaults(function=manager.set_user_version_defaults)
+    parser_version_defaults_set[session_version_defaults_subparsers].set_defaults(function=manager.set_session_version_defaults)
 
-    parser_default_versions_reset[user_default_versions_subparsers].set_defaults(function=manager.reset_user_default_versions)
-    parser_default_versions_reset[session_default_versions_subparsers].set_defaults(function=manager.reset_session_default_versions)
+    parser_version_defaults_reset[user_version_defaults_subparsers].set_defaults(function=manager.reset_user_version_defaults)
+    parser_version_defaults_reset[session_version_defaults_subparsers].set_defaults(function=manager.reset_session_version_defaults)
 
     parser_config_show = {}
     for subparsers in config_subparsers, site_config_subparsers, user_config_subparsers, session_config_subparsers:

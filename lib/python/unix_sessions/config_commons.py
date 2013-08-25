@@ -29,7 +29,7 @@ CONFIG = {
     'filter_packages': '',
 }
 
-DEFAULT_VERSIONS = {
+VERSION_DEFAULTS = {
 }
 
 GENERAL = {

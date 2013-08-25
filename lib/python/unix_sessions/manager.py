@@ -100,7 +100,7 @@ class Manager(object):
 
         self.load_user_config()
 
-        self.load_user_default_versions()
+        self.load_user_version_defaults()
 
         self.load_translator()
         self.load_session()
@@ -134,116 +134,116 @@ class Manager(object):
     session = property(get_session, set_session)
 
     ### Default_versions
-    def _update_default_versions(self, label, from_default_versions, default_versions_dict):
-        assert isinstance(default_versions_dict, dict)
+    def _update_version_defaults(self, label, from_version_defaults, version_defaults_dict):
+        assert isinstance(version_defaults_dict, dict)
         changed = False
-        for key, value in from_default_versions.items():
+        for key, value in from_version_defaults.items():
             if value == '':
-                if not key in default_versions_dict:
-                    default_versions_dict[key] = ''
+                if not key in version_defaults_dict:
+                    version_defaults_dict[key] = ''
                     changed = True
             else:
-                changed = self._set_default_versions_key(label, default_versions_dict, key, value) or changed
+                changed = self._set_version_defaults_key(label, version_defaults_dict, key, value) or changed
         return changed
 
-    def _set_generic_default_versions_key(self, label, default_versions, key, value):
-        if default_versions.get(key, None) != value:
+    def _set_generic_version_defaults_key(self, label, version_defaults, key, value):
+        if version_defaults.get(key, None) != value:
             if label is not None:
                 LOGGER.info("setting {0} default version {1!r}={2!r}".format(label, key, value))
-            default_versions[key] = str(value)
+            version_defaults[key] = str(value)
             return True
         else:
             return False
 
-    def _set_default_versions_key(self, label, default_versions_dict, key, value):
-        assert isinstance(default_versions_dict, dict)
-        if str(default_versions_dict.get(key, None)) != str(value):
+    def _set_version_defaults_key(self, label, version_defaults_dict, key, value):
+        assert isinstance(version_defaults_dict, dict)
+        if str(version_defaults_dict.get(key, None)) != str(value):
             #if label is not None:
             #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
-            default_versions_dict[key] = value
+            version_defaults_dict[key] = value
             return True
         else:
             return False
 
-    def show_default_versions(self, label, default_versions, keys):
+    def show_version_defaults(self, label, version_defaults, keys):
         if not keys:
-            keys = default_versions.keys()
-        if not isinstance(default_versions, dict):
+            keys = version_defaults.keys()
+        if not isinstance(version_defaults, dict):
             # convert configparser.SectionProxies -> dict
-            default_versions_dict = {}
-            self._update_default_versions(label, default_versions, default_versions_dict)
-            default_versions = default_versions_dict
+            version_defaults_dict = {}
+            self._update_version_defaults(label, version_defaults, version_defaults_dict)
+            version_defaults = version_defaults_dict
         lst = []
         for key in keys:
-            if not key in default_versions:
+            if not key in version_defaults:
                 LOGGER.error("no such default version: {0}".format(key))
                 continue
-            value = default_versions[key]
+            value = version_defaults[key]
             lst.append((key, ':', repr(value)))
         show_table("{0} default versions".format(label.title()), lst, header=('KEY', '', 'VALUE'))
       
-    def show_site_default_versions(self, keys):
-        return self.show_default_versions('site', self.site_config['default_versions'], keys)
+    def show_site_version_defaults(self, keys):
+        return self.show_version_defaults('site', self.site_config['version_defaults'], keys)
 
-    def show_user_default_versions(self, keys):
-        return self.show_default_versions('user', self.user_config['default_versions'], keys)
+    def show_user_version_defaults(self, keys):
+        return self.show_version_defaults('user', self.user_config['version_defaults'], keys)
 
-    def show_session_default_versions(self, keys):
-        return self.show_default_versions('session', self.session_config['default_versions'], keys)
+    def show_session_version_defaults(self, keys):
+        return self.show_version_defaults('session', self.session_config['version_defaults'], keys)
 
-    def show_current_default_versions(self, keys):
-        return self.show_default_versions('current', self.default_versions, keys)
+    def show_current_version_defaults(self, keys):
+        return self.show_version_defaults('current', self.version_defaults, keys)
 
-    def _set_generic_default_versions(self, label, default_versions, key_values):
+    def _set_generic_version_defaults(self, label, version_defaults, key_values):
         changed = False
         for key_value in key_values:
             if not '=' in key_value:
                 raise ValueError("{0}: invalid key=value pair {1!r}".format(label, key_value))
             key, value = key_value.split('=')
-            changed = self._set_generic_default_versions_key(label, default_versions, key, value) or changed
+            changed = self._set_generic_version_defaults_key(label, version_defaults, key, value) or changed
         # check:
-        default_versions_dict = {}
-        self._update_default_versions(label, default_versions, default_versions_dict)
+        version_defaults_dict = {}
+        self._update_version_defaults(label, version_defaults, version_defaults_dict)
         return changed
 
-    def set_user_default_versions(self, key_values):
-        if self._set_generic_default_versions('user', self.user_config['default_versions'], key_values):
+    def set_user_version_defaults(self, key_values):
+        if self._set_generic_version_defaults('user', self.user_config['version_defaults'], key_values):
             self.user_config.store()
 
-    def set_session_default_versions(self, key_values):
-        if self._set_generic_default_versions('session', self.session_config['default_versions'], key_values):
+    def set_session_version_defaults(self, key_values):
+        if self._set_generic_version_defaults('session', self.session_config['version_defaults'], key_values):
             self.session_config.store()
 
-    def _reset_generic_default_versions(self, label, default_versions, keys):
+    def _reset_generic_version_defaults(self, label, version_defaults, keys):
         if not keys:
-            keys = default_versions.keys()
+            keys = version_defaults.keys()
         changed = False
         for key in keys:
-            if not key in default_versions:
+            if not key in version_defaults:
                 LOGGER.warning("{0}: no such version: {1}".format(label, key))
             else:
-                del default_versions[key]
+                del version_defaults[key]
                 changed = True
         return changed
 
-    def reset_user_default_versions(self, keys):
-        if self._reset_generic_default_versions('user', self.user_config['default_versions'], keys):
+    def reset_user_version_defaults(self, keys):
+        if self._reset_generic_version_defaults('user', self.user_config['version_defaults'], keys):
             self.user_config.store()
 
-    def reset_session_default_versions(self, keys):
-        if self._reset_generic_default_versions('session', self.session_config['default_versions'], keys):
+    def reset_session_version_defaults(self, keys):
+        if self._reset_generic_version_defaults('session', self.session_config['version_defaults'], keys):
             self.session_config.store()
 
-    def load_user_default_versions(self):
-        site_default_versions = self.user_config['default_versions']
-        user_default_versions = self.user_config['default_versions']
-        self.default_versions = {}
-        for from_label, from_default_versions in ('site', site_default_versions), ('user', user_default_versions):
-            self._update_default_versions(from_label, from_default_versions, self.default_versions)
+    def load_user_version_defaults(self):
+        site_version_defaults = self.user_config['version_defaults']
+        user_version_defaults = self.user_config['version_defaults']
+        self.version_defaults = {}
+        for from_label, from_version_defaults in ('site', site_version_defaults), ('user', user_version_defaults):
+            self._update_version_defaults(from_label, from_version_defaults, self.version_defaults)
 
-    def load_session_default_versions(self):
-        session_default_versions = self.session_config['default_versions']
-        self._update_default_versions('session', session_default_versions, self.default_versions)
+    def load_session_version_defaults(self):
+        session_version_defaults = self.session_config['version_defaults']
+        self._update_version_defaults('session', session_version_defaults, self.version_defaults)
 
     ### Config
     def _update_config(self, label, from_config, config_dict):
@@ -463,7 +463,7 @@ class Manager(object):
                 raise
         self.session_config = self.session.session_config
         self.load_session_config()
-        self.load_session_default_versions()
+        self.load_session_version_defaults()
                     
     def load_translator(self):
         target_translator = os.environ.get("UXS_TARGET_TRANSLATOR", None)
@@ -627,7 +627,7 @@ class Manager(object):
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.config['filter_packages'])
-        self.session.set_default_versions(self.default_versions)
+        self.session.set_version_defaults(self.version_defaults)
 
     def finalize(self):
         self.user_config['sessions']['last_session'] = self.session.session_root

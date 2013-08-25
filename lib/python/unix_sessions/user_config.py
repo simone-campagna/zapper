@@ -18,7 +18,7 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
-from .config_commons import GENERAL, CONFIG, DEFAULT_VERSIONS
+from .config_commons import GENERAL, CONFIG, VERSION_DEFAULTS
 
 class UserConfig(Config):
     __defaults__ = {
@@ -27,5 +27,5 @@ class UserConfig(Config):
         'sessions': {
             'last_session': ''
         },
-        'default_versions': DEFAULT_VERSIONS,
+        'version_defaults': VERSION_DEFAULTS,
     }
