@@ -447,14 +447,14 @@ class Session(object):
             unloaded_packages.append(package)
         return unloaded_packages
 
-    def add(self, package_labels, resolution_level=0, subpackages=False):
+    def add(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
         for packages in self.iteradd(package_labels):
             if subpackages:
                 packages = self._get_subpackages(packages)
             packages = self._unloaded_packages(packages)
-            self.add_packages(packages, resolution_level=resolution_level)
+            self.add_packages(packages, resolution_level=resolution_level, dry_run=dry_run)
         
-    def add_packages(self, packages, resolution_level=0):
+    def add_packages(self, packages, resolution_level=0, dry_run=False):
         package_dependencies = collections.defaultdict(set)
         available_packages = self.available_packages()
         packages_to_add = set()
@@ -496,7 +496,7 @@ class Session(object):
         suites_to_add, packages_to_add = self._separate_suites(packages_to_add)
         for packages in suites_to_add, packages_to_add:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
-            self._add_packages(sorted_packages)
+            self._add_packages(sorted_packages, dry_run=dry_run)
 
     def _separate_suites(self, packages):
         suites = []
@@ -508,9 +508,15 @@ class Session(object):
                 non_suites.append(package)
         return suites, non_suites
 
-    def _add_packages(self, packages):
+    def _add_packages(self, packages, dry_run=False):
+        if dry_run:
+            header = '[dry-run] '
+        else:
+            header = ''
         for package in packages:
-            LOGGER.info("adding package {0}...".format(package))
+            LOGGER.info("{0}adding package {1}...".format(header, package))
+            if dry_run:
+                continue
             package.apply(self)
             self._loaded_packages[package.label] = package
             if isinstance(package, Suite):
@@ -523,7 +529,7 @@ class Session(object):
         for package in suite.packages():
             self._available_packages.add_package(package)
 
-    def remove(self, package_labels, resolution_level=0, subpackages=False):
+    def remove(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
         packages = []
         for package_label in package_labels:
             package = self.get_loaded_package(package_label)
@@ -577,11 +583,17 @@ class Session(object):
         suites_to_remove, packages_to_remove = self._separate_suites(packages_to_remove)
         for packages in packages_to_remove, suites_to_remove:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
-            self._remove_packages(sorted_packages)
+            self._remove_packages(sorted_packages, dry_run=dry_run)
 
-    def _remove_packages(self, packages):
+    def _remove_packages(self, packages, dry_run=False):
+        if dry_run:
+            header = '[dry-run] '
+        else:
+            header = ''
         for package in packages:
-            LOGGER.info("removing package {0}...".format(package))
+            LOGGER.info("{0}removing package {1}...".format(header, package))
+            if dry_run:
+                continue
             package.revert(self)
             del self._loaded_packages[package.label]
             if isinstance(package, Suite):
@@ -595,8 +607,8 @@ class Session(object):
         for package in suite.packages():
             self._available_packages.remove_package(package)
 
-    def clear(self):
-        self._remove_packages(reversed(list(self._loaded_packages.values())))
+    def clear(self, dry_run=False):
+        self._remove_packages(reversed(list(self._loaded_packages.values())), dry_run=dry_run)
             
     @property
     def environment(self):

@@ -24,6 +24,7 @@ CONFIG = {
     'debug': '',
     'trace': '',
     'subpackages': '',
+    'dry_run': '',
     'full_label': '',
     'resolution_level': '',
     'filter_packages': '',

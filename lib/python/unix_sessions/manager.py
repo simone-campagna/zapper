@@ -54,6 +54,7 @@ class Manager(object):
         'trace',
         'subpackages',
         'full_label',
+        'dry_run',
         'resolution_level',
         'filter_packages',
     )
@@ -63,6 +64,7 @@ class Manager(object):
         'trace': False,
         'subpackages': False,
         'full_label': False,
+        'dry_run': False,
         'resolution_level': 0,
         'filter_packages': None,
     }
@@ -270,7 +272,7 @@ class Manager(object):
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label'}:
+        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'dry_run'}:
             if isinstance(s_value, str):
                 value = self._str2bool(s_value)
             else:
@@ -601,14 +603,14 @@ class Manager(object):
     def info_session(self):
         self.session.info()
 
-    def add_packages(self, package_labels, resolution_level=0, subpackages=False):
-        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages)
+    def add_packages(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
+        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages, dry_run=dry_run)
 
-    def remove_packages(self, package_labels, resolution_level=0, subpackages=False):
-        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages)
+    def remove_packages(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
+        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages, dry_run=dry_run)
 
-    def clear_packages(self):
-        self.session.clear()
+    def clear_packages(self, dry_run=False):
+        self.session.clear(dry_run=dry_run)
 
     def add_package_directories(self, package_directories):
         self.session.add_directories(package_directories)

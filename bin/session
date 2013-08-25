@@ -401,6 +401,12 @@ Change the current session""",
                 default=manager.get_config_key('subpackages'),
                 help="automatically {0} all suite's packages".format(key))
          
+        for subparser in parser_package_add, parser_package_remove, parser_package_clear:
+            subparser.add_argument("--dry-run", "-D",
+                dest="dry_run",
+                action="store_true",
+                default=manager.get_config_key('dry_run'),
+                help="show only changes")
 
     ### other subparsers
     parser_init = top_level_subparsers.add_parser("init",
