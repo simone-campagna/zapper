@@ -41,7 +41,7 @@ def main():
         sys.exit(1)
 
     class Formatter(argparse.HelpFormatter):
-        def __init__(self, prog, indent_increment=2, max_help_position=26, width=None):
+        def __init__(self, prog, indent_increment=2, max_help_position=27, width=None):
             super().__init__(prog, indent_increment, max_help_position, width)
 
     admin_mode = manager.is_admin()
@@ -182,7 +182,7 @@ Change the current session""",
     parser_session_new.set_defaults(function=manager.new_session)
     
     parser_session_available = session_subparsers.add_parser("available",
-        aliases=['avail'],
+        aliases=['avail', 'av'],
         parents=[common_parser],
         help="list available sessions")
     parser_session_available.add_argument("--no-persistent", "-P",
@@ -370,8 +370,8 @@ Change the current session""",
         help="package directory")
 
     for subparsers in top_level_subparsers, package_subparsers:
-        parser_package_show_available_packages = subparsers.add_parser("avail",
-            aliases=["av"],
+        parser_package_show_available_packages = subparsers.add_parser("available",
+            aliases=["avail", "av"],
             parents=[common_parser],
             help="show available packages")
         parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)

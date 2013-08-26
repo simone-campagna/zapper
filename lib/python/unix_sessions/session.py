@@ -49,7 +49,7 @@ class Session(object):
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
 
-    def __init__(self, manager, session_root):
+    def __init__(self, session_root):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
         self._loaded_packages = PackageCollection()

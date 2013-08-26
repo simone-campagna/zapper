@@ -99,6 +99,8 @@ class Manager(object):
         user_config_file = os.path.join(self.user_rc_dir, self.USER_CONFIG_FILE)
         self.user_config = UserConfig(user_config_file)
 
+        self._show_full_label = False
+
         self.load_general()
 
         self.load_user_config()
@@ -106,13 +108,13 @@ class Manager(object):
         self.load_user_version_defaults()
 
         self.load_translator()
-        self.load_session()
+        self.restore_session()
 
     def is_admin(self):
         return self.user == self.admin_user
 
     def set_show_full_label(self, value):
-        self.session.set_show_full_label(value)
+        self._show_full_label = value
 
     def load_general(self):
         # host categories:
@@ -448,49 +450,45 @@ class Manager(object):
         session_config = self.session_config['config']
         self._update_config('session', session_config, self.config)
 
-    def load_session(self, session_name=None):
-        return self._load_session(session_name=None, _depth=0)
-
-    def _load_session(self, session_name=None, _depth=0):
-        if session_name is None:
-            session_root = os.environ.get("UXS_SESSION", None)
-            if session_root is None:
-                session_root = self.user_config['sessions']['last_session']
-                if session_root:
-                    session_config_file = Session.get_session_config_file(session_root)
-                    if not os.path.lexists(session_config_file):
-                        session_root = None
-            if session_root:
-                session_config_file = Session.get_session_config_file(session_root)
-                if not os.path.lexists(session_config_file):
-                    LOGGER.warning("inconsistent environment: invalid session {0}".format(session_root))
-                    session_root = None
-            if not session_root:
-                session_root = Session.create_unique_session_root(self.temporary_sessions_dir)
-                Session.create_session_config(manager=self, session_root=session_root, session_name=os.path.basename(session_root), session_type='temporary')
+    def restore_session(self):
+        self.session = None
+        session_root = os.environ.get("UXS_SESSION", None)
+        if not session_root:
+            session_root = self.user_config['sessions']['last_session']
+        if session_root:
+            session_config_file = Session.get_session_config_file(session_root)
+            if not os.path.lexists(session_config_file):
+                LOGGER.warning("cannot restore deleted session {0}".format(session_root))
+                session_root = None
+        if session_root:
+            try:
+                session = Session(session_root)
+            except Exception as e:
+                trace()
+                LOGGER.warning("cannot restore session {0}: {1}: {2}".format(session_root, e.__class__.__name__, e))
+                session = None
+            self.session = session
+        if self.session is not None:
+            self._init_session()
+        
+    def load_session(self, session_name):
+        for sessions_dir in self.persistent_sessions_dir, self.temporary_sessions_dir:
+            session_root = os.path.join(sessions_dir, session_name)
+            session_config_file = Session.get_session_config_file(session_root)
+            if os.path.lexists(session_config_file):
+                self._load_session_root(session_root)
+                break
         else:
-            for sessions_dir in self.persistent_sessions_dir, self.temporary_sessions_dir:
-                session_root = os.path.join(sessions_dir, session_name)
-                session_config_file = Session.get_session_config_file(session_root)
-                if os.path.lexists(session_config_file):
-                    break
-            else:
-                raise SessionError("session {0} not found".format(session_name))
-        try:
-            if session_root and self.session:
-                self.session.load(session_root)
-            else:
-                self.session = Session(self, session_root)
-        except SessionError as e:
-            trace()
-            os.environ.pop('UXS_SESSION', None)
-            if _depth == 0:
-                try:
-                    self._load_session(session_name=None, _depth=_depth + 1)
-                except Exception as e:
-                    raise
-            else:
-                raise
+            raise SessionError("session {0} not found".format(session_name))
+        
+    def _load_session_root(self, session_root):
+        if self.session is None:
+            self.session = Session(session_root)
+        else:
+            self.session.load(session_root)
+        self._init_session()
+
+    def _init_session(self):
         self.session_config = self.session.session_config
         self.load_session_config()
         self.load_session_version_defaults()
@@ -530,7 +528,7 @@ class Manager(object):
 
     def new_session(self, session_name=None):
         session_root = self.create_session(session_name)
-        self.session.load(session_root)
+        self._load_session_root(session_root)
         
     def delete_sessions(self, session_names):
         for session_name in session_names:
@@ -653,7 +651,9 @@ class Manager(object):
         pass
 
     def initialize(self):
-        #self.session.show_full_label = self.config['full_label']
+        if not self.session:
+            self.new_session()
+        self.session.set_show_full_label(self._show_full_label)
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.config['filter_packages'])
