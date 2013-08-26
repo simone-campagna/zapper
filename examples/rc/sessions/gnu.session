@@ -1,0 +1,21 @@
+[version_defaults]
+
+[session]
+creation_time = 
+type = persistent
+name = gnu
+
+[config]
+filter_packages = 
+subpackages = 
+verbose = 
+trace = 
+dry_run = 
+debug = 
+resolution_level = 
+full_label = 
+
+[packages]
+directories = ../packages
+loaded_packages = gnu:4_7_0:libbar/1.0.2:libfoo/0.5.3:baz/1.1
+

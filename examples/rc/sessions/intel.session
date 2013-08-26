@@ -1,0 +1,21 @@
+[version_defaults]
+
+[session]
+creation_time = 
+type = persistent
+name = intel
+
+[config]
+filter_packages = 
+subpackages = 
+verbose = 
+trace = 
+dry_run = 
+debug = 
+resolution_level = 
+full_label = 
+
+[packages]
+directories = /home/simone/.unix-sessions/packages:/home/simone/Programs/Programming/INSTALL/unix-sessions/etc/unix-sessions/packages
+loaded_packages = intel:12_1:libfoo/0.5.3:libbar/1.0.2:baz/1.1
+
