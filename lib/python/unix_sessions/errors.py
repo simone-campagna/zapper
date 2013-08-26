@@ -17,10 +17,13 @@
 
 __author__ = 'Simone Campagna'
 
-class SessionError(Exception):
+class UxsError(Exception):
     pass
 
-class SessionInternalError(Exception):
+class SessionError(UxsError):
+    pass
+
+class SessionInternalError(SessionError):
     pass
 
 class SessionCreationError(SessionError):
@@ -40,3 +43,7 @@ class LoadSuiteError(SessionError):
 
 class PackageNotFoundError(SessionError):
     pass
+
+class AuthError(UxsError):
+    pass
+

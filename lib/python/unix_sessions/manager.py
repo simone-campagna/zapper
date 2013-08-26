@@ -33,9 +33,9 @@ from .package_expressions import ALL_EXPRESSIONS
 from .translator import Translator
 from .translators import *
 from .user_config import UserConfig
-from .site_config import SiteConfig
+from .host_config import HostConfig
 from .expression import Expression
-from .utils.home import get_home_dir
+from .utils.install_data import get_home_dir, get_admin_user
 from .utils.random_name import RandomNameSequence
 from .utils.show_table import show_table
 from .utils.debug import PRINT
@@ -70,20 +70,21 @@ class Manager(object):
     }
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
-        username = getpass.getuser()
+        self.user = getpass.getuser()
+        self.admin_user = get_admin_user()
         self.user_rc_dir = os.path.join(user_home_dir, self.RC_DIR_NAME)
         self.user_package_dir = os.path.join(self.user_rc_dir, self.PACKAGES_DIR_NAME)
         uxs_home_dir = get_home_dir()
         if uxs_home_dir and os.path.lexists(uxs_home_dir):
             uxs_etc_dir = os.path.join(uxs_home_dir, 'etc', 'unix-sessions')
             self.uxs_package_dir = os.path.join(uxs_etc_dir, self.PACKAGES_DIR_NAME)
-            site_config_file = os.path.join(uxs_etc_dir, 'site.config')
-            self.site_config = SiteConfig(site_config_file)
+            host_config_file = os.path.join(uxs_etc_dir, 'host.config')
+            self.host_config = HostConfig(host_config_file)
         else:
             self.uxs_package_dir = None
-            self.site_config = SiteConfig()
+            self.host_config = HostConfig()
         tmpdir = os.environ.get("TMPDIR", "/tmp")
-        self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, username))
+        self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, self.user))
         self.persistent_sessions_dir = os.path.join(self.user_rc_dir, self.SESSIONS_DIR_NAME)
         self.temporary_sessions_dir = os.path.join(self.tmp_dir, self.SESSIONS_DIR_NAME)
         self.sessions_dir = {
@@ -107,12 +108,15 @@ class Manager(object):
         self.load_translator()
         self.load_session()
 
+    def is_admin(self):
+        return self.user == self.admin_user
+
     def set_show_full_label(self, value):
         self.session.set_show_full_label(value)
 
     def load_general(self):
-        # site categories:
-        categories_s = self.site_config['general']['categories']
+        # host categories:
+        categories_s = self.host_config['general']['categories']
         if categories_s:
             categories = categories_s.split(':')
             Category.add_category(*categories)
@@ -184,8 +188,8 @@ class Manager(object):
             lst.append((key, ':', repr(value)))
         show_table("{0} default versions".format(label.title()), lst, header=('KEY', '', 'VALUE'))
       
-    def show_site_version_defaults(self, keys):
-        return self.show_version_defaults('site', self.site_config['version_defaults'], keys)
+    def show_host_version_defaults(self, keys):
+        return self.show_version_defaults('host', self.host_config['version_defaults'], keys)
 
     def show_user_version_defaults(self, keys):
         return self.show_version_defaults('user', self.user_config['version_defaults'], keys)
@@ -208,6 +212,12 @@ class Manager(object):
         self._update_version_defaults(label, version_defaults, version_defaults_dict)
         return changed
 
+    def set_host_version_defaults(self, key_values):
+        if not self.is_admin():
+            raise SessionAuthError("user {0}: not authorized to change host version defaults".format(self.user))
+        if self._set_generic_version_defaults('host', self.host_config['version_defaults'], key_values):
+            self.host_config.store()
+
     def set_user_version_defaults(self, key_values):
         if self._set_generic_version_defaults('user', self.user_config['version_defaults'], key_values):
             self.user_config.store()
@@ -228,6 +238,12 @@ class Manager(object):
                 changed = True
         return changed
 
+    def reset_host_version_defaults(self, keys):
+        if not self.is_admin():
+            raise SessionAuthError("user {0}: not authorized to change host version defaults".format(self.user))
+        if self._reset_generic_version_defaults('host', self.host_config['version_defaults'], keys):
+            self.host_config.store()
+
     def reset_user_version_defaults(self, keys):
         if self._reset_generic_version_defaults('user', self.user_config['version_defaults'], keys):
             self.user_config.store()
@@ -237,10 +253,10 @@ class Manager(object):
             self.session_config.store()
 
     def load_user_version_defaults(self):
-        site_version_defaults = self.user_config['version_defaults']
+        host_version_defaults = self.user_config['version_defaults']
         user_version_defaults = self.user_config['version_defaults']
         self.version_defaults = {}
-        for from_label, from_version_defaults in ('site', site_version_defaults), ('user', user_version_defaults):
+        for from_label, from_version_defaults in ('host', host_version_defaults), ('user', user_version_defaults):
             self._update_version_defaults(from_label, from_version_defaults, self.version_defaults)
 
     def load_session_version_defaults(self):
@@ -315,8 +331,8 @@ class Manager(object):
             lst.append((key, ':', repr(value)))
         show_table("{0} config".format(label.title()), lst, header=('KEY', '', 'VALUE'))
      
-    def show_site_config(self, keys):
-        return self.show_config('site', self.site_config['config'], keys)
+    def show_host_config(self, keys):
+        return self.show_config('host', self.host_config['config'], keys)
 
     def show_user_config(self, keys):
         return self.show_config('user', self.user_config['config'], keys)
@@ -342,6 +358,12 @@ class Manager(object):
         self._update_config(label, config, config_dict)
         return changed
 
+    def set_host_config(self, key_values):
+        if not self.is_admin():
+            raise SessionAuthError("user {0}: not authorized to change host config".format(self.user))
+        if self._set_generic_config('host', self.host_config['config'], key_values):
+            self.host_config.store()
+
     def set_user_config(self, key_values):
         if self._set_generic_config('user', self.user_config['config'], key_values):
             self.user_config.store()
@@ -361,6 +383,12 @@ class Manager(object):
                 config[key] = ''
                 changed = True
         return changed
+
+    def reset_host_config(self, keys):
+        if not self.is_admin():
+            raise SessionAuthError("user {0}: not authorized to change host config".format(self.user))
+        if self._reset_generic_config('host', self.host_config['config'], keys):
+            self.host_config.store()
 
     def reset_user_config(self, keys):
         if self._reset_generic_config('user', self.user_config['config'], keys):
@@ -410,10 +438,10 @@ class Manager(object):
         return self.config[key]
 
     def load_user_config(self):
-        site_config = self.user_config['config']
+        host_config = self.user_config['config']
         user_config = self.user_config['config']
         self.config = {}
-        for from_label, from_config in ('manager', self.MANAGER_CONFIG), ('site', site_config), ('user', user_config):
+        for from_label, from_config in ('manager', self.MANAGER_CONFIG), ('host', host_config), ('user', user_config):
             self._update_config(from_label, from_config, self.config)
 
     def load_session_config(self):

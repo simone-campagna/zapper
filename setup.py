@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import glob
+import getpass
 import tempfile
 
 from distutils.core import setup
@@ -30,6 +31,7 @@ class pre_command(object):
     def run(self):
         install_cmd = self.get_finalized_command('install')
         self.install_base = os.path.normpath(os.path.abspath(getattr(install_cmd, 'install_base')))
+        self.admin_user = getpass.getuser()
         return super().run()
 
 class subst_command(Command):
@@ -37,6 +39,7 @@ class subst_command(Command):
         if not hasattr(self, 'r_list'):
             v_dict = {
                 'UXS_HOME_DIR':             self.install_base,
+                'UXS_ADMIN_USER':           self.admin_user,
                 'PYTHON_EXECUTABLE':        sys.executable,
             }
             self.r_list = []

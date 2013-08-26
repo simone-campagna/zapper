@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 #
 # Copyright 2013 Simone Campagna
 #
@@ -18,11 +17,12 @@
 
 __author__ = 'Simone Campagna'
 
-UXS_HOME_DIR = None
+from .config import Config
+from .config_commons import GENERAL, CONFIG, VERSION_DEFAULTS
 
-def set_home_dir(home_dir):
-    global UXS_HOME_DIR
-    UXS_HOME_DIR = home_dir
-
-def get_home_dir():
-    return UXS_HOME_DIR
+class HostConfig(Config):
+    __defaults__ = {
+        'general': GENERAL,
+        'config': CONFIG,
+        'version_defaults': VERSION_DEFAULTS,
+    }
