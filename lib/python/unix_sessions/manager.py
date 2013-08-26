@@ -465,7 +465,7 @@ class Manager(object):
                 if not os.path.lexists(session_config_file):
                     LOGGER.warning("inconsistent environment: invalid session {0}".format(session_root))
                     session_root = None
-            if session_root is None:
+            if not session_root:
                 session_root = Session.create_unique_session_root(self.temporary_sessions_dir)
                 Session.create_session_config(manager=self, session_root=session_root, session_name=os.path.basename(session_root), session_type='temporary')
         else:
@@ -477,7 +477,7 @@ class Manager(object):
             else:
                 raise SessionError("session {0} not found".format(session_name))
         try:
-            if self.session:
+            if session_root and self.session:
                 self.session.load(session_root)
             else:
                 self.session = Session(self, session_root)
