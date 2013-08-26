@@ -43,7 +43,7 @@ from .utils import sequences
 
 class Session(object):
     SESSION_SUFFIX = ".session"
-    MODULE_PATTERN = "uxs_*.py"
+    MODULE_PATTERN = "*.py"
     RANDOM_NAME_SEQUENCE = RandomNameSequence(width=5)
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'

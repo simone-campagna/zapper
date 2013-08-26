@@ -84,7 +84,7 @@ class Manager(object):
             self.uxs_package_dir = None
             self.host_config = HostConfig()
         tmpdir = os.environ.get("TMPDIR", "/tmp")
-        self.tmp_dir = os.path.join(tmpdir, ".{0}-{1}".format(self.TEMP_DIR_PREFIX, self.user))
+        self.tmp_dir = os.path.join(tmpdir, "{0}-{1}".format(self.TEMP_DIR_PREFIX, self.user))
         self.persistent_sessions_dir = os.path.join(self.user_rc_dir, self.SESSIONS_DIR_NAME)
         self.temporary_sessions_dir = os.path.join(self.tmp_dir, self.SESSIONS_DIR_NAME)
         self.sessions_dir = {
