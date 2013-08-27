@@ -457,6 +457,7 @@ class Session(object):
     def add_packages(self, packages, resolution_level=0, dry_run=False):
         package_dependencies = collections.defaultdict(set)
         available_packages = self.available_packages()
+        defined_packages = self.defined_packages()
         packages_to_add = set()
         while packages:
             simulated_loaded_packages = list(sequences.unique(list(self._loaded_packages.values()) + packages))
@@ -465,6 +466,12 @@ class Session(object):
                 package_label = package.label
                 matched_requirements, unmatched_requirements = package.match_requirements(simulated_loaded_packages)
                 if unmatched_requirements and resolution_level > 0:
+                    # search in available_packages:
+                    LOGGER.debug("resolution[1]: package {0}: searching {1} <{2}> in available packages...".format(
+                        package,
+                        plural_string('unmatched requirement', len(unmatched_requirements)),
+                        ', '.join(str(e[-1]) for e in unmatched_requirements),
+                    ))
                     matched_requirements, unmatched_requirements = package.match_requirements(available_packages)
                     for pkg0, expression, pkg1 in matched_requirements:
                         if not pkg1 in simulated_loaded_packages:
@@ -472,6 +479,20 @@ class Session(object):
                             if not pkg1 in automatically_added_packages:
                                 LOGGER.info("package {0} will be automatically added".format(pkg1))
                                 automatically_added_packages.append(pkg1)
+                    if unmatched_requirements and resolution_level > 1:
+                        # search in defined_packages:
+                        LOGGER.debug("resolution[2]: package {0}: searching {1} <{2}> in defined packages...".format(
+                            package,
+                            plural_string('unmatched requirement', len(unmatched_requirements)),
+                        ', '.join(str(e[-1]) for e in unmatched_requirements),
+                        ))
+                        matched_requirements, unmatched_requirements = package.match_requirements(defined_packages)
+                        for pkg0, expression, pkg1 in matched_requirements:
+                            if not pkg1 in simulated_loaded_packages:
+                                #LOGGER.debug("matching: {0}".format(pkg1))
+                                if not pkg1 in automatically_added_packages:
+                                    LOGGER.info("package {0} will be automatically added".format(pkg1))
+                                    automatically_added_packages.append(pkg1)
                 if unmatched_requirements:
                     for pkg, expression in unmatched_requirements:
                         LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
@@ -521,6 +542,8 @@ class Session(object):
             self._loaded_packages[package.label] = package
             if isinstance(package, Suite):
                 self._add_suite(package)
+
+    def finalize(self):
         if self._loaded_packages.is_changed():
             self.store()
         
@@ -559,6 +582,10 @@ class Session(object):
                     matched_requirements, unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, new_loaded_packages))
                     if unmatched_requirements:
                         if resolution_level > 0:
+                            LOGGER.debug("resolution[1]: automatically removing {0} <{1}>...".format(
+                                plural_string('depending package', len(unmatched_requirements)),
+                                ', '.join(str(e[0]) for e in unmatched_requirements)
+                            ))
                             for pkg0, expression in unmatched_requirements:
                                 if not pkg in automatically_removed_packages:
                                     LOGGER.info("package {0} will be automatically removed".format(pkg))
@@ -599,9 +626,6 @@ class Session(object):
             if isinstance(package, Suite):
                 self._remove_suite(package)
             
-        if self._loaded_packages.is_changed():
-            self.store()
-
     def _remove_suite(self, suite):
         self._loaded_suites.remove_package(suite)
         for package in suite.packages():

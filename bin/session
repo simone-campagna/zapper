@@ -40,7 +40,7 @@ def main():
             LOGGER.error("Session is corrupted. Unset environment variable UXS_SESSION and try again with a new session.")
         sys.exit(1)
 
-    class Formatter(argparse.HelpFormatter):
+    class Formatter(argparse.RawTextHelpFormatter):
         def __init__(self, prog, indent_increment=2, max_help_position=27, width=None):
             super().__init__(prog, indent_increment, max_help_position, width)
 
@@ -392,13 +392,27 @@ Change the current session""",
     
         parser_package_add = subparsers.add_parser("add",
             parents=[common_parser],
-            help="add a package to current session")
+            formatter_class=Formatter,
+            description="""\
+Add packages to current session.""",
+            epilog="""\
+[Resolution aggressivity level]:
+  > 0: missing requirements are searched in available packages
+  > 1: missing requirements are searched in defined packages
+""")
         parser_package_add.set_defaults(function=manager.add_packages)
     
         parser_package_remove = subparsers.add_parser("remove",
             aliases=['rem'],
             parents=[common_parser],
-            help="remove a package from current session")
+            formatter_class=Formatter,
+            description="""\
+Remove packages from current session.""",
+            epilog="""\
+[Resolution aggressivity level]:
+  > 0: packages with unsatisfied requirements after removal will be
+       automatically removed
+""")
         parser_package_remove.set_defaults(function=manager.remove_packages)
 
         parser_package_clear = subparsers.add_parser("clear",
@@ -427,7 +441,7 @@ Change the current session""",
             subparser.add_argument("--dry-run", "-D",
                 dest="dry_run",
                 action="store_true",
-                default=manager.get_config_key('dry_run'),
+                default=False,
                 help="show only changes")
 
     ### other subparsers

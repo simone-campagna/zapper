@@ -54,7 +54,6 @@ class Manager(object):
         'trace',
         'subpackages',
         'full_label',
-        'dry_run',
         'resolution_level',
         'filter_packages',
     )
@@ -64,7 +63,6 @@ class Manager(object):
         'trace': False,
         'subpackages': False,
         'full_label': False,
-        'dry_run': False,
         'resolution_level': 0,
         'filter_packages': None,
     }
@@ -290,7 +288,7 @@ class Manager(object):
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'dry_run'}:
+        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label'}:
             if isinstance(s_value, str):
                 value = self._str2bool(s_value)
             else:
@@ -660,6 +658,8 @@ class Manager(object):
         self.session.set_version_defaults(self.version_defaults)
 
     def finalize(self):
+        if self.session:
+            self.session.finalize()
         self.user_config['sessions']['last_session'] = self.session.session_root
         self.user_config.store()
         self.translate()
