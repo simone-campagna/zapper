@@ -95,11 +95,11 @@ setup(
     packages = ["unix_sessions", "unix_sessions.translators", "unix_sessions.utils"],
     package_dir = {"unix_sessions": "lib/python/unix_sessions"},
     scripts = [
-	'bin/session',
+	'bin/shelf',
     ],
     data_files = [
         ('etc/unix-sessions', glob.glob('etc/unix-sessions/*.config')),
-        ('etc/unix-sessions/init.d', glob.glob('etc/unix-sessions/init.d/uxs.*')),
+        ('etc/unix-sessions/init.d', glob.glob('etc/unix-sessions/init.d/shelf.*')),
         ('etc/unix-sessions/packages', []),
     ],
     cmdclass = {
