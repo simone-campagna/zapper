@@ -20,6 +20,7 @@ __author__ = 'Simone Campagna'
 import os
 import sys
 import argparse
+import collections
 
 from unix_sessions.manager import Manager
 from unix_sessions.errors import SessionConfigError
@@ -46,6 +47,9 @@ def main():
             super().__init__(prog, indent_increment, max_help_position, width)
 
     admin_mode = manager.is_admin()
+
+    package_options = collections.OrderedDict()
+    package_options['version_defaults'] = ('versions', ['v'])
 
     #Formatter = argparse.HelpFormatter
 
@@ -86,15 +90,18 @@ Change the current session""",
     top_level_subparsers = top_level_parser.add_subparsers(
         description="Commands to change the current session.")
 
-    ### Version_defaults subparser
-    parser_version_defaults =  top_level_subparsers.add_parser("versions",
-        aliases=["v"],
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="packages' default versions")
-
-    version_defaults_subparsers = parser_version_defaults.add_subparsers(
-        description="Version defaults subcommands.")
+    ### Package_options
+    parser_package_option = {}
+    package_option_subparsers = {}
+    for option, (parser_name, parser_aliases) in package_options.items():
+        parser_package_option[option] =  top_level_subparsers.add_parser(parser_name,
+            aliases=parser_aliases,
+            parents=[common_parser],
+            formatter_class=Formatter,
+            help="packages' {0}".format(option))
+    
+        package_option_subparsers[option] = parser_package_option[option].add_subparsers(
+            description="{0} subcommands.".format(option.title()))
 
     ### Config subparser
     parser_config =  top_level_subparsers.add_parser("config",
@@ -106,7 +113,7 @@ Change the current session""",
     config_subparsers = parser_config.add_subparsers(
         description="Config subcommand.")
 
-    ### Site subparser
+    ### Host subparser
     parser_host = top_level_subparsers.add_parser("host",
         aliases=['h'],
         parents=[common_parser],
@@ -116,13 +123,16 @@ Change the current session""",
     host_subparsers = parser_host.add_subparsers(
         description="Host subcommand.")
 
-    parser_host_version_defaults = host_subparsers.add_parser("versions",
-        aliases=["v"],
-        formatter_class=Formatter,
-        help="host default packages' versions")
+    parser_host_package_option = {}
+    host_package_option_subparsers = {}
+    for option, (parser_name, parser_aliases) in package_options.items():
+        parser_host_package_option[option] = host_subparsers.add_parser(parser_name,
+            aliases=parser_aliases,
+            formatter_class=Formatter,
+            help="host default packages' {0}".format(option))
 
-    host_version_defaults_subparsers = parser_host_version_defaults.add_subparsers(
-        description="Host version defaults management.")
+        host_package_option_subparsers[option] = parser_host_package_option[option].add_subparsers(
+            description="Host {0} management.".format(option.title()))
 
     parser_host_config = host_subparsers.add_parser("config",
         aliases=["c"],
@@ -142,13 +152,16 @@ Change the current session""",
     user_subparsers = parser_user.add_subparsers(
         description="User subcommand")
     
-    parser_user_version_defaults = user_subparsers.add_parser("versions",
-        aliases=["v"],
-        formatter_class=Formatter,
-        help="user default packages' versions")
+    parser_user_package_option = {}
+    user_package_option_subparsers = {}
+    for option, (parser_name, parser_aliases) in package_options.items():
+        parser_user_package_option[option] = user_subparsers.add_parser(parser_name,
+            aliases=parser_aliases,
+            formatter_class=Formatter,
+            help="user default packages' {0}".format(option))
 
-    user_version_defaults_subparsers = parser_user_version_defaults.add_subparsers(
-        description="User version defaults management.")
+        user_package_option_subparsers[option] = parser_user_package_option[option].add_subparsers(
+            description="User {0} management.".format(option.title()))
 
     parser_user_config = user_subparsers.add_parser("config",
         aliases=["c"],
@@ -239,13 +252,16 @@ Change the current session""",
             default=None,
             help="session names")
 
-    parser_session_version_defaults = session_subparsers.add_parser("versions",
-        aliases=["v"],
-        formatter_class=Formatter,
-        help="session default packages' versions")
+    parser_session_package_option = {}
+    session_package_option_subparsers = {}
+    for option, (parser_name, parser_aliases) in package_options.items():
+        parser_session_package_option[option] = session_subparsers.add_parser(parser_name,
+            aliases=parser_aliases,
+            formatter_class=Formatter,
+            help="session default packages' {0}".format(option))
 
-    session_version_defaults_subparsers = parser_session_version_defaults.add_subparsers(
-        description="Session version defaults management.")
+        session_package_option_subparsers[option] = parser_session_package_option[option].add_subparsers(
+            description="Session {0} management.".format(option.title()))
 
     parser_session_config = session_subparsers.add_parser("config",
         aliases=["c"],
@@ -255,54 +271,55 @@ Change the current session""",
     session_config_subparsers = parser_session_config.add_subparsers(
         description="Session default values management.")
 
-    parser_version_defaults_show = {}
-    for subparsers in version_defaults_subparsers, host_version_defaults_subparsers, user_version_defaults_subparsers, session_version_defaults_subparsers:
-        parser_version_defaults_show[subparsers] = subparsers.add_parser("show",
-            parents=[common_parser],
-            formatter_class=Formatter,
-            help="show current packages version defaults")
-        parser_version_defaults_show[subparsers].add_argument("keys",
-            nargs='*',
-            help="show keys")
+    for option in package_options:
+        parser_package_option_show = {}
+        for subparsers in package_option_subparsers[option], host_package_option_subparsers[option], user_package_option_subparsers[option], session_package_option_subparsers[option]:
+            parser_package_option_show[subparsers] = subparsers.add_parser("show",
+                parents=[common_parser],
+                formatter_class=Formatter,
+                help="show current packages version defaults")
+            parser_package_option_show[subparsers].add_argument("keys",
+                nargs='*',
+                help="show keys")
+        
+        parser_package_option_show[package_option_subparsers[option]].set_defaults(function=manager.show_current_package_option, option=option)
+        parser_package_option_show[host_package_option_subparsers[option]].set_defaults(function=manager.show_host_package_option, option=option)
+        parser_package_option_show[user_package_option_subparsers[option]].set_defaults(function=manager.show_user_package_option, option=option)
+        parser_package_option_show[session_package_option_subparsers[option]].set_defaults(function=manager.show_session_package_option, option=option)
+
+
+        parser_package_option_set = {}
+        parser_package_option_reset = {}
+        mutable_package_option_subparsers = []
+        if admin_mode:
+            mutable_package_option_subparsers.append(host_package_option_subparsers[option])
+        mutable_package_option_subparsers.extend((user_package_option_subparsers[option], session_package_option_subparsers[option]))
     
-    parser_version_defaults_show[version_defaults_subparsers].set_defaults(function=manager.show_current_package_option, option='version_defaults')
-    parser_version_defaults_show[host_version_defaults_subparsers].set_defaults(function=manager.show_host_package_option, option='version_defaults')
-    parser_version_defaults_show[user_version_defaults_subparsers].set_defaults(function=manager.show_user_package_option, option='version_defaults')
-    parser_version_defaults_show[session_version_defaults_subparsers].set_defaults(function=manager.show_session_package_option, option='version_defaults')
-
-
-    parser_version_defaults_set = {}
-    parser_version_defaults_reset = {}
-    mutable_version_defaults_subparsers = []
-    if admin_mode:
-        mutable_version_defaults_subparsers.append(host_version_defaults_subparsers)
-    mutable_version_defaults_subparsers.extend((user_version_defaults_subparsers, session_version_defaults_subparsers))
-
-    for subparsers in mutable_version_defaults_subparsers:
-        parser_version_defaults_set[subparsers] = subparsers.add_parser("set",
-            parents=[common_parser],
-            formatter_class=Formatter,
-            help="set default packages' versions")
-        parser_version_defaults_set[subparsers].add_argument("key_values",
-            nargs='*',
-            help="set key=value pairs")
-        parser_version_defaults_reset[subparsers] = subparsers.add_parser("reset",
-            parents=[common_parser],
-            help="reset default packages' versions")
-        parser_version_defaults_reset[subparsers].add_argument("keys",
-            nargs='*',
-            help="reset keys")
-
-    if admin_mode:
-        parser_version_defaults_set[host_version_defaults_subparsers].set_defaults(function=manager.set_host_package_option, option='version_defaults')
-        parser_version_defaults_reset[host_version_defaults_subparsers].set_defaults(function=manager.reset_host_package_option, option='version_defaults')
- 
-    parser_version_defaults_set[user_version_defaults_subparsers].set_defaults(function=manager.set_user_package_option, option='version_defaults')
-    parser_version_defaults_reset[user_version_defaults_subparsers].set_defaults(function=manager.reset_user_package_option, option='version_defaults')
-
-    parser_version_defaults_set[session_version_defaults_subparsers].set_defaults(function=manager.set_session_package_option, option='version_defaults')
-    parser_version_defaults_reset[session_version_defaults_subparsers].set_defaults(function=manager.reset_session_package_option, option='version_defaults')
-
+        for subparsers in mutable_package_option_subparsers:
+            parser_package_option_set[subparsers] = subparsers.add_parser("set",
+                parents=[common_parser],
+                formatter_class=Formatter,
+                help="set default packages' versions")
+            parser_package_option_set[subparsers].add_argument("key_values",
+                nargs='*',
+                help="set key=value pairs")
+            parser_package_option_reset[subparsers] = subparsers.add_parser("reset",
+                parents=[common_parser],
+                help="reset default packages' versions")
+            parser_package_option_reset[subparsers].add_argument("keys",
+                nargs='*',
+                help="reset keys")
+    
+        if admin_mode:
+            parser_package_option_set[host_package_option_subparsers[option]].set_defaults(function=manager.set_host_package_option, option=option)
+            parser_package_option_reset[host_package_option_subparsers[option]].set_defaults(function=manager.reset_host_package_option, option=option)
+     
+        parser_package_option_set[user_package_option_subparsers[option]].set_defaults(function=manager.set_user_package_option, option=option)
+        parser_package_option_reset[user_package_option_subparsers[option]].set_defaults(function=manager.reset_user_package_option, option=option)
+    
+        parser_package_option_set[session_package_option_subparsers[option]].set_defaults(function=manager.set_session_package_option, option=option)
+        parser_package_option_reset[session_package_option_subparsers[option]].set_defaults(function=manager.reset_session_package_option, option=option)
+    
     parser_config_show = {}
     for subparsers in config_subparsers, host_config_subparsers, user_config_subparsers, session_config_subparsers:
         parser_config_show[subparsers] = subparsers.add_parser("show",
