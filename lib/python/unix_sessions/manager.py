@@ -103,7 +103,8 @@ class Manager(object):
 
         self.load_user_config()
 
-        self.load_user_version_defaults()
+        self.package_options = {}
+        self.load_user_package_option('version_defaults')
 
         self.load_translator()
         self.restore_session()
@@ -139,129 +140,132 @@ class Manager(object):
 
     session = property(get_session, set_session)
 
-    ### Default_versions
-    def _update_version_defaults(self, label, from_version_defaults, version_defaults_dict):
-        assert isinstance(version_defaults_dict, dict)
+    ### Package options
+    def _update_package_option(self, option, label, from_package_option, package_option_dict):
+        assert isinstance(package_option_dict, dict)
         changed = False
-        for key, value in from_version_defaults.items():
-            if value == '':
-                if not key in version_defaults_dict:
-                    version_defaults_dict[key] = ''
-                    changed = True
-            else:
-                changed = self._set_version_defaults_key(label, version_defaults_dict, key, value) or changed
+        for key, value in from_package_option.items():
+            #if value == '':
+            #    print("HERE!!")
+            #    if not key in package_option_dict:
+            #        package_option_dict[key] = ''
+            #        changed = True
+            #else:
+            changed = self._set_package_option_key(option, label, package_option_dict, key, value) or changed
         return changed
 
-    def _set_generic_version_defaults_key(self, label, version_defaults, key, value):
-        if version_defaults.get(key, None) != value:
+    def _set_generic_package_option_key(self, option, label, package_option, key, value):
+        if package_option.get(key, None) != value:
             if label is not None:
-                LOGGER.info("setting {0} default version {1!r}={2!r}".format(label, key, value))
-            version_defaults[key] = str(value)
+                LOGGER.info("setting {0} {1} {1!r}={2!r}".format(label, option, key, value))
+            package_option[key] = str(value)
             return True
         else:
             return False
 
-    def _set_version_defaults_key(self, label, version_defaults_dict, key, value):
-        assert isinstance(version_defaults_dict, dict)
-        if str(version_defaults_dict.get(key, None)) != str(value):
+    def _set_package_option_key(self, option, label, package_option_dict, key, value):
+        assert isinstance(package_option_dict, dict)
+        if str(package_option_dict.get(key, None)) != str(value):
             #if label is not None:
             #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
-            version_defaults_dict[key] = value
+            package_option_dict[key] = value
             return True
         else:
             return False
 
-    def show_version_defaults(self, label, version_defaults, keys):
+    def show_package_option(self, option, label, package_option, keys):
         if not keys:
-            keys = version_defaults.keys()
-        if not isinstance(version_defaults, dict):
+            keys = package_option.keys()
+        if not isinstance(package_option, dict):
             # convert configparser.SectionProxies -> dict
-            version_defaults_dict = {}
-            self._update_version_defaults(label, version_defaults, version_defaults_dict)
-            version_defaults = version_defaults_dict
+            package_option_dict = {}
+            self._update_package_option(option, label, package_option, package_option_dict)
+            package_option = package_option_dict
         lst = []
         for key in keys:
-            if not key in version_defaults:
-                LOGGER.error("no such default version: {0}".format(key))
+            if not key in package_option:
+                LOGGER.error("no such package option {0}: {1}".format(option, key))
                 continue
-            value = version_defaults[key]
+            value = package_option[key]
             lst.append((key, ':', repr(value)))
-        show_table("{0} default versions".format(label.title()), lst, header=('KEY', '', 'VALUE'))
+        show_table("{0} {1}".format(label.title(), option), lst, header=('KEY', '', 'VALUE'))
       
-    def show_host_version_defaults(self, keys):
-        return self.show_version_defaults('host', self.host_config['version_defaults'], keys)
+    def show_host_package_option(self, option, keys):
+        return self.show_package_option(option, 'host', self.host_config[option], keys)
 
-    def show_user_version_defaults(self, keys):
-        return self.show_version_defaults('user', self.user_config['version_defaults'], keys)
+    def show_user_package_option(self, option, keys):
+        return self.show_package_option(option, 'user', self.user_config[option], keys)
 
-    def show_session_version_defaults(self, keys):
-        return self.show_version_defaults('session', self.session_config['version_defaults'], keys)
+    def show_session_package_option(self, option, keys):
+        return self.show_package_option(option, 'session', self.session_config[option], keys)
 
-    def show_current_version_defaults(self, keys):
-        return self.show_version_defaults('current', self.version_defaults, keys)
+    def show_current_package_option(self, option, keys):
+        return self.show_package_option(option, 'current', self.package_options[option], keys)
 
-    def _set_generic_version_defaults(self, label, version_defaults, key_values):
+    def _set_generic_package_option(self, option, label, package_option, key_values):
         changed = False
         for key_value in key_values:
             if not '=' in key_value:
                 raise ValueError("{0}: invalid key=value pair {1!r}".format(label, key_value))
             key, value = key_value.split('=')
-            changed = self._set_generic_version_defaults_key(label, version_defaults, key, value) or changed
+            changed = self._set_generic_package_option_key(option, label, package_option, key, value) or changed
         # check:
-        version_defaults_dict = {}
-        self._update_version_defaults(label, version_defaults, version_defaults_dict)
+        package_option_dict = {}
+        self._update_package_option(option, label, package_option, package_option_dict)
         return changed
 
-    def set_host_version_defaults(self, key_values):
+    def set_host_package_option(self, option, key_values):
         if not self.is_admin():
-            raise SessionAuthError("user {0}: not authorized to change host version defaults".format(self.user))
-        if self._set_generic_version_defaults('host', self.host_config['version_defaults'], key_values):
+            raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.user, option))
+        if self._set_generic_package_option(option, 'host', self.host_config[option], key_values):
             self.host_config.store()
 
-    def set_user_version_defaults(self, key_values):
-        if self._set_generic_version_defaults('user', self.user_config['version_defaults'], key_values):
+    def set_user_package_option(self, option, key_values):
+        if self._set_generic_package_option(option, 'user', self.user_config[option], key_values):
             self.user_config.store()
 
-    def set_session_version_defaults(self, key_values):
-        if self._set_generic_version_defaults('session', self.session_config['version_defaults'], key_values):
+    def set_session_package_option(self, option, key_values):
+        if self._set_generic_package_option(option, 'session', self.session_config[option], key_values):
             self.session_config.store()
 
-    def _reset_generic_version_defaults(self, label, version_defaults, keys):
+    def _reset_generic_package_option(self, option, label, package_option, keys):
         if not keys:
-            keys = version_defaults.keys()
+            keys = package_option.keys()
         changed = False
         for key in keys:
-            if not key in version_defaults:
-                LOGGER.warning("{0}: no such version: {1}".format(label, key))
+            if not key in package_option:
+                LOGGER.warning("{0}: no such package option: {1}".format(label, key))
             else:
-                del version_defaults[key]
+                del package_option[key]
                 changed = True
         return changed
 
-    def reset_host_version_defaults(self, keys):
+    def reset_host_package_option(self, option, keys):
         if not self.is_admin():
-            raise SessionAuthError("user {0}: not authorized to change host version defaults".format(self.user))
-        if self._reset_generic_version_defaults('host', self.host_config['version_defaults'], keys):
+            raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.user, option))
+        if self._reset_generic_package_option(option, 'host', self.host_config[option], keys):
             self.host_config.store()
 
-    def reset_user_version_defaults(self, keys):
-        if self._reset_generic_version_defaults('user', self.user_config['version_defaults'], keys):
+    def reset_user_package_option(self, option, keys):
+        if self._reset_generic_package_option(option, 'user', self.user_config[option], keys):
             self.user_config.store()
 
-    def reset_session_version_defaults(self, keys):
-        if self._reset_generic_version_defaults('session', self.session_config['version_defaults'], keys):
+    def reset_session_package_option(self, option, keys):
+        if self._reset_generic_package_option(option, 'session', self.session_config[package_option], keys):
             self.session_config.store()
 
-    def load_user_version_defaults(self):
-        host_version_defaults = self.user_config['version_defaults']
-        user_version_defaults = self.user_config['version_defaults']
-        self.version_defaults = {}
-        for from_label, from_version_defaults in ('host', host_version_defaults), ('user', user_version_defaults):
-            self._update_version_defaults(from_label, from_version_defaults, self.version_defaults)
+    def load_user_package_option(self, option):
+        host_package_option = self.host_config[option]
+        user_package_option = self.user_config[option]
+        self.package_options[option] = {}
+        for from_label, from_package_option in ('host', host_package_option), ('user', user_package_option):
+            #print(option, from_label, dict(from_package_option), self.package_options[option])
+            self._update_package_option(option, from_label, from_package_option, self.package_options[option])
+            #print("-->", self.package_options[option])
 
-    def load_session_version_defaults(self):
-        session_version_defaults = self.session_config['version_defaults']
-        self._update_version_defaults('session', session_version_defaults, self.version_defaults)
+    def load_session_package_option(self, option):
+        session_package_option = self.session_config[option]
+        self._update_package_option(option, 'session', session_package_option, self.package_options[option])
 
     ### Config
     def _update_config(self, label, from_config, config_dict):
@@ -489,7 +493,7 @@ class Manager(object):
     def _init_session(self):
         self.session_config = self.session.session_config
         self.load_session_config()
-        self.load_session_version_defaults()
+        self.load_session_package_option('version_defaults')
                     
     def load_translator(self):
         target_translator = os.environ.get("UXS_TARGET_TRANSLATOR", None)
@@ -655,7 +659,7 @@ class Manager(object):
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.config['filter_packages'])
-        self.session.set_version_defaults(self.version_defaults)
+        self.session.set_version_defaults(self.package_options['version_defaults'])
 
     def finalize(self):
         if self.session:
