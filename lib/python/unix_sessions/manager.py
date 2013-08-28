@@ -627,14 +627,14 @@ class Manager(object):
     def info_session(self):
         self.session.info()
 
-    def add_packages(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
-        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages, dry_run=dry_run)
+    def add_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
+        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, dry_run=dry_run)
 
-    def remove_packages(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
-        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages, dry_run=dry_run)
+    def remove_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
+        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, dry_run=dry_run)
 
-    def clear_packages(self, dry_run=False):
-        self.session.clear(dry_run=dry_run)
+    def clear_packages(self, sticky=False, dry_run=False):
+        self.session.clear(sticky=sticky, dry_run=dry_run)
 
     def add_package_directories(self, package_directories):
         self.session.add_directories(package_directories)

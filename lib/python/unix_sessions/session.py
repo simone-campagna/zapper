@@ -57,6 +57,8 @@ class Session(object):
         self._package_directories = []
         self._defined_packages = PackageCollection()
         self._available_packages = PackageCollection()
+        self._orig_sticky_packages = set()
+        self._sticky_packages = set()
         self._modules = {}
         self._show_full_label = False
         self._version_defaults = {}
@@ -175,12 +177,21 @@ class Session(object):
         self._package_directories = package_directories
         self.set_defined_packages()
         self.set_available_packages()
+        # loaded packages
         packages_list_string = self.session_config['packages']['loaded_packages']
         if packages_list_string:
             packages_list = packages_list_string.split(':')
         else:
             packages_list = []
         self.load_packages(packages_list)
+        # sticky packages
+        packages_list_string = self.session_config['packages']['sticky_packages']
+        if packages_list_string:
+            packages_list = packages_list_string.split(':')
+        else:
+            packages_list = []
+        self._sticky_packages.update(packages_list)
+        self._orig_sticky_packages = self._sticky_packages.copy()
 
     @classmethod
     def create_unique_session_root(cls, sessions_dir):
@@ -358,6 +369,7 @@ class Session(object):
                 
     def store(self):
         self.session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
+        self.session_config['packages']['sticky_packages'] = ':'.join(self._sticky_packages)
         self.session_config.store()
         
     def add_directories(self, directories):
@@ -409,7 +421,7 @@ class Session(object):
                     continue
                     #LOGGER.error("package {0} not found".format(package_label))
                     #raise PackageNotFoundError("package {0} not found".format(package_label))
-                package_label = package.label
+                package_label = package.full_label
 #                if package_label in self._loaded_packages:
 #                    LOGGER.info("package {0} already loaded".format(package_label))
 #                    continue
@@ -447,23 +459,28 @@ class Session(object):
             unloaded_packages.append(package)
         return unloaded_packages
 
-    def add(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
+    def add(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
         for packages in self.iteradd(package_labels):
             if subpackages:
                 packages = self._get_subpackages(packages)
+            required_packages = packages
             packages = self._unloaded_packages(packages)
-            self.add_packages(packages, resolution_level=resolution_level, dry_run=dry_run)
+            added_packages = self.add_packages(packages, resolution_level=resolution_level, dry_run=dry_run)
+            if sticky:
+                all_packages = set(required_packages).union(added_packages)
+                self._sticky_packages.update(package.full_label for package in all_packages)
         
     def add_packages(self, packages, resolution_level=0, dry_run=False):
         package_dependencies = collections.defaultdict(set)
         available_packages = self.available_packages()
         defined_packages = self.defined_packages()
         packages_to_add = set()
+        added_packages = []
         while packages:
             simulated_loaded_packages = list(sequences.unique(list(self._loaded_packages.values()) + packages))
             automatically_added_packages = []
             for package_index, package in enumerate(packages):
-                package_label = package.label
+                package_label = package.full_label
                 matched_requirements, unmatched_requirements = package.match_requirements(simulated_loaded_packages)
                 if unmatched_requirements and resolution_level > 0:
                     # search in available_packages:
@@ -518,6 +535,8 @@ class Session(object):
         for packages in suites_to_add, packages_to_add:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
             self._add_packages(sorted_packages, dry_run=dry_run)
+            added_packages.extend(packages)
+        return added_packages
 
     def _separate_suites(self, packages):
         suites = []
@@ -539,12 +558,12 @@ class Session(object):
             if dry_run:
                 continue
             package.apply(self)
-            self._loaded_packages[package.label] = package
+            self._loaded_packages[package.full_label] = package
             if isinstance(package, Suite):
                 self._add_suite(package)
 
     def finalize(self):
-        if self._loaded_packages.is_changed():
+        if self._loaded_packages.is_changed() or self._orig_sticky_packages != self._sticky_packages:
             self.store()
         
     def _add_suite(self, suite):
@@ -552,15 +571,19 @@ class Session(object):
         for package in suite.packages():
             self._available_packages.add_package(package)
 
-    def remove(self, package_labels, resolution_level=0, subpackages=False, dry_run=False):
+    def remove(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
         packages = []
         for package_label in package_labels:
             package = self.get_loaded_package(package_label)
             if package is None:
                 LOGGER.error("package {0} not loaded".format(package_label))
                 raise PackageNotFoundError("package {0} not loaded".format(package_label))
-            package_label = package.label
-            if not package_label in self._loaded_packages:
+            package_label = package.full_label
+            if package_label in self._loaded_packages:
+                if not sticky:
+                    LOGGER.info("package {0} is sticky, it will not be unloaded".format(package_label))
+                    continue
+            else:
                 LOGGER.info("package {0} not loaded".format(package_label))
                 continue
             package = self.get_available_package(package_label)
@@ -622,17 +645,27 @@ class Session(object):
             if dry_run:
                 continue
             package.revert(self)
-            del self._loaded_packages[package.label]
+            del self._loaded_packages[package.full_label]
             if isinstance(package, Suite):
                 self._remove_suite(package)
+            self._sticky_packages.discard(package.full_label)
             
     def _remove_suite(self, suite):
         self._loaded_suites.remove_package(suite)
         for package in suite.packages():
             self._available_packages.remove_package(package)
 
-    def clear(self, dry_run=False):
-        self._remove_packages(reversed(list(self._loaded_packages.values())), dry_run=dry_run)
+    def clear(self, sticky=False, dry_run=False):
+        packages_to_remove = reversed(list(self._loaded_packages.values()))
+        if not sticky:
+            lst = []
+            for package in packages_to_remove:
+                if package.full_label in self._sticky_packages:
+                    LOGGER.info("sticky package {0} will not be removed".format(package))
+                    continue
+                lst.append(package)
+            packages_to_remove = lst
+        self._remove_packages(packages_to_remove, dry_run=dry_run)
             
     @property
     def environment(self):
@@ -647,6 +680,15 @@ class Session(object):
     __str__ = __repr__
     
     
+    def is_sticky(self, package):
+        return package.full_label in self._sticky_packages
+
+    def _mark(self, b):
+        if b:
+            return '*'
+        else:
+            return ''
+
     def show_packages(self, title, packages):
         d = {c: o for o, c in enumerate(Category.categories())}
         packages = list(packages)
@@ -658,10 +700,11 @@ class Session(object):
             package_label_attr = 'label'
         show_table(title,
             [(package.category,
+              self._mark(self.is_sticky(package)),
               package._suite.full_label,
               getattr(package, package_label_attr),
               ', '.join(str(tag) for tag in package.tags)) for package in packages],
-            header=('CATEGORY', 'SUITE', 'PACKAGE', 'TAGS'),
+            header=('CATEGORY', 'S', 'SUITE', 'PACKAGE', 'TAGS'),
         )
 
     def show_defined_packages(self):

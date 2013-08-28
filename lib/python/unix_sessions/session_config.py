@@ -30,6 +30,7 @@ class SessionConfig(Config):
         'packages': {
             'directories': '',
             'loaded_packages': '',
+            'sticky_packages': '',
         },
         'config': CONFIG,
         'version_defaults': VERSION_DEFAULTS,

@@ -468,12 +468,18 @@ Change the current session""",
                 default=manager.get_config_key('subpackages'),
                 help="automatically {0} all suite's packages".format(key))
          
-        for subparser in parser_package_add, parser_package_remove, parser_package_clear:
+        for subparser_name, subparser in ('add', parser_package_add), ('remove', parser_package_remove), ('clear', parser_package_clear):
             subparser.add_argument("--dry-run", "-D",
                 dest="dry_run",
                 action="store_true",
                 default=False,
                 help="show only changes")
+
+            subparser.add_argument("--sticky", "-S",
+                dest="sticky",
+                action="store_true",
+                default=False,
+                help="{0} sticky packages".format(subparser_name))
 
     ### other subparsers
 #    parser_init = top_level_subparsers.add_parser("init",
