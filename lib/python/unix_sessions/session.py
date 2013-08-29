@@ -34,7 +34,7 @@ from .session_config import SessionConfig
 from .package_collection import PackageCollection
 from .utils.debug import LOGGER, PRINT
 from .utils.trace import trace
-from .utils.show_table import show_table, show_title
+from .utils.show_table import show_table, show_title, split_format
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
 from .utils.string import plural_string
@@ -48,6 +48,17 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
+    PACKAGE_FORMAT_FULL = "{category} {is_sticky} {full_package} {tags}"
+    PACKAGE_FORMAT_SHORT = "{category} {is_sticky} {full_suite} {package} {tags}"
+    PACKAGE_HEADER_DICT = {
+        'category':         'CATEGORY',
+        'is_sticky':        'S',
+        'package':          'PACKAGE',
+        'full_package':     'PACKAGE',
+        'suite':            'SUITE',
+        'full_suite':       'SUITE',
+        'tags':             'TAGS',
+    }
 
     def __init__(self, session_root):
         self._environment = Environment()
@@ -61,6 +72,7 @@ class Session(object):
         self._sticky_packages = set()
         self._modules = {}
         self._show_full_label = False
+        self._package_format = None
         self._version_defaults = {}
         self.load(session_root)
 
@@ -75,6 +87,18 @@ class Session(object):
         return self._show_full_label
 
     show_full_label = property(get_show_full_label, set_show_full_label)
+
+    def set_package_format(self, value):
+        self._package_format = value
+
+    def get_package_format(self):
+        return self._package_format
+
+    package_format = property(get_package_format, set_package_format)
+
+    def set_package_formatting(self, package_format, show_full_label):
+        self.package_format = package_format
+        self.show_full_label = show_full_label
 
     def filter_packages(self, expression):
         for package_collection in self._defined_packages, self._available_packages:
@@ -683,29 +707,70 @@ class Session(object):
     def is_sticky(self, package):
         return package.full_label in self._sticky_packages
 
-    def _mark(self, b):
+    def _mark(self, b, symbol_True='*', symbol_False=''):
         if b:
-            return '*'
+            return symbol_True
         else:
-            return ''
+            return symbol_False
 
-    def show_packages(self, title, packages):
+    def _package_info(self, package):
+        return {
+            'category':         package.category,
+            'is_sticky':        self._mark(self.is_sticky(package), 'S', ''),
+            'package':          package.label,
+            'full_package':     package.full_label,
+            'suite':            package.suite.label,
+            'full_suite':       package.suite.full_label,
+            'tags':             ', '.join(str(tag) for tag in package.tags)
+        }
+
+    def show_packages(self, title, packages, formatting=None):
         d = {c: o for o, c in enumerate(Category.categories())}
         packages = list(packages)
         packages.sort(key=lambda package: d[package.category])
         packages.sort(key=lambda package: package.suite.full_label)
-        if self._show_full_label:
-            package_label_attr = 'full_label'
+        if self._package_format:
+            package_format = self._package_format
         else:
-            package_label_attr = 'label'
+            if self._show_full_label:
+                package_format = self.PACKAGE_FORMAT_FULL
+            else:
+                package_format = self.PACKAGE_FORMAT_SHORT
+
+        f = split_format(package_format)
+
+        def _make_row(f, dct):
+            row = []
+            for is_format, token in f:
+                if is_format:
+                    row.append(token.format(**dct))
+                else:
+                    row.append(token)
+            return row
+        header = _make_row(f, self.PACKAGE_HEADER_DICT)
+        #print('hdr: ', header)
+
+        table = []
+        for package in packages:
+            row = _make_row(f, self._package_info(package))
+            #print('row: ', row)
+            table.append(row)
+             
+
         show_table(title,
-            [(package.category,
-              self._mark(self.is_sticky(package)),
-              package._suite.full_label,
-              getattr(package, package_label_attr),
-              ', '.join(str(tag) for tag in package.tags)) for package in packages],
-            header=('CATEGORY', 'S', 'SUITE', 'PACKAGE', 'TAGS'),
+            table,
+            header=header,
+            separator='',
         )
+
+    @classmethod
+    def make_package_format(cls, package_format_string):
+        try:
+            package_format_string.format(**cls.PACKAGE_HEADER_DICT)
+        except Exception as e:
+            LOGGER.warning("invalid package format {0!r}: {1}: {2}".format(package_format_string, e.__class__.__name__, e))
+            package_format_string = ''
+        return package_format_string
 
     def show_defined_packages(self):
         self.show_packages("Defined packages", self.defined_packages())

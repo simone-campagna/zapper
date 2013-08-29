@@ -17,12 +17,33 @@
 #
 
 __author__ = 'Simone Campagna'
+
+import re
+
 from .debug import PRINT
 
 def show_title(title, print_function=PRINT, max_width=70):
     t = "==[{0}]".format(title)
     t += "=" * (max_width - len(t))
     print_function(t)
+
+def split_format(formatting):
+    r = re.compile(r'\{[^\{\}]+\}')
+    l = []
+    gb = 0
+    ge = 0
+    b, e = 0, 0
+    for match in r.finditer(formatting):
+        b, e = match.span()
+        if b > ge:
+            l.append((False, formatting[ge:b]))
+        l.append((True, formatting[b:e]))
+        gb = b
+        ge = e
+    last = formatting[e:]
+    if last:
+        l.append((False, last))
+    return l
 
 def show_table(title, table, min_number=3, separator=' ', print_function=PRINT, show_always_title=False, header=None):
     new_table = []

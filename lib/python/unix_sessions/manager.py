@@ -54,6 +54,7 @@ class Manager(object):
         'trace',
         'subpackages',
         'full_label',
+        'package_format',
         'resolution_level',
         'filter_packages',
     )
@@ -63,6 +64,7 @@ class Manager(object):
         'trace': False,
         'subpackages': False,
         'full_label': False,
+        'package_format': None,
         'resolution_level': 0,
         'filter_packages': None,
     }
@@ -98,6 +100,7 @@ class Manager(object):
         self.user_config = UserConfig(user_config_file)
 
         self._show_full_label = False
+        self._package_format = False
 
         self.load_general()
 
@@ -109,11 +112,18 @@ class Manager(object):
         self.load_translator()
         self.restore_session()
 
+    @classmethod
+    def make_package_format(cls, package_format_string):
+        return Session.make_package_format(package_format_string)
+
     def is_admin(self):
         return self.user == self.admin_user
 
     def set_show_full_label(self, value):
         self._show_full_label = value
+
+    def set_package_format(self, value):
+        self._package_format = value
 
     def load_general(self):
         # host categories:
@@ -310,6 +320,8 @@ class Manager(object):
             else:
                 value = s_value
                 assert isinstance(value, Expression) or value is None
+        else:
+            value = s_value
         if str(config_dict.get(key, None)) != str(value):
             #if label is not None:
             #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
@@ -655,7 +667,7 @@ class Manager(object):
     def initialize(self):
         if not self.session:
             self.new_session()
-        self.session.set_show_full_label(self._show_full_label)
+        self.session.set_package_formatting(self._package_format, self._show_full_label)
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.config['filter_packages'])

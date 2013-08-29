@@ -78,6 +78,11 @@ def main():
         default=manager.get_config_key('full_label'),
         help="show full package labels")
 
+    common_parser.add_argument("--package-format", "-F",
+        type=manager.make_package_format,
+        default=manager.get_config_key('package_format'),
+        help="show full package labels")
+
     ### Top-level parser
     top_level_parser = argparse.ArgumentParser(
         parents = [common_parser],
@@ -513,6 +518,7 @@ Change the current session""",
     set_verbose(args.verbose)
     set_debug(args.debug)
     manager.set_show_full_label(args.full_label)
+    manager.set_package_format(args.package_format)
 
     if 'persistent' in args and 'temporary' in args:
         if args.persistent is None:
@@ -525,7 +531,7 @@ Change the current session""",
             args.temporary = False
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
-    for key in 'function', 'verbose', 'debug', 'trace', 'full_label':
+    for key in 'function', 'verbose', 'debug', 'trace', 'full_label', 'package_format':
         if key in n_args:
             del n_args[key]
 
