@@ -799,9 +799,11 @@ class Session(object):
     @classmethod
     def make_package_format(cls, package_format_string):
         try:
-            return package_format_string.format(**cls.PACKAGE_HEADER_DICT)
+            package_format_string.format(**cls.PACKAGE_HEADER_DICT)
         except Exception as e:
             raise ValueError("invalid package format {0!r}: {1}: {2}".format(package_format_string, e.__class__.__name__, e))
+        else:
+            return package_format_string
 
     def show_defined_packages(self):
         self.show_packages("Defined packages", self.defined_packages(), self.get_available_package_format())
