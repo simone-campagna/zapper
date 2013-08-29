@@ -39,7 +39,7 @@ class Package(ListRegister, Transition):
     __package_dir__ = None
     __registry__ = None
     SUITE_SEPARATOR = '.'
-    def __init__(self, package_family, version, *, short_description=None, long_description=None, suite=None):
+    def __init__(self, package_family, version, *, short_description=None, long_description=None, family_conflict=True, suite=None):
         super().__init__()
         assert isinstance(package_family, PackageFamily)
         self._package_family = package_family
@@ -93,6 +93,8 @@ class Package(ListRegister, Transition):
 #                self._label = self._name
 #                self._full_label = self._full_name
         self.register()
+        if family_conflict:
+            self.conflicts(NAME == self._name)
 
     @property
     def name(self):

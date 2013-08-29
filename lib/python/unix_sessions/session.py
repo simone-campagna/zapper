@@ -48,11 +48,15 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    PACKAGE_FORMAT_FULL = "{category} {is_sticky} {full_package} {tags}"
-    PACKAGE_FORMAT_SHORT = "{category} {is_sticky} {full_suite} {package} {tags}"
+    LOADED_PACKAGE_FORMAT_FULL =     "{category} {is_sticky} {full_package} {tags}"
+    LOADED_PACKAGE_FORMAT_SHORT =    "{category} {is_sticky} {full_suite} {package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_FULL =  "{category} {is_loaded}{is_conflicting} {full_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_SHORT = "{category} {is_loaded}{is_conflicting} {full_suite} {package} {tags}"
     PACKAGE_HEADER_DICT = {
         'category':         'CATEGORY',
         'is_sticky':        'S',
+        'is_loaded':        'L',
+        'is_conflicting':   'C',
         'package':          'PACKAGE',
         'full_package':     'PACKAGE',
         'suite':            'SUITE',
@@ -73,6 +77,9 @@ class Session(object):
         self._modules = {}
         self._show_full_label = False
         self._package_format = None
+        self._available_package_format = None
+        self._loaded_package_format = None
+        self._generic_package_format = None
         self._version_defaults = {}
         self.load(session_root)
 
@@ -88,17 +95,15 @@ class Session(object):
 
     show_full_label = property(get_show_full_label, set_show_full_label)
 
-    def set_package_format(self, value):
-        self._package_format = value
+    def set_package_formats(self, *, available=None, loaded=None, generic=None):
+        self._available_package_format = available
+        self._loaded_package_format = loaded
+        self._generic_package_format = generic
 
-    def get_package_format(self):
-        return self._package_format
-
-    package_format = property(get_package_format, set_package_format)
 
     def set_package_formatting(self, package_format, show_full_label):
-        self.package_format = package_format
-        self.show_full_label = show_full_label
+        self._package_format = package_format
+        self._show_full_label = show_full_label
 
     def filter_packages(self, expression):
         for package_collection in self._defined_packages, self._available_packages:
@@ -707,6 +712,15 @@ class Session(object):
     def is_sticky(self, package):
         return package.full_label in self._sticky_packages
 
+    def is_loaded(self, package):
+        return package.full_label in self._loaded_packages
+
+    def is_conflicting(self, package):
+        if package.match_conflicts(self._loaded_packages.values()):
+            return True
+        else:
+            return False
+
     def _mark(self, b, symbol_True='*', symbol_False=''):
         if b:
             return symbol_True
@@ -716,7 +730,9 @@ class Session(object):
     def _package_info(self, package):
         return {
             'category':         package.category,
-            'is_sticky':        self._mark(self.is_sticky(package), 'S', ''),
+            'is_sticky':        self._mark(self.is_sticky(package), 's', '_'),
+            'is_loaded':        self._mark(self.is_loaded(package), 'l', '_'),
+            'is_conflicting':   self._mark(self.is_conflicting(package), 'c', '_'),
             'package':          package.label,
             'full_package':     package.full_label,
             'suite':            package.suite.label,
@@ -724,18 +740,35 @@ class Session(object):
             'tags':             ', '.join(str(tag) for tag in package.tags)
         }
 
-    def show_packages(self, title, packages, formatting=None):
+    def get_available_package_format(self):
+        if self._package_format:
+            return self._package_format
+        elif self._available_package_format:
+            return self._available_package_format
+        elif self._generic_package_format:
+            return self._generic_package_format
+        elif self._show_full_label:
+            return self.AVAILABLE_PACKAGE_FORMAT_FULL
+        else:
+            return self.AVAILABLE_PACKAGE_FORMAT_SHORT
+
+    def get_loaded_package_format(self):
+        if self._package_format:
+            return self._package_format
+        elif self._loaded_package_format:
+            return self._loaded_package_format
+        elif self._generic_package_format:
+            return self._generic_package_format
+        elif self._show_full_label:
+            return self.LOADED_PACKAGE_FORMAT_FULL
+        else:
+            return self.LOADED_PACKAGE_FORMAT_SHORT
+
+    def show_packages(self, title, packages, package_format):
         d = {c: o for o, c in enumerate(Category.categories())}
         packages = list(packages)
         packages.sort(key=lambda package: d[package.category])
         packages.sort(key=lambda package: package.suite.full_label)
-        if self._package_format:
-            package_format = self._package_format
-        else:
-            if self._show_full_label:
-                package_format = self.PACKAGE_FORMAT_FULL
-            else:
-                package_format = self.PACKAGE_FORMAT_SHORT
 
         f = split_format(package_format)
 
@@ -766,20 +799,18 @@ class Session(object):
     @classmethod
     def make_package_format(cls, package_format_string):
         try:
-            package_format_string.format(**cls.PACKAGE_HEADER_DICT)
+            return package_format_string.format(**cls.PACKAGE_HEADER_DICT)
         except Exception as e:
-            LOGGER.warning("invalid package format {0!r}: {1}: {2}".format(package_format_string, e.__class__.__name__, e))
-            package_format_string = ''
-        return package_format_string
+            raise ValueError("invalid package format {0!r}: {1}: {2}".format(package_format_string, e.__class__.__name__, e))
 
     def show_defined_packages(self):
-        self.show_packages("Defined packages", self.defined_packages())
+        self.show_packages("Defined packages", self.defined_packages(), self.get_available_package_format())
 
     def show_available_packages(self):
-        self.show_packages("Available packages", self.available_packages())
+        self.show_packages("Available packages", self.available_packages(), self.get_available_package_format())
 
     def show_loaded_packages(self):
-        self.show_packages("Loaded packages", self.loaded_packages())
+        self.show_packages("Loaded packages", self.loaded_packages(), self.get_loaded_package_format())
 
     def show_package(self, package_label):
         package = self.get_available_package(package_label)

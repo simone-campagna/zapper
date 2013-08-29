@@ -80,7 +80,7 @@ def main():
 
     common_parser.add_argument("--package-format", "-F",
         type=manager.make_package_format,
-        default=manager.get_config_key('package_format'),
+        default=None,
         help="show full package labels")
 
     ### Top-level parser

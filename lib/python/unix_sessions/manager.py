@@ -54,7 +54,9 @@ class Manager(object):
         'trace',
         'subpackages',
         'full_label',
-        'package_format',
+        'available_package_format',
+        'loaded_package_format',
+        'generic_package_format',
         'resolution_level',
         'filter_packages',
     )
@@ -64,7 +66,9 @@ class Manager(object):
         'trace': False,
         'subpackages': False,
         'full_label': False,
-        'package_format': None,
+        'generic_package_format': None,
+        'available_package_format': None,
+        'loaded_package_format': None,
         'resolution_level': 0,
         'filter_packages': None,
     }
@@ -100,7 +104,10 @@ class Manager(object):
         self.user_config = UserConfig(user_config_file)
 
         self._show_full_label = False
-        self._package_format = False
+        self._available_package_format = None
+        self._loaded_package_format = None
+        self._generic_package_format = None
+        self._package_format = None
 
         self.load_general()
 
@@ -114,7 +121,10 @@ class Manager(object):
 
     @classmethod
     def make_package_format(cls, package_format_string):
-        return Session.make_package_format(package_format_string)
+        if package_format_string is None:
+            return package_format_string
+        else:
+            return Session.make_package_format(package_format_string)
 
     def is_admin(self):
         return self.user == self.admin_user
@@ -320,6 +330,8 @@ class Manager(object):
             else:
                 value = s_value
                 assert isinstance(value, Expression) or value is None
+        elif key in {'generic_package_format', 'available_package_format', 'loaded_package_format'}:
+            value = self.make_package_format(s_value)
         else:
             value = s_value
         if str(config_dict.get(key, None)) != str(value):
@@ -667,6 +679,10 @@ class Manager(object):
     def initialize(self):
         if not self.session:
             self.new_session()
+        self.session.set_package_formats(
+            available=self.get_config_key('available_package_format'),
+            loaded=self.get_config_key('loaded_package_format'),
+            generic=self.get_config_key('generic_package_format'))
         self.session.set_package_formatting(self._package_format, self._show_full_label)
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):

@@ -25,7 +25,9 @@ CONFIG = {
     'trace': '',
     'subpackages': '',
     'full_label': '',
-    'package_format': '',
+    'generic_package_format': '',
+    'available_package_format': '',
+    'loaded_package_format': '',
     'resolution_level': '',
     'filter_packages': '',
 }
