@@ -83,8 +83,8 @@ class Table(object):
 
     def set_column_title(self, **n_args):
         for column, title in n_args.items():
-            if not column in self._columns:
-                raise KeyError("no such column {0!r}".format(column))
+            #if not column in self._columns:
+            #    raise KeyError("no such column {0!r}".format(column))
             self._columns[column] = title
 
     def set_column_alignment(self, **n_args):
@@ -92,8 +92,8 @@ class Table(object):
             alignment = self.ALIGNMENTS.get(align.lower(), None)
             if alignment is None:
                 raise ValueError("no such alignment {0!r}".format(align))
-            if not column in self._columns:
-                raise KeyError("no such column {0!r}".format(column))
+            #if not column in self._columns:
+            #    raise KeyError("no such column {0!r}".format(column))
             self._alignments[column] = alignment
 
     def make_row(self, row_index, **n_args):
@@ -148,6 +148,9 @@ class Table(object):
             #print(repr(row))
             yield fmt.format(*row)
 
+    def render(self, printer_function=print):
+        for line in self:
+            print(line)
 if __name__ == "__main__":
     t = Table('{__ordinal__}) {suite}:{package} {category} {tags}')
 
@@ -172,7 +175,6 @@ if __name__ == "__main__":
     t.set_column_alignment(suite='center', package='right')
 
     print("-" * 70)
-    for line in t:
-        print(line)
+    t.render(print)
     print("-" * 70)
 

@@ -35,6 +35,7 @@ from .package_collection import PackageCollection
 from .utils.debug import LOGGER, PRINT
 from .utils.trace import trace
 from .utils.show_table import show_table, show_title, split_format
+from .utils.table import Table
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
 from .utils.string import plural_string
@@ -48,10 +49,10 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    LOADED_PACKAGE_FORMAT_FULL =     "{category} {is_sticky} {full_package} {tags}"
-    LOADED_PACKAGE_FORMAT_SHORT =    "{category} {is_sticky} {full_suite} {package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_FULL =  "{category} {is_loaded}{is_conflicting} {full_package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_SHORT = "{category} {is_loaded}{is_conflicting} {full_suite} {package} {tags}"
+    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__}) {category} {is_sticky} {full_package} {tags}"
+    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__}) {category} {is_sticky} {full_suite} {package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__}) {category} {is_loaded}{is_conflicting} {full_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__}) {category} {is_loaded}{is_conflicting} {full_suite} {package} {tags}"
     PACKAGE_HEADER_DICT = {
         'category':         'CATEGORY',
         'is_sticky':        'S',
@@ -770,31 +771,38 @@ class Session(object):
         packages.sort(key=lambda package: d[package.category])
         packages.sort(key=lambda package: package.suite.full_label)
 
-        f = split_format(package_format)
-
-        def _make_row(f, dct):
-            row = []
-            for is_format, token in f:
-                if is_format:
-                    row.append(token.format(**dct))
-                else:
-                    row.append(token)
-            return row
-        header = _make_row(f, self.PACKAGE_HEADER_DICT)
-        #print('hdr: ', header)
-
-        table = []
+        t = Table(package_format)
+        t.set_column_title(**self.PACKAGE_HEADER_DICT)
         for package in packages:
-            row = _make_row(f, self._package_info(package))
-            #print('row: ', row)
-            table.append(row)
-             
+            t.add_row(**self._package_info(package))
 
-        show_table(title,
-            table,
-            header=header,
-            separator='',
-        )
+        t.render(PRINT)
+
+#        f = split_format(package_format)
+#
+#        def _make_row(f, dct):
+#            row = []
+#            for is_format, token in f:
+#                if is_format:
+#                    row.append(token.format(**dct))
+#                else:
+#                    row.append(token)
+#            return row
+#        header = _make_row(f, self.PACKAGE_HEADER_DICT)
+#        #print('hdr: ', header)
+#
+#        table = []
+#        for package in packages:
+#            row = _make_row(f, self._package_info(package))
+#            #print('row: ', row)
+#            table.append(row)
+#             
+#
+#        show_table(title,
+#            table,
+#            header=header,
+#            separator='',
+#        )
 
     @classmethod
     def make_package_format(cls, package_format_string):
