@@ -75,11 +75,15 @@ class Table(object):
         self._columns['__ordinal__'] = '#'
         self._alignments['__ordinal__'] = '>'
 
-    def set_title(self, title=None):
+    @classmethod
+    def format_title(self, title, max_row_length=70):
         if title is not None:
             title = "== {0} ".format(title)
-            title += "=" * (self.max_row_length - len(title))
-        self._title = title
+            title += "=" * (max_row_length - len(title))
+        return title
+
+    def set_title(self, title=None):
+        self._title = self.format_title(title, self.max_row_length)
 
     def set_column_title(self, **n_args):
         for column, title in n_args.items():

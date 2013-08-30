@@ -34,7 +34,6 @@ from .session_config import SessionConfig
 from .package_collection import PackageCollection
 from .utils.debug import LOGGER, PRINT
 from .utils.trace import trace
-from .utils.show_table import show_table, show_title, split_format
 from .utils.table import Table
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
@@ -811,7 +810,7 @@ class Session(object):
         t.render(PRINT)
 
     def info(self):
-        show_title("Session {0} at {1}".format(self.session_name, self.session_root))
+        PRINT(Table.format_title("Session {0} at {1}".format(self.session_name, self.session_root)))
         PRINT("name          : {0}".format(self.session_name))
         PRINT("type          : {0}".format(self.session_type))
         PRINT("creation time : {0}".format(self.session_creation_time))
