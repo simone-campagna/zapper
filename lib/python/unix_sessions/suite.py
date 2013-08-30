@@ -19,7 +19,7 @@ __author__ = 'Simone Campagna'
 
 from .package import Package
 from .suite_family import SuiteFamily
-from .utils.show_table import show_table, show_title
+from .utils.table import show_table, show_title
 
 
 import abc
