@@ -809,15 +809,14 @@ class Session(object):
         for package_dir in self._package_directories:
             t.add_row(package_dir=package_dir)
         t.render(PRINT)
-        #show_table("Package directories", self._package_directories)
 
     def info(self):
         show_title("Session {0} at {1}".format(self.session_name, self.session_root))
         PRINT("name          : {0}".format(self.session_name))
         PRINT("type          : {0}".format(self.session_type))
         PRINT("creation time : {0}".format(self.session_creation_time))
-        show_table("Package directories", self._package_directories)
-        self.show_packages("Loaded packages", self.loaded_packages())
+        self.show_package_directories()
+        self.show_loaded_packages()
 
     def translate(self, translator):
         for var_name, var_value in self._environment.changeditems():
