@@ -53,6 +53,7 @@ class Session(object):
     LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__}) {category} {is_sticky} {full_suite} {package} {tags}"
     AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__}) {category} {is_loaded}{is_conflicting} {full_package} {tags}"
     AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__}) {category} {is_loaded}{is_conflicting} {full_suite} {package} {tags}"
+    PACKAGE_DIR_FORMAT = "{__ordinal__}) {package_dir}"
     PACKAGE_HEADER_DICT = {
         'category':         'CATEGORY',
         'is_sticky':        'S',
@@ -771,38 +772,12 @@ class Session(object):
         packages.sort(key=lambda package: d[package.category])
         packages.sort(key=lambda package: package.suite.full_label)
 
-        t = Table(package_format)
+        t = Table(package_format, title=title)
         t.set_column_title(**self.PACKAGE_HEADER_DICT)
         for package in packages:
             t.add_row(**self._package_info(package))
 
         t.render(PRINT)
-
-#        f = split_format(package_format)
-#
-#        def _make_row(f, dct):
-#            row = []
-#            for is_format, token in f:
-#                if is_format:
-#                    row.append(token.format(**dct))
-#                else:
-#                    row.append(token)
-#            return row
-#        header = _make_row(f, self.PACKAGE_HEADER_DICT)
-#        #print('hdr: ', header)
-#
-#        table = []
-#        for package in packages:
-#            row = _make_row(f, self._package_info(package))
-#            #print('row: ', row)
-#            table.append(row)
-#             
-#
-#        show_table(title,
-#            table,
-#            header=header,
-#            separator='',
-#        )
 
     @classmethod
     def make_package_format(cls, package_format_string):
@@ -830,7 +805,11 @@ class Session(object):
             package.show()
 
     def show_package_directories(self):
-        show_table("Package directories", self._package_directories)
+        t = Table(self.PACKAGE_DIR_FORMAT, title="Package directories")
+        for package_dir in self._package_directories:
+            t.add_row(package_dir=package_dir)
+        t.render(PRINT)
+        #show_table("Package directories", self._package_directories)
 
     def info(self):
         show_title("Session {0} at {1}".format(self.session_name, self.session_root))

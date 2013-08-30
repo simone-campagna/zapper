@@ -77,7 +77,7 @@ class Table(object):
 
     def set_title(self, title=None):
         if title is not None:
-            title = "== {0}".format(title)
+            title = "== {0} ".format(title)
             title += "=" * (self.max_row_length - len(title))
         self._title = title
 
