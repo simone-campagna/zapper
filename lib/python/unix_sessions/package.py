@@ -28,7 +28,8 @@ from .package_expressions import NAME, PACKAGE, HAS_TAG
 from .tag import Tag
 from .expression import Expression, ConstExpression
 from .text import fill
-from .utils.show_table import show_table, show_title
+#from .utils.show_table import show_table, show_title
+from .utils.table import show_table, show_title
 from .utils.debug import PRINT, LOGGER
 
 __all__ = ['Package']

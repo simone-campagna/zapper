@@ -21,6 +21,7 @@ __author__ = 'Simone Campagna'
 import collections
 import re
 
+from .debug import PRINT
 
 class Table(object):
     ALIGNMENTS = {
@@ -155,6 +156,25 @@ class Table(object):
     def render(self, printer_function=print):
         for line in self:
             print(line)
+
+def show_table(title, lst):
+    lst = tuple(lst)
+    if lst:
+        if isinstance(lst[0], (tuple, list)):
+            lst = tuple(str(e) for e in lst)
+        else:
+            lst = tuple((str(e), ) for e in lst)
+        l = len(lst[0])
+        fmt = "{__ordinal__}) " + ' '.join("{{__f{0}__}}".format(i) for i in range(l))
+        t = Table(fmt, title=title, show_header=False)
+        for row in lst:
+            row_dict = {"{{__f{0}__}}".format(i): e for i, e in enumerate(row)}
+            t.add_row(**{"__f{0}__".format(i): e for i, e in enumerate(row)})
+        t.render(PRINT)
+
+def show_title(title):
+    PRINT(Table.format_title(title))
+
 if __name__ == "__main__":
     t = Table('{__ordinal__}) {suite}:{package} {category} {tags}')
 
