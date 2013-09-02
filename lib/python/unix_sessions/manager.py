@@ -48,7 +48,13 @@ class Manager(object):
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
-    SESSION_FORMAT = '{__ordinal__}) {is_current} {type} {name}'
+    DEFAULT_SESSION_FORMAT = '{__ordinal__}) {is_current} {type} {name}'
+    SESSION_HEADER_DICT = {
+        'is_current': 'C',
+        'type':       'TYPE',
+        'name':       'NAME',
+        'root':       'ROOT',
+    }
     MANAGER_CONFIG_KEYS = (
         'verbose',
         'debug',
@@ -57,6 +63,7 @@ class Manager(object):
         'full_label',
         'available_package_format',
         'loaded_package_format',
+        'available_session_format',
         'generic_package_format',
         'resolution_level',
         'filter_packages',
@@ -70,6 +77,7 @@ class Manager(object):
         'generic_package_format': None,
         'available_package_format': None,
         'loaded_package_format': None,
+        'available_session_format': None,
         'resolution_level': 0,
         'filter_packages': None,
     }
@@ -107,6 +115,7 @@ class Manager(object):
         self._show_full_label = False
         self._available_package_format = None
         self._loaded_package_format = None
+        self._available_session_format = None
         self._generic_package_format = None
         self._package_format = None
 
@@ -126,6 +135,18 @@ class Manager(object):
             return package_format_string
         else:
             return Session.make_package_format(package_format_string)
+
+    @classmethod
+    def make_session_format(cls, session_format_string):
+        if session_format_string is None:
+            return session_format_string
+        try:
+            session_format_string.format(**cls.SESSION_HEADER_DICT)
+        except Exception as e:
+            raise ValueError("invalid session format {0!r}: {1}: {2}".format(session_format_string, e.__class__.__name__, e))
+        else:
+            return session_format_string
+
 
     def is_admin(self):
         return self.user == self.admin_user
@@ -333,6 +354,8 @@ class Manager(object):
                 assert isinstance(value, Expression) or value is None
         elif key in {'generic_package_format', 'available_package_format', 'loaded_package_format'}:
             value = self.make_package_format(s_value)
+        elif key in {'available_session_format'}:
+            value = self.make_session_format(s_value)
         else:
             value = s_value
         if str(config_dict.get(key, None)) != str(value):
@@ -619,12 +642,15 @@ class Manager(object):
         return None
 
     def show_available_sessions(self, temporary=True, persistent=True):
+        session_format = self.get_config_key('available_session_format')
+        if not session_format:
+            session_format = self.DEFAULT_SESSION_FORMAT
         dl = []
         if temporary:
             dl.append((Session.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
             dl.append((Session.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
-        t = Table(self.SESSION_FORMAT, title="Available sessions")
+        t = Table(session_format, title="Available sessions")
         for session_type, sessions_dir in dl:
             #table = []
             session_root_pattern = os.path.join(sessions_dir, '*')
@@ -639,7 +665,7 @@ class Manager(object):
                 t.add_row(name=session_name, type=session_type, root=session_root, is_current=mark_current)
             #title = "Available {t} sessions".format(t=session_type)
             #show_table(title, table)
-        t.set_column_title(is_current='C')
+        t.set_column_title(**self.SESSION_HEADER_DICT)
         t.render(PRINT)
 
     def show_defined_packages(self):
