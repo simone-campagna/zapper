@@ -227,7 +227,7 @@ class Manager(object):
                 continue
             value = package_option[key]
             lst.append((key, ':', repr(value)))
-        show_table("{0} {1}".format(label.title(), option), lst, header=('KEY', '', 'VALUE'))
+        show_table("{0} {1}".format(label.title(), option), lst)
       
     def show_host_package_option(self, option, keys):
         return self.show_package_option(option, 'host', self.host_config[option], keys)
@@ -649,7 +649,6 @@ class Manager(object):
             dl.append((Session.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
         t = Table(session_format, title="Available sessions")
         for session_type, sessions_dir in dl:
-            #table = []
             session_root_pattern = os.path.join(sessions_dir, '*')
             for session_config_file in glob.glob(Session.get_session_config_file(session_root_pattern)):
                 session_root = Session.get_session_root(session_config_file)
@@ -658,10 +657,7 @@ class Manager(object):
                     mark_current = '*'
                 else:
                     mark_current = ' '
-                #table.append((mark_current, session_name))
                 t.add_row(name=session_name, type=session_type, root=session_root, is_current=mark_current)
-            #title = "Available {t} sessions".format(t=session_type)
-            #show_table(title, table)
         t.set_column_title(**self.SESSION_HEADER_DICT)
         t.render(PRINT)
 
