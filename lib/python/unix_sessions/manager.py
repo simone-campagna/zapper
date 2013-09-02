@@ -37,7 +37,7 @@ from .host_config import HostConfig
 from .expression import Expression
 from .utils.install_data import get_home_dir, get_admin_user
 from .utils.random_name import RandomNameSequence
-from .utils.show_table import show_table
+from .utils.table import show_table
 from .utils.debug import PRINT
 from .utils.trace import trace
 

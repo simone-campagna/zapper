@@ -161,7 +161,7 @@ def show_table(title, lst):
     lst = tuple(lst)
     if lst:
         if isinstance(lst[0], (tuple, list)):
-            lst = tuple(str(e) for e in lst)
+            lst = tuple(tuple(str(e) for e in row) for row in lst)
         else:
             lst = tuple((str(e), ) for e in lst)
         l = len(lst[0])
