@@ -518,7 +518,8 @@ class Session(object):
                         ', '.join(str(e[-1]) for e in unmatched_requirements),
                     ))
                     matched_requirements, unmatched_requirements = package.match_requirements(available_packages)
-                    for pkg0, expression, pkg1 in matched_requirements:
+                    for pkg0, expression, pkg_lst in matched_requirements:
+                        pkg1 = pkg_lst[-1]
                         if not pkg1 in simulated_loaded_packages:
                             #LOGGER.debug("matching: {0}".format(pkg1))
                             if not pkg1 in automatically_added_packages:
@@ -532,7 +533,8 @@ class Session(object):
                         ', '.join(str(e[-1]) for e in unmatched_requirements),
                         ))
                         matched_requirements, unmatched_requirements = package.match_requirements(defined_packages)
-                        for pkg0, expression, pkg1 in matched_requirements:
+                        for pkg0, expression, pkg_lst in matched_requirements:
+                            pkg1 = pkg_lst[-1]
                             if not pkg1 in simulated_loaded_packages:
                                 #LOGGER.debug("matching: {0}".format(pkg1))
                                 if not pkg1 in automatically_added_packages:
@@ -544,8 +546,8 @@ class Session(object):
                     raise AddPackageError("cannot add package {0}: {1}".format(
                         package,
                         plural_string('unmatched requirements', len(unmatched_requirements))))
-                for pkg0, expression, pkg1 in matched_requirements:
-                    package_dependencies[pkg0].add(pkg1)
+                for pkg0, expression, pkg_lst in matched_requirements:
+                    package_dependencies[pkg0].add(pkg_lst[-1])
 
                 conflicts = package.match_conflicts(self._loaded_packages.values())
                 if conflicts:
@@ -655,8 +657,8 @@ class Session(object):
         package_dependencies = collections.defaultdict(set)
         for package in packages_to_remove:
             matched_requirements, unmatched_requirements = package.match_requirements(filter(lambda pkg0: pkg0 is not package, packages_to_remove))
-            for pkg0, expression, pkg1 in matched_requirements:
-                package_dependencies[pkg0].add(pkg1)
+            for pkg0, expression, pkg_lst in matched_requirements:
+                package_dependencies[pkg0].add(pkg_lst[-1])
 
         suites_to_remove, packages_to_remove = self._separate_suites(packages_to_remove)
         for packages in packages_to_remove, suites_to_remove:

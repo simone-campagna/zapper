@@ -258,13 +258,13 @@ class Package(ListRegister, Transition):
                 if expression.get_value():
                     #matched.append((self, expression, package))
                     #input("... {0} vs {1} [{2}]".format(self, package, expression))
-                    matched_d[package.package_family()].append((self, expression, package))
+                    matched_d[(package.package_family(), expression)].append(package)
                     found = True
             if not found:
                 unmatched.append((self, expression))
-        for package_family, lst in matched_d.items():
-            lst.sort(key=lambda t: t[-1]._version)
-            matched.append(lst[-1])
+        for (package_family, expression), matching_packages in matched_d.items():
+            matching_packages.sort(key=lambda package: package._version)
+            matched.append((self, expression, matching_packages))
         return matched, unmatched
 
     def match_requirements(self, packages):

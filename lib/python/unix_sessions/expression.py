@@ -32,6 +32,9 @@ class Expression(metaclass=abc.ABCMeta):
     def bind(self, instance):
         pass
 
+    def __hash__(self):
+        return hash(str(self))
+
     @abc.abstractmethod
     def get_value(self):
         pass
