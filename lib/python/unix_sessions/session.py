@@ -453,7 +453,7 @@ class Session(object):
 #                    LOGGER.info("package {0} already loaded".format(package_label))
 #                    continue
                 packages.append(package)
-                yield packages
+            yield packages
             if not packages:
                 if missing_package_labels:
                     for package in missing_package_labels:
@@ -488,6 +488,7 @@ class Session(object):
 
     def add(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
         for packages in self.iteradd(package_labels):
+            #print(packages)
             if subpackages:
                 packages = self._get_subpackages(packages)
             required_packages = packages
@@ -607,7 +608,7 @@ class Session(object):
                 raise PackageNotFoundError("package {0} not loaded".format(package_label))
             package_label = package.full_label
             if package_label in self._loaded_packages:
-                if not sticky:
+                if sticky:
                     LOGGER.info("package {0} is sticky, it will not be unloaded".format(package_label))
                     continue
             else:
@@ -642,7 +643,7 @@ class Session(object):
                                     automatically_removed_packages.append(pkg)
                         else:
                             for pkg0, expression in unmatched_requirements:
-                                LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg, expression))
+                                LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg0, expression))
                             raise RemovePackageError("cannot remove package {0}: would leave {1}".format(
                                 package,
                                 plural_string('unmatched requirement', len(unmatched_requirements))))

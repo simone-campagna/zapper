@@ -290,7 +290,7 @@ class Manager(object):
             self.user_config.store()
 
     def reset_session_package_option(self, option, keys):
-        if self._reset_generic_package_option(option, 'session', self.session_config[package_option], keys):
+        if self._reset_generic_package_option(option, 'session', self.session_config[option], keys):
             self.session_config.store()
 
     def load_user_package_option(self, option):

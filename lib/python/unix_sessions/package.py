@@ -244,6 +244,7 @@ class Package(ListRegister, Transition):
         self._conflicts.append(self._create_expression(expression, *expressions))
 
     def match_expressions(self, packages, expressions):
+        packages = tuple(packages)
         unmatched = []
         matched = []
         matched_d = collections.defaultdict(list)
