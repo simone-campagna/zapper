@@ -48,10 +48,10 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__}) {category} {is_sticky} {full_package} {tags}"
-    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__}) {category} {is_sticky} {full_suite} {package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__}) {category} {is_loaded}{is_conflicting} {full_package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__}) {category} {is_loaded}{is_conflicting} {full_suite} {package} {tags}"
+    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__}) {is_sticky} {category} {full_package} {tags}"
+    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__}) {is_sticky} {category} {full_suite} {package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__}) {is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
     PACKAGE_DIR_FORMAT = "{__ordinal__}) {package_dir}"
     PACKAGE_HEADER_DICT = {
         'category':         'CATEGORY',
@@ -80,7 +80,6 @@ class Session(object):
         self._package_format = None
         self._available_package_format = None
         self._loaded_package_format = None
-        self._generic_package_format = None
         self._version_defaults = {}
         self.load(session_root)
 
@@ -99,8 +98,6 @@ class Session(object):
     def set_package_formats(self, *, available=None, loaded=None, generic=None):
         self._available_package_format = available
         self._loaded_package_format = loaded
-        self._generic_package_format = generic
-
 
     def set_package_formatting(self, package_format, show_full_label):
         self._package_format = package_format
@@ -731,9 +728,9 @@ class Session(object):
     def _package_info(self, package):
         return {
             'category':         package.category,
-            'is_sticky':        self._mark(self.is_sticky(package), 's', '_'),
-            'is_loaded':        self._mark(self.is_loaded(package), 'l', '_'),
-            'is_conflicting':   self._mark(self.is_conflicting(package), 'c', '_'),
+            'is_sticky':        self._mark(self.is_sticky(package), 's', ' '),
+            'is_loaded':        self._mark(self.is_loaded(package), 'l', ' '),
+            'is_conflicting':   self._mark(self.is_conflicting(package), 'c', ' '),
             'package':          package.label,
             'full_package':     package.full_label,
             'suite':            package.suite.label,
@@ -746,8 +743,6 @@ class Session(object):
             return self._package_format
         elif self._available_package_format:
             return self._available_package_format
-        elif self._generic_package_format:
-            return self._generic_package_format
         elif self._show_full_label:
             return self.AVAILABLE_PACKAGE_FORMAT_FULL
         else:
@@ -758,8 +753,6 @@ class Session(object):
             return self._package_format
         elif self._loaded_package_format:
             return self._loaded_package_format
-        elif self._generic_package_format:
-            return self._generic_package_format
         elif self._show_full_label:
             return self.LOADED_PACKAGE_FORMAT_FULL
         else:

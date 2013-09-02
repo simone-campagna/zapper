@@ -64,7 +64,6 @@ class Manager(object):
         'available_package_format',
         'loaded_package_format',
         'available_session_format',
-        'generic_package_format',
         'resolution_level',
         'filter_packages',
     )
@@ -74,7 +73,6 @@ class Manager(object):
         'trace': False,
         'subpackages': False,
         'full_label': False,
-        'generic_package_format': None,
         'available_package_format': None,
         'loaded_package_format': None,
         'available_session_format': None,
@@ -116,7 +114,6 @@ class Manager(object):
         self._available_package_format = None
         self._loaded_package_format = None
         self._available_session_format = None
-        self._generic_package_format = None
         self._package_format = None
 
         self.load_general()
@@ -352,7 +349,7 @@ class Manager(object):
             else:
                 value = s_value
                 assert isinstance(value, Expression) or value is None
-        elif key in {'generic_package_format', 'available_package_format', 'loaded_package_format'}:
+        elif key in {'available_package_format', 'loaded_package_format'}:
             value = self.make_package_format(s_value)
         elif key in {'available_session_format'}:
             value = self.make_session_format(s_value)
@@ -381,7 +378,7 @@ class Manager(object):
                 continue
             value = config[key]
             lst.append((key, ':', repr(value)))
-        show_table("{0} config".format(label.title()), lst, header=('KEY', '', 'VALUE'))
+        show_table("{0} config".format(label.title()), lst)
      
     def show_host_config(self, keys):
         return self.show_config('host', self.host_config['config'], keys)
@@ -712,8 +709,7 @@ class Manager(object):
             self.new_session()
         self.session.set_package_formats(
             available=self.get_config_key('available_package_format'),
-            loaded=self.get_config_key('loaded_package_format'),
-            generic=self.get_config_key('generic_package_format'))
+            loaded=self.get_config_key('loaded_package_format'))
         self.session.set_package_formatting(self._package_format, self._show_full_label)
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
