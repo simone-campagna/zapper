@@ -48,6 +48,7 @@ class Manager(object):
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
+    SESSION_FORMAT = '{__ordinal__}) {is_current} {type} {name}'
     MANAGER_CONFIG_KEYS = (
         'verbose',
         'debug',
@@ -623,8 +624,9 @@ class Manager(object):
             dl.append((Session.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
             dl.append((Session.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
+        t = Table(self.SESSION_FORMAT, title="Available sessions")
         for session_type, sessions_dir in dl:
-            table = []
+            #table = []
             session_root_pattern = os.path.join(sessions_dir, '*')
             for session_config_file in glob.glob(Session.get_session_config_file(session_root_pattern)):
                 session_root = Session.get_session_root(session_config_file)
@@ -633,9 +635,12 @@ class Manager(object):
                     mark_current = '*'
                 else:
                     mark_current = ' '
-                table.append((mark_current, session_name))
-            title = "Available {t} sessions".format(t=session_type)
-            show_table(title, table)
+                #table.append((mark_current, session_name))
+                t.add_row(name=session_name, type=session_type, root=session_root, is_current=mark_current)
+            #title = "Available {t} sessions".format(t=session_type)
+            #show_table(title, table)
+        t.set_column_title(is_current='C')
+        t.render(PRINT)
 
     def show_defined_packages(self):
         self.session.show_defined_packages()

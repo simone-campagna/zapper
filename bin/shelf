@@ -27,8 +27,6 @@ from unix_sessions.errors import SessionConfigError
 from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
 from unix_sessions.utils.trace import set_trace, trace
 from unix_sessions.utils.install_data import set_home_dir, set_admin_user
-from unix_sessions.application.parser import add_help_parser
-
 
 def main():
     set_home_dir("@UXS_HOME_DIR@")
@@ -510,7 +508,6 @@ Change the current session""",
 #        help="init modules to current session")
 #    parser_init.set_defaults(function=manager.init)
 
-    #add_help_parser(top_level_parser)
 
     args = top_level_parser.parse_args()
 
