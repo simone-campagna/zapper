@@ -30,7 +30,7 @@ class _FormatSpecData(object):
     def __init__(self, fspec):
         if fspec is None:
             fspec = ''
-        elif isinstance(fspec, _FormatSpecData):
+        if isinstance(fspec, _FormatSpecData):
             for key in self.KEYS:
                 setattr(self, key, getattr(fspec, key))
         elif isinstance(fspec, str):
@@ -78,6 +78,9 @@ class Table(object):
         self.set_title(title)
         self._rows = []
         
+    def columns(self):
+        return iter(self._columns)
+
     def _set_format(self, row_format):
         formatter = string.Formatter()
         next_positional = 0
@@ -236,11 +239,12 @@ class Table(object):
                 mods.append(":{0}{1}s".format(align, max_length))
             else:
                 mods.append("")
-        align, max_length = aligns[-1], max_lengths[-1]
-        if (align is None or align == '<') or max_length == 0:
-            mods.append("")
-        else:
-            mods.append(":{0}{1}s".format(align, max_length))
+        if max_lengths:
+            align, max_length = aligns[-1], max_lengths[-1]
+            if (align is None or align == '<') or max_length == 0:
+                mods.append("")
+            else:
+                mods.append(":{0}{1}s".format(align, max_length))
 
         fmts = ["{{{i}{m}}}".format(i=i, m=m) for i, m in enumerate(mods)]
         fmt = self.separator.join(fmts)
@@ -280,12 +284,15 @@ def show_title(title):
 
 def validate_format(fmt, *p_args, **n_args):
     t = Table(fmt)
-    for column, p in enumerate(p_args):
-        if not column in t._columns:
-            raise KeyError("format {0!r}: not such column {1!r}")
-    for column, val in n_args.items():
-        if not column in t._columns:
-            raise KeyError("format {0!r}: not such column {1!r}")
+    for column in t.columns():
+        if isinstance(column, int):
+            if column >= len(p_args):
+                print(p_args)
+                raise KeyError("format {0!r}: no such column {1!r}".format(fmt, column))
+        else:
+            if not column in n_args:
+                print(n_args)
+                raise KeyError("format {0!r}: no such column {1!r}".format(fmt, column))
 
 if __name__ == "__main__":
     lt = [

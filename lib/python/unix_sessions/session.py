@@ -812,9 +812,10 @@ class Session(object):
 
     def show_package_directories(self):
         package_dir_format = self._package_dir_format
-        if package_dir_format is None:
+        if not package_dir_format:
             package_dir_format = self.PACKAGE_DIR_FORMAT
         t = Table(package_dir_format, title="Package directories")
+        t.set_column_title(**self.PACKAGE_DIR_HEADER_DICT)
         for package_dir in self._package_directories:
             t.add_row(package_dir=package_dir)
         t.render(PRINT)

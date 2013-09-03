@@ -717,11 +717,19 @@ class Manager(object):
     def initialize(self):
         if not self.session:
             self.new_session()
+
         self.session.set_package_formats(
             available=self.get_config_key('available_package_format'),
             loaded=self.get_config_key('loaded_package_format'))
+
+        package_format = self._package_format
         self.session.set_package_formatting(self._package_format, self._show_full_label)
-        self.session.set_package_dir_format(self._package_dir_format)
+
+        package_dir_format = self._package_dir_format
+        if package_dir_format is None:
+            package_dir_format = self.get_config_key('package_dir_format')
+        self.session.set_package_dir_format(package_dir_format)
+
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.config['filter_packages'])
