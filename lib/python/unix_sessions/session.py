@@ -52,23 +52,23 @@ class Session(object):
     LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__:>3d}) {is_sticky} {category} {full_suite} {package} {tags}"
     AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
     AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
-    PACKAGE_HEADER_DICT = {
-        '__ordinal__':      '#',
-        'category':         'CATEGORY',
-        'is_sticky':        'S',
-        'is_loaded':        'L',
-        'is_conflicting':   'C',
-        'package':          'PACKAGE',
-        'full_package':     'PACKAGE',
-        'suite':            'SUITE',
-        'full_suite':       'SUITE',
-        'tags':             'TAGS',
-    }
+    PACKAGE_HEADER_DICT = collections.OrderedDict((
+        ('__ordinal__',      '#'),
+        ('category',         'CATEGORY'),
+        ('is_sticky',        'S'),
+        ('is_loaded',        'L'),
+        ('is_conflicting',   'C'),
+        ('package',          'PACKAGE'),
+        ('full_package',     'PACKAGE'),
+        ('suite',            'SUITE'),
+        ('full_suite',       'SUITE'),
+        ('tags',             'TAGS'),
+    ))
     PACKAGE_DIR_FORMAT = "{__ordinal__:>3d}) {package_dir}"
-    PACKAGE_DIR_HEADER_DICT = {
-        '__ordinal__':      '#',
-        'package_dir':      'DIRECTORY',
-    }
+    PACKAGE_DIR_HEADER_DICT = collections.OrderedDict((
+        ('__ordinal__',      '#'),
+        ('package_dir',      'DIRECTORY'),
+    ))
     def __init__(self, session_root):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()

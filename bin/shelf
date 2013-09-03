@@ -103,6 +103,46 @@ Change the current session""",
     top_level_subparsers = top_level_parser.add_subparsers(
         description="Commands to change the current session.")
 
+    ### Help 
+    parser_help = top_level_subparsers.add_parser("help",
+        aliases=["h"],
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help")
+
+    help_subparsers = parser_help.add_subparsers(
+        description="help topics")
+
+    help_available_package_format_parser = help_subparsers.add_parser(
+        "available_package_format",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about available_package_format")
+    help_available_package_format_parser.set_defaults(function=manager.help_available_package_format)
+     
+    help_loaded_package_format_parser = help_subparsers.add_parser(
+        "loaded_package_format",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about loaded_package_format")
+    help_loaded_package_format_parser.set_defaults(function=manager.help_loaded_package_format)
+
+    help_available_session_format_parser = help_subparsers.add_parser(
+        "available_session_format",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about available_session_format")
+    help_available_session_format_parser.set_defaults(function=manager.help_available_session_format)
+     
+    help_package_dir_format_parser = help_subparsers.add_parser(
+        "package_dir_format",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about package_dir_format")
+    help_package_dir_format_parser.set_defaults(function=manager.help_package_dir_format)
+     
+        
+
     ### Package_options
     parser_package_option = {}
     package_option_subparsers = {}

@@ -49,13 +49,13 @@ class Manager(object):
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
     DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name}'
-    SESSION_HEADER_DICT = {
-        '__ordinal__': '#',
-        'is_current':  'C',
-        'type':        'TYPE',
-        'name':        'NAME',
-        'root':        'ROOT',
-    }
+    SESSION_HEADER_DICT = collections.OrderedDict((
+        ('__ordinal__', '#'),
+        ('is_current',  'C'),
+        ('type',        'TYPE'),
+        ('name',        'NAME'),
+        ('root',        'ROOT'),
+    ))
     MANAGER_CONFIG_KEYS = (
         'verbose',
         'debug',
@@ -760,4 +760,35 @@ class Manager(object):
             else:
                 self.session.translate_stream(translator, stream=sys.stdout)
         
+    @classmethod
+    def _help_format(cls, format_dict):
+        return """\
+Available keys:
+---------------
+{0}
+""".format('\n'.join(" * {key}".format(key=key) for key in format_dict))
+
+    @classmethod
+    def help_available_package_format(cls):
+        PRINT("""\
+Set the format used to show the list of available packages.
+""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
+
+    @classmethod
+    def help_loaded_package_format(cls):
+        PRINT("""\
+Set the format used to show the list of loaded packages.
+""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
+
+    @classmethod
+    def help_available_session_format(cls):
+        PRINT("""\
+Set the format used to show the list of available sessions.
+""" + cls._help_format(cls.SESSION_HEADER_DICT))
+
+    @classmethod
+    def help_package_dir_format(cls):
+        PRINT("""\
+Set the format used to show the list of package directories.
+""" + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
 

@@ -53,6 +53,7 @@ class _FormatSpecData(object):
         l = []
         for key in self.KEYS:
             val = getattr(self, key)
+            #print("KEY {0}={1!r}".format(key, val))
             if val is not None:
                 l.append(str(val))
         return ''.join(l)
@@ -126,6 +127,8 @@ class Table(object):
                 header_format_spec_data.type = 's'
                 header_format_spec_data.sign = None
                 header_format_spec_data.alternate = None
+                header_format_spec_data.fill = None
+                header_format_spec_data.zero = None
                 if header_format_spec_data.align == '=':
                     header_format_spec_data.align = '<'
                 header_format_spec = str(header_format_spec_data)
@@ -177,10 +180,9 @@ class Table(object):
                     fmt = self._header_formats[format_index]
                 else:
                     fmt = self._body_formats[format_index]
-                if '__ordinal__' in n_args:
-                    col = fmt.format(*p_args, **n_args)
-                else:
-                    col = fmt.format(__ordinal__=row_index, *p_args, **n_args)
+                if not '__ordinal__' in n_args:
+                    n_args['__ordinal__'] = row_index
+                col = fmt.format(*p_args, **n_args)
                 #print(is_header, repr(fmt), p_args, n_args, '---> {0!r}'.format(col))
             row.append(col)
         return row
@@ -189,6 +191,7 @@ class Table(object):
         return self._make_row(False, row_index, *p_args, **n_args)
 
     def _make_header_row(self, row_index, *p_args, **n_args):
+        #print(row_index, p_args, n_args)
         return self._make_row(True, row_index, *p_args, **n_args)
 
     def _make_header(self):
