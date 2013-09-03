@@ -77,12 +77,17 @@ def main():
         help="show full package labels")
 
     common_parser.add_argument("--package-format",
-        type=manager.make_package_format,
+        type=manager.PackageFormat,
         default=None,
         help="set the format for package info")
 
+    common_parser.add_argument("--package-dir-format",
+        type=manager.PackageDirFormat,
+        default=None,
+        help="set the format for package dir info")
+
     common_parser.add_argument("--session-format",
-        type=manager.make_session_format,
+        type=manager.SessionFormat,
         default=None,
         help="set the format for session info")
 
@@ -521,6 +526,7 @@ Change the current session""",
     set_debug(args.debug)
     manager.set_show_full_label(args.full_label)
     manager.set_package_format(args.package_format)
+    manager.set_package_dir_format(args.package_dir_format)
     manager.set_session_format(args.session_format)
 
     if 'persistent' in args and 'temporary' in args:
@@ -534,7 +540,7 @@ Change the current session""",
             args.temporary = False
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
-    for key in {'function', 'verbose', 'debug', 'trace', 'full_label', 'package_format', 'session_format'}:
+    for key in {'function', 'verbose', 'debug', 'trace', 'full_label', 'package_format', 'session_format', 'package_dir_format'}:
         if key in n_args:
             del n_args[key]
 

@@ -28,6 +28,7 @@ CONFIG = {
     'available_package_format': '',
     'available_session_format': '',
     'loaded_package_format': '',
+    'package_dir_format': '',
     'resolution_level': '',
     'filter_packages': '',
 }

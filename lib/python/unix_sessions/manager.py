@@ -37,7 +37,7 @@ from .host_config import HostConfig
 from .expression import Expression
 from .utils.install_data import get_home_dir, get_admin_user
 from .utils.random_name import RandomNameSequence
-from .utils.table import show_table
+from .utils.table import show_table, validate_format
 from .utils.debug import PRINT
 from .utils.trace import trace
 
@@ -50,10 +50,11 @@ class Manager(object):
     USER_CONFIG_FILE = 'user.config'
     DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name}'
     SESSION_HEADER_DICT = {
-        'is_current': 'C',
-        'type':       'TYPE',
-        'name':       'NAME',
-        'root':       'ROOT',
+        '__ordinal__': '#',
+        'is_current':  'C',
+        'type':        'TYPE',
+        'name':        'NAME',
+        'root':        'ROOT',
     }
     MANAGER_CONFIG_KEYS = (
         'verbose',
@@ -64,6 +65,7 @@ class Manager(object):
         'available_package_format',
         'loaded_package_format',
         'available_session_format',
+        'package_dir_format',
         'resolution_level',
         'filter_packages',
     )
@@ -76,6 +78,7 @@ class Manager(object):
         'available_package_format': None,
         'loaded_package_format': None,
         'available_session_format': None,
+        'package_dir_format': None,
         'resolution_level': 0,
         'filter_packages': None,
     }
@@ -115,6 +118,7 @@ class Manager(object):
         self._loaded_package_format = None
         self._available_session_format = None
         self._package_format = None
+        self._package_dir_format = None
 
         self.load_general()
 
@@ -127,22 +131,18 @@ class Manager(object):
         self.restore_session()
 
     @classmethod
-    def make_package_format(cls, package_format_string):
-        if package_format_string is None:
-            return package_format_string
-        else:
-            return Session.make_package_format(package_format_string)
+    def PackageFormat(cls, package_format):
+        return Session.PackageFormat(package_format)
 
     @classmethod
-    def make_session_format(cls, session_format_string):
-        if session_format_string is None:
-            return session_format_string
-        try:
-            session_format_string.format(**cls.SESSION_HEADER_DICT)
-        except Exception as e:
-            raise ValueError("invalid session format {0!r}: {1}: {2}".format(session_format_string, e.__class__.__name__, e))
-        else:
-            return session_format_string
+    def PackageDirFormat(cls, package_dir_format):
+        return Session.PackageDirFormat(package_dir_format)
+
+    @classmethod
+    def SessionFormat(cls, session_format):
+        if session_format is not None:
+            validate_format(session_format, **cls.SESSION_HEADER_DICT)
+        return session_format
 
 
     def is_admin(self):
@@ -152,7 +152,10 @@ class Manager(object):
         self._show_full_label = value
 
     def set_package_format(self, value):
-        self._package_format = value
+        self._package_format = Session.PackageFormat(value)
+
+    def set_package_dir_format(self, value):
+        self._package_dir_format = Session.PackageDirFormat(value)
 
     def load_general(self):
         # host categories:
@@ -350,9 +353,11 @@ class Manager(object):
                 value = s_value
                 assert isinstance(value, Expression) or value is None
         elif key in {'available_package_format', 'loaded_package_format'}:
-            value = self.make_package_format(s_value)
+            value = Session.PackageFormat(s_value)
+        elif key in {'package_dir_format'}:
+            value = Session.PackageDirFormat(s_value)
         elif key in {'available_session_format'}:
-            value = self.make_session_format(s_value)
+            value = self.SessionFormat(s_value)
         else:
             value = s_value
         if str(config_dict.get(key, None)) != str(value):
@@ -639,7 +644,7 @@ class Manager(object):
         return None
 
     def set_session_format(self, session_format):
-        self._session_format = self.make_session_format(session_format)
+        self._session_format = self.SessionFormat(session_format)
 
     def get_available_session_format(self):
         session_format = self._session_format
@@ -716,6 +721,7 @@ class Manager(object):
             available=self.get_config_key('available_package_format'),
             loaded=self.get_config_key('loaded_package_format'))
         self.session.set_package_formatting(self._package_format, self._show_full_label)
+        self.session.set_package_dir_format(self._package_dir_format)
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):
             self.session.filter_packages(self.config['filter_packages'])

@@ -34,7 +34,7 @@ from .session_config import SessionConfig
 from .package_collection import PackageCollection
 from .utils.debug import LOGGER, PRINT
 from .utils.trace import trace
-from .utils.table import Table
+from .utils.table import Table, validate_format
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
 from .utils.strings import plural_string
@@ -52,8 +52,8 @@ class Session(object):
     LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__:>3d}) {is_sticky} {category} {full_suite} {package} {tags}"
     AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
     AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
-    PACKAGE_DIR_FORMAT = "{__ordinal__:>3d}) {package_dir}"
     PACKAGE_HEADER_DICT = {
+        '__ordinal__':      '#',
         'category':         'CATEGORY',
         'is_sticky':        'S',
         'is_loaded':        'L',
@@ -64,7 +64,11 @@ class Session(object):
         'full_suite':       'SUITE',
         'tags':             'TAGS',
     }
-
+    PACKAGE_DIR_FORMAT = "{__ordinal__:>3d}) {package_dir}"
+    PACKAGE_DIR_HEADER_DICT = {
+        '__ordinal__':      '#',
+        'package_dir':      'DIRECTORY',
+    }
     def __init__(self, session_root):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
@@ -80,6 +84,7 @@ class Session(object):
         self._package_format = None
         self._available_package_format = None
         self._loaded_package_format = None
+        self._package_dir_format = None
         self._version_defaults = {}
         self.load(session_root)
 
@@ -102,6 +107,9 @@ class Session(object):
     def set_package_formatting(self, package_format, show_full_label):
         self._package_format = package_format
         self._show_full_label = show_full_label
+
+    def set_package_dir_format(self, package_dir_format):
+        self._package_dir_format = package_dir_format
 
     def filter_packages(self, expression):
         for package_collection in self._defined_packages, self._available_packages:
@@ -775,13 +783,16 @@ class Session(object):
         t.render(PRINT)
 
     @classmethod
-    def make_package_format(cls, package_format_string):
-        try:
-            package_format_string.format(**cls.PACKAGE_HEADER_DICT)
-        except Exception as e:
-            raise ValueError("invalid package format {0!r}: {1}: {2}".format(package_format_string, e.__class__.__name__, e))
-        else:
-            return package_format_string
+    def PackageFormat(cls, package_format):
+        if package_format is not None:
+            validate_format(package_format, **cls.PACKAGE_HEADER_DICT)
+        return package_format
+
+    @classmethod
+    def PackageDirFormat(cls, package_dir_format):
+        if package_dir_format is not None:
+            validate_format(package_dir_format, **cls.PACKAGE_DIR_HEADER_DICT)
+        return package_dir_format
 
     def show_defined_packages(self):
         self.show_packages("Defined packages", self.defined_packages(), self.get_available_package_format())
@@ -800,7 +811,10 @@ class Session(object):
             package.show()
 
     def show_package_directories(self):
-        t = Table(self.PACKAGE_DIR_FORMAT, title="Package directories")
+        package_dir_format = self._package_dir_format
+        if package_dir_format is None:
+            package_dir_format = self.PACKAGE_DIR_FORMAT
+        t = Table(package_dir_format, title="Package directories")
         for package_dir in self._package_directories:
             t.add_row(package_dir=package_dir)
         t.render(PRINT)

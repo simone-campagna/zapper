@@ -278,6 +278,15 @@ def show_table(title, lst, printer_function=None):
 def show_title(title):
     PRINT(Table.format_title(title))
 
+def validate_format(fmt, *p_args, **n_args):
+    t = Table(fmt)
+    for column, p in enumerate(p_args):
+        if not column in t._columns:
+            raise KeyError("format {0!r}: not such column {1!r}")
+    for column, val in n_args.items():
+        if not column in t._columns:
+            raise KeyError("format {0!r}: not such column {1!r}")
+
 if __name__ == "__main__":
     lt = [
         ('intel', 'foo/0.3', 'library', ''),
