@@ -402,7 +402,7 @@ class Manager(object):
         for key_value in key_values:
             if not '=' in key_value:
                 raise ValueError("{0}: invalid key=value pair {1!r}".format(label, key_value))
-            key, value = key_value.split('=')
+            key, value = key_value.split('=', 1)
             if not key in config:
                 LOGGER.error("{0}: no such key: {1}".format(label, key))
                 continue
