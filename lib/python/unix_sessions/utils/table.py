@@ -18,22 +18,50 @@
 
 __author__ = 'Simone Campagna'
 
-import collections
 import re
+import string
+import collections
 
-from .debug import PRINT
+
+class _FormatSpecData(object):
+    KEYS = ('fill', 'align', 'sign', 'alternate', 'zero', 'width', 'comma', 'precision', 'type')
+    #RE_FORMAT_SPEC = re.compile(r"(?P<fill>[^\{\}])?(?P<align>[\<\>\=\^])?(?P<sign>[\+\- ])?(?P<alternate>\#)?(?P<zero>0)?(?P<width>[1-9]+\d*)?(?P<comma>,)?(?P<precision>.\d+)?(?P<type>[sbcdoxXneEfFgG\%])?")
+    RE_FORMAT_SPEC = re.compile(r"(?P<align>[\<\>\=\^])?(?P<sign>[\+\- ])?(?P<alternate>\#)?(?P<zero>0)?(?P<width>[1-9]+\d*)?(?P<comma>,)?(?P<precision>.\d+)?(?P<type>[sbcdoxXneEfFgG\%])?")
+    def __init__(self, fspec):
+        if fspec is None:
+            fspec = ''
+        elif isinstance(fspec, _FormatSpecData):
+            for key in self.KEYS:
+                setattr(self, key, getattr(fspec, key))
+        elif isinstance(fspec, str):
+            m = self.RE_FORMAT_SPEC.search(fspec)
+            if not m:
+                raise ValueError("invalid format spec {0!r}".format(fspec))
+            b, e = m.span()
+            if b == 0:
+                fill = None
+            else:
+                fill = fspec[:b]
+            self.fill = fill
+            for key, val in m.groupdict().items():
+                #print("... {}={!r}".format(key, val))
+                setattr(self, key, val)
+        else:
+            raise TypeError("unsupported type {0}".format(type(fspec).__name__))
+    
+    def __str__(self):
+        l = []
+        for key in self.KEYS:
+            val = getattr(self, key)
+            if val is not None:
+                l.append(str(val))
+        return ''.join(l)
+
+    def copy(self):
+        return self.__class__(str(self))
 
 class Table(object):
-    ALIGNMENTS = {
-        'default': '',
-        'd':       '',
-        'left':    '<',
-        'l':       '<',
-        'center':  '^',
-        'c':       '^',
-        'right':   '>',
-        'r':       '>',
-    }
+    _FormatItem = collections.namedtuple('_FormatItem', ('pre', 'name', 'format_spec', 'conversion', 'format_spec_data'))
     def __init__(self,
             row_format,
             title=None,
@@ -46,35 +74,75 @@ class Table(object):
         self.show_header = show_header
         self.separator = separator
         self._columns = collections.OrderedDict()
-        self._alignments = {}
-        self._column_index = {}
         self._set_format(row_format)
         self.set_title(title)
         self._rows = []
         
     def _set_format(self, row_format):
-        self._format = row_format
-        r = re.compile(r'\{[^\{\}]+\}')
-        self._formats = []
-        gb = 0
-        ge = 0
-        b, e = 0, 0
-        for match in r.finditer(row_format):
-            b, e = match.span()
-            if b > ge:
-                self._formats.append((False, row_format[ge:b]))
-            row_format_token = row_format[b:e]
-            column = row_format_token[1:-1]
-            self._columns[column] = column.upper()
-            self._column_index[len(self._formats)] = column
-            self._formats.append((True, row_format_token))
-            gb = b
-            ge = e
-        last = row_format[e:]
-        if last:
-            self._formats.append((False, last))
+        formatter = string.Formatter()
+        next_positional = 0
+        self._format_items = []
+        self._body_formats = []
+        self._header_formats = []
+        self._num_cols = 0
+        for pre, name, format_spec, conversion in formatter.parse(row_format):
+            self._num_cols += 1
+            is_format = True
+            fill = None
+            width = None
+            align = None
+            if name is None:
+                is_format = False
+            else:
+                is_format = True
+                self._num_cols += 1
+                if name:
+                    try:
+                        iname = int(name)
+                        name = iname
+                        next_positional = name
+                    except ValueError as e:
+                        pass
+                else:
+                    name = next_positional
+                    next_positional += 1
+            format_spec_data = _FormatSpecData(format_spec)
+            format_item = self._FormatItem(
+                pre=pre, 
+                name=name, 
+                format_spec=format_spec, 
+                conversion=conversion,
+                format_spec_data=format_spec_data)
+            self._format_items.append(format_item)
+            if name is not None:
+                self._columns[name] = str(name).upper()
+            if is_format:
+                align = format_spec_data.align
+                header_format_spec_data = format_spec_data.copy()
+                header_format_spec_data.precision = None
+                header_format_spec_data.type = 's'
+                header_format_spec_data.sign = None
+                header_format_spec_data.alternate = None
+                if header_format_spec_data.align == '=':
+                    header_format_spec_data.align = '<'
+                header_format_spec = str(header_format_spec_data)
+                if conversion is None:
+                    conversion = ''
+                if conversion:
+                    conversion = '!' + conversion
+                if format_spec:
+                    format_spec = ':' + format_spec
+                if header_format_spec:
+                    header_format_spec = ':' + header_format_spec
+                body_fmt = '{{{0}{1}{2}}}'.format(name, conversion, format_spec)
+                header_fmt = '{{{0}{1}}}'.format(name, header_format_spec)
+                self._body_formats.append(body_fmt)
+                self._header_formats.append(header_fmt)
+            else:
+                self._body_formats.append("")
+                self._header_formats.append("")
         self._columns['__ordinal__'] = '#'
-        self._alignments['__ordinal__'] = '>'
+                
 
     @classmethod
     def format_title(self, title, max_row_length=70):
@@ -86,64 +154,98 @@ class Table(object):
     def set_title(self, title=None):
         self._title = self.format_title(title, self.max_row_length)
 
-    def set_column_title(self, **n_args):
+    def set_column_title(self, *p_args, **n_args):
+        for column, title in enumerate(p_args):
+            self._columns[column] = title
         for column, title in n_args.items():
             #if not column in self._columns:
             #    raise KeyError("no such column {0!r}".format(column))
             self._columns[column] = title
 
-    def set_column_alignment(self, **n_args):
-        for column, align in n_args.items():
-            alignment = self.ALIGNMENTS.get(align.lower(), None)
-            if alignment is None:
-                raise ValueError("no such alignment {0!r}".format(align))
-            #if not column in self._columns:
-            #    raise KeyError("no such column {0!r}".format(column))
-            self._alignments[column] = alignment
-
-    def make_row(self, row_index, **n_args):
+    def _make_row(self, is_header, row_index, *p_args, **n_args):
         row = []
-        for is_format, token in self._formats:
-            if is_format:
-                if '__ordinal__' in n_args:
-                    row.append(token.format(**n_args))
-                else:
-                    row.append(token.format(__ordinal__=row_index, **n_args))
+        for format_index, format_item in enumerate(self._format_items):
+            row.append(format_item.pre)
+            name = format_item.name
+            if name is None:
+                col = ''
             else:
-                row.append(token)
+                if is_header:
+                    fmt = self._header_formats[format_index]
+                else:
+                    fmt = self._body_formats[format_index]
+                if '__ordinal__' in n_args:
+                    col = fmt.format(*p_args, **n_args)
+                else:
+                    col = fmt.format(__ordinal__=row_index, *p_args, **n_args)
+                #print(is_header, repr(fmt), p_args, n_args, '---> {0!r}'.format(col))
+            row.append(col)
         return row
 
-    def add_row(self, **n_args):
-        self._rows.append(self.make_row(len(self._rows), **n_args))
+    def _make_body_row(self, row_index, *p_args, **n_args):
+        return self._make_row(False, row_index, *p_args, **n_args)
 
-    def add_rows(self, *rows):
-        for row in rows:
-            self.add_row(**row)
+    def _make_header_row(self, row_index, *p_args, **n_args):
+        return self._make_row(True, row_index, *p_args, **n_args)
+
+    def _make_header(self):
+        p_args = []
+        n_args = {}
+        for key, val in self._columns.items():
+            if isinstance(key, str):
+                n_args[key] = val
+            else:
+                p_args.append(val)
+        return self._make_header_row('', *p_args, **n_args)
+
+    def add_row(self, *p_args, **n_args):
+        self._rows.append(self._make_body_row(len(self._rows), *p_args, **n_args))
+
+    def add_header_row(self, *p_args, **n_args):
+        self._rows.append(self._make_header_row(len(self._rows), *p_args, **n_args))
 
     def __iter__(self):
         if self._title:
             yield self._title
         table = []
         if self.show_header:
-            table.append(self.make_row('', **self._columns))
+            table.append(self._make_header())
         for row in self._rows:
             table.append(row)
         
-        num_cols = len(self._formats)
+        num_cols = self._num_cols
 
         max_lengths = [max(len(row[col]) for row in table) for col in range(num_cols)]
+
+        #print(max_lengths)
+        aligns = []
+        for format_item in self._format_items:
+            aligns.append('<') # for pre
+            format_spec_data = format_item.format_spec_data
+            align = format_spec_data.align
+            if align == '=':
+                align = '<'
+            aligns.append(align)
+        #print(aligns)
+
         mods = []
-        for index, max_length in enumerate(max_lengths[:-1]):
-            column = self._column_index.get(index, None)
-            alignment = self._alignments.get(column, '')
+        for max_length, align in zip(max_lengths[:-1], aligns[:-1]):
+            if align is None:
+                align = '<'
             if max_length:
-                mods.append(":{0}{1}s".format(alignment, max_length))
+                mods.append(":{0}{1}s".format(align, max_length))
             else:
                 mods.append("")
-        mods.append("")
+        align, max_length = aligns[-1], max_lengths[-1]
+        if (align is None or align == '<') or max_length == 0:
+            mods.append("")
+        else:
+            mods.append(":{0}{1}s".format(align, max_length))
 
         fmts = ["{{{i}{m}}}".format(i=i, m=m) for i, m in enumerate(mods)]
         fmt = self.separator.join(fmts)
+        #print(mods)
+        #print(fmt)
 
         #l = max(len(str(len(table) - 1)), self.min_ordinal_length)
         #r_fmt = '{{0:{l}s}}) '.format(l=l) + fmt
@@ -157,7 +259,9 @@ class Table(object):
         for line in self:
             print(line)
 
-def show_table(title, lst):
+def show_table(title, lst, printer_function=None):
+    if printer_function is None:
+        printer_function = print
     lst = tuple(lst)
     if lst:
         if isinstance(lst[0], (tuple, list)):
@@ -165,40 +269,66 @@ def show_table(title, lst):
         else:
             lst = tuple((str(e), ) for e in lst)
         l = len(lst[0])
-        fmt = "{__ordinal__}) " + ' '.join("{{__f{0}__}}".format(i) for i in range(l))
+        fmt = "{__ordinal__:>3d}) " + ' '.join("{}" for i in range(l))
         t = Table(fmt, title=title, show_header=False)
         for row in lst:
-            row_dict = {"{{__f{0}__}}".format(i): e for i, e in enumerate(row)}
-            t.add_row(**{"__f{0}__".format(i): e for i, e in enumerate(row)})
-        t.render(PRINT)
+            t.add_row(*row)
+        t.render(printer_function)
 
 def show_title(title):
     PRINT(Table.format_title(title))
 
 if __name__ == "__main__":
-    t = Table('{__ordinal__}) {suite}:{package} {category} {tags}')
-
-    l = [
-        {'suite': 'intel', 'package': 'foo/0.3', 'category': 'library', 'tags': ''},
-        {'suite': 'gnu',   'package': 'foo/0.3', 'category': 'library', 'tags': 'experimental'},
-        {'suite': 'intel', 'package': 'foo/0.5', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/0.56', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/0.57', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/0.58', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/0.15', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/0.34j5', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel/12.1', 'package': 'foo/0.35', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/0.0.05', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/0', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foofoo/0.5', 'category': 'library', 'tags': 'good'},
-        {'suite': 'intel', 'package': 'foo/10.00.5', 'category': 'library', 'tags': 'good'},
+    lt = [
+        ('intel', 'foo/0.3', 'library', ''),
+        ('gnu',   'foo/0.3', 'library', 'experimental very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long'),
+        ('intel', 'foo/0.5', 'library', 'good'),
+        ('intel', 'foo/0.56', 'library', 'good'),
+        ('intel', 'foo/0.57', 'library', 'good'),
+        ('intel', 'foo/0.58', 'library', 'good_but_not_perfect'),
+        ('intel', 'foo/0.15', 'library', 'good'),
+        ('intel', 'foo/0.34j5', 'library', 'good'),
+        ('intel/12.1', 'foo/0.35', 'library', 'good'),
+        ('intel', 'foo/0.0.05', 'library', 'good'),
+        ('intel', 'foo/0', 'library', 'good'),
+        ('intel', 'foofoo/0.5', 'library', 'good'),
+        ('intel', 'foo/10.00.5', 'library', 'good'),
     ]
 
-    t.add_rows(*l)
-    t.set_column_title(suite='XUITE')
-    t.set_column_alignment(suite='center', package='right')
+    keys = ['suite', 'package', 'category', 'tags']
 
-    print("-" * 70)
-    t.render(print)
-    print("-" * 70)
+    ld = [dict(zip(keys, t)) for t in lt]
+#        {'suite': 'intel', 'package': 'foo/0.3', 'category': 'library', 'tags': ''},
+#        {'suite': 'gnu',   'package': 'foo/0.3', 'category': 'library', 'tags': 'experimental very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very very long'},
+#        {'suite': 'intel', 'package': 'foo/0.5', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foo/0.56', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foo/0.57', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foo/0.58', 'category': 'library', 'tags': 'good_but_not_perfect'},
+#        {'suite': 'intel', 'package': 'foo/0.15', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foo/0.34j5', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel/12.1', 'package': 'foo/0.35', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foo/0.0.05', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foo/0', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foofoo/0.5', 'category': 'library', 'tags': 'good'},
+#        {'suite': 'intel', 'package': 'foo/10.00.5', 'category': 'library', 'tags': 'good'},
+#    ]
+
+    t1 = Table('{__ordinal__:>+#3d}) {suite!r:^20s}:{package:>s} {category} {tags:<}')
+    t1.set_column_title(suite='XUITE')
+    t2 = Table('{__ordinal__:>+#3d}) {!r:^20s}:{:>s} {} {:<}')
+    t2.set_column_title(*[k.upper() for k in keys])
+
+    for i, (l, t) in enumerate(((ld, t1), (lt, t2))):
+        for row in l:
+            if isinstance(row, collections.Mapping):
+                t.add_row(**row)
+            else:
+                t.add_row(*row)
+
+    
+        print("-" * 70)
+        t.render(print)
+        print("-" * 70)
+        input("t{0} done...".format(i))
+
 
