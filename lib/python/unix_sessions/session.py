@@ -37,7 +37,7 @@ from .utils.trace import trace
 from .utils.table import Table
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
-from .utils.string import plural_string
+from .utils.strings import plural_string
 from .utils import sequences
 
 
