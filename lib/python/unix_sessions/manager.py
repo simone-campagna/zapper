@@ -638,10 +638,19 @@ class Manager(object):
                 return session_root
         return None
 
-    def show_available_sessions(self, temporary=True, persistent=True):
-        session_format = self.get_config_key('available_session_format')
+    def set_session_format(self, session_format):
+        self._session_format = self.make_session_format(session_format)
+
+    def get_available_session_format(self):
+        session_format = self._session_format
+        if not session_format:
+            session_format = self.get_config_key('available_session_format')
         if not session_format:
             session_format = self.DEFAULT_SESSION_FORMAT
+        return session_format
+
+    def show_available_sessions(self, temporary=True, persistent=True):
+        session_format = self.get_available_session_format()
         dl = []
         if temporary:
             dl.append((Session.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
