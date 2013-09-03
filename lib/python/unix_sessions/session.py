@@ -48,11 +48,11 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__}) {is_sticky} {category} {full_package} {tags}"
-    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__}) {is_sticky} {category} {full_suite} {package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__}) {is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
-    PACKAGE_DIR_FORMAT = "{__ordinal__}) {package_dir}"
+    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__:>3d}) {is_sticky} {category} {full_package} {tags}"
+    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__:>3d}) {is_sticky} {category} {full_suite} {package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
+    PACKAGE_DIR_FORMAT = "{__ordinal__:>3d}) {package_dir}"
     PACKAGE_HEADER_DICT = {
         'category':         'CATEGORY',
         'is_sticky':        'S',

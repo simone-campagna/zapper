@@ -48,7 +48,7 @@ class Manager(object):
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
-    DEFAULT_SESSION_FORMAT = '{__ordinal__}) {is_current} {type} {name}'
+    DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name}'
     SESSION_HEADER_DICT = {
         'is_current': 'C',
         'type':       'TYPE',
