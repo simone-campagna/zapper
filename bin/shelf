@@ -98,6 +98,21 @@ def main():
         default=None,
         help="set the format for session info")
 
+    common_parser.add_argument("--package-sort-keys",
+        type=manager.PackageSortKeys,
+        default=None,
+        help="set the sorting keys for packages")
+
+    common_parser.add_argument("--package-dir-sort-keys",
+        type=manager.PackageDirSortKeys,
+        default=None,
+        help="set the sorting keys for package directories")
+
+    common_parser.add_argument("--session-sort-keys",
+        type=manager.SessionSortKeys,
+        default=None,
+        help="set the sorting keys for sessions")
+
     ### Top-level parser
     top_level_parser = argparse.ArgumentParser(
         parents = [common_parser],
@@ -578,6 +593,9 @@ Change the current session""",
     manager.set_package_format(args.package_format)
     manager.set_package_dir_format(args.package_dir_format)
     manager.set_session_format(args.session_format)
+    manager.set_package_sort_keys(args.package_sort_keys)
+    manager.set_package_dir_sort_keys(args.package_dir_sort_keys)
+    manager.set_session_sort_keys(args.session_sort_keys)
 
     if 'persistent' in args and 'temporary' in args:
         if args.persistent is None:
@@ -590,7 +608,9 @@ Change the current session""",
             args.temporary = False
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
-    for key in {'function', 'verbose', 'debug', 'trace', 'full_label', 'package_format', 'session_format', 'package_dir_format'}:
+    for key in {'function', 'verbose', 'debug', 'trace', 'full_label',
+                'package_format', 'session_format', 'package_dir_format',
+                'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys'}:
         if key in n_args:
             del n_args[key]
 

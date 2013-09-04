@@ -40,6 +40,7 @@ from .utils.random_name import RandomNameSequence
 from .utils.table import show_table, validate_format
 from .utils.debug import PRINT
 from .utils.trace import trace
+from .utils.sort_keys import SortKeys
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -66,6 +67,9 @@ class Manager(object):
         'loaded_package_format',
         'available_session_format',
         'package_dir_format',
+        'package_sort_keys',
+        'package_dir_sort_keys',
+        'session_sort_keys',
         'resolution_level',
         'filter_packages',
     )
@@ -79,9 +83,13 @@ class Manager(object):
         'loaded_package_format': None,
         'available_session_format': None,
         'package_dir_format': None,
+        'package_sort_keys': None,
+        'package_dir_sort_keys': None,
+        'session_sort_keys': None,
         'resolution_level': 0,
         'filter_packages': None,
     }
+    DEFAULT_SESSION_SORT_KEYS = SortKeys('', SESSION_HEADER_DICT, 'session')
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
         self.user = getpass.getuser()
@@ -120,6 +128,10 @@ class Manager(object):
         self._package_format = None
         self._package_dir_format = None
 
+        self._package_sort_keys = None
+        self._package_dir_sort_keys = None
+        self._set_session_sort_keys = None
+
         self.load_general()
 
         self.load_user_config()
@@ -129,6 +141,18 @@ class Manager(object):
 
         self.load_translator()
         self.restore_session()
+
+    @classmethod
+    def PackageSortKeys(cls, package_sort_keys):
+        return Session.PackageSortKeys(package_sort_keys)
+
+    @classmethod
+    def PackageDirSortKeys(cls, package_dir_sort_keys):
+        return Session.PackageDirSortKeys(package_dir_sort_keys)
+
+    @classmethod
+    def SessionSortKeys(cls, session_sort_keys):
+        return SortKeys(session_sort_keys, cls.SESSION_HEADER_DICT, 'session')
 
     @classmethod
     def PackageFormat(cls, package_format):
@@ -144,6 +168,28 @@ class Manager(object):
             validate_format(session_format, **cls.SESSION_HEADER_DICT)
         return session_format
 
+    def set_package_sort_keys(self, sort_keys):
+        if sort_keys is None:
+            sort_keys = self.PackageSortKeys(self.get_config_key('package_sort_keys'))
+        self._package_sort_keys = sort_keys
+
+    def set_package_dir_sort_keys(self, sort_keys):
+        if sort_keys is None:
+            sort_keys = self.PackageDirSortKeys(self.get_config_key('package_dir_sort_keys'))
+        self._package_dir_sort_keys = sort_keys
+
+    def set_session_sort_keys(self, sort_keys):
+        if sort_keys is None:
+            sort_keys = self.SessionSortKeys(self.get_config_key('session_sort_keys'))
+        if not sort_keys:
+            sort_keys = self.DEFAULT_SESSION_SORT_KEYS
+        self._session_sort_keys = sort_keys
+
+    def get_session_sort_keys(self):
+        if not self._session_sort_keys:
+            return self.DEFAULT_SESSION_SORT_KEYS
+        else:
+            return self._session_sort_keys
 
     def is_admin(self):
         return self.user == self.admin_user
@@ -187,12 +233,6 @@ class Manager(object):
         assert isinstance(package_option_dict, dict)
         changed = False
         for key, value in from_package_option.items():
-            #if value == '':
-            #    print("HERE!!")
-            #    if not key in package_option_dict:
-            #        package_option_dict[key] = ''
-            #        changed = True
-            #else:
             changed = self._set_package_option_key(option, label, package_option_dict, key, value) or changed
         return changed
 
@@ -301,9 +341,7 @@ class Manager(object):
         user_package_option = self.user_config[option]
         self.package_options[option] = {}
         for from_label, from_package_option in ('host', host_package_option), ('user', user_package_option):
-            #print(option, from_label, dict(from_package_option), self.package_options[option])
             self._update_package_option(option, from_label, from_package_option, self.package_options[option])
-            #print("-->", self.package_options[option])
 
     def load_session_package_option(self, option):
         session_package_option = self.session_config[option]
@@ -654,14 +692,16 @@ class Manager(object):
             session_format = self.DEFAULT_SESSION_FORMAT
         return session_format
 
-    def show_available_sessions(self, temporary=True, persistent=True):
+    def show_available_sessions(self, temporary=True, persistent=True, sort_keys=None):
+        if sort_keys is None:
+            sort_keys = self.get_session_sort_keys()
         session_format = self.get_available_session_format()
         dl = []
         if temporary:
             dl.append((Session.SESSION_TYPE_TEMPORARY, self.temporary_sessions_dir))
         if persistent:
             dl.append((Session.SESSION_TYPE_PERSISTENT, self.persistent_sessions_dir))
-        t = Table(session_format, title="Available sessions")
+        rows = []
         for session_type, sessions_dir in dl:
             session_root_pattern = os.path.join(sessions_dir, '*')
             for session_config_file in glob.glob(Session.get_session_config_file(session_root_pattern)):
@@ -671,7 +711,13 @@ class Manager(object):
                     mark_current = '*'
                 else:
                     mark_current = ' '
-                t.add_row(name=session_name, type=session_type, root=session_root, is_current=mark_current)
+                rows.append(dict(name=session_name, type=session_type, root=session_root, is_current=mark_current))
+        
+        sort_keys.sort(rows)
+
+        t = Table(session_format, title="Available sessions")
+        for row_d in rows:
+            t.add_row(**row_d)
         t.set_column_title(**self.SESSION_HEADER_DICT)
         t.render(PRINT)
 
@@ -729,6 +775,9 @@ class Manager(object):
         if package_dir_format is None:
             package_dir_format = self.get_config_key('package_dir_format')
         self.session.set_package_dir_format(package_dir_format)
+
+        self.session.set_package_sort_keys(self._package_sort_keys)
+        self.session.set_package_dir_sort_keys(self._package_dir_sort_keys)
 
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):

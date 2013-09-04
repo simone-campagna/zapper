@@ -38,6 +38,7 @@ from .utils.table import Table, validate_format
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
 from .utils.strings import plural_string
+from .utils.sort_keys import SortKeys
 from .utils import sequences
 
 
@@ -60,6 +61,8 @@ class Session(object):
         ('is_loaded',        'L'),
         ('is_conflicting',   'C'),
         ('kind',             'KIND'),
+        ('version',          'VERSION'),
+        ('product',          'PRODUCT'),
         ('package',          'PACKAGE'),
         ('full_package',     'PACKAGE'),
         ('suite',            'SUITE'),
@@ -71,6 +74,8 @@ class Session(object):
         ('__ordinal__',      '#'),
         ('package_dir',      'DIRECTORY'),
     ))
+    DEFAULT_PACKAGE_SORT_KEYS = SortKeys("category:product:version", PACKAGE_HEADER_DICT, 'package')
+    DEFAULT_PACKAGE_DIR_SORT_KEYS = SortKeys("", PACKAGE_DIR_HEADER_DICT, 'package directory')
     def __init__(self, session_root):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
@@ -87,6 +92,8 @@ class Session(object):
         self._available_package_format = None
         self._loaded_package_format = None
         self._package_dir_format = None
+        self.set_package_sort_keys(None)
+        self.set_package_dir_sort_keys(None)
         self._version_defaults = {}
         self.load(session_root)
 
@@ -747,6 +754,8 @@ class Session(object):
             'is_sticky':        self._mark(self.is_sticky(package), 's', ' '),
             'is_loaded':        self._mark(self.is_loaded(package), 'l', ' '),
             'is_conflicting':   self._mark(self.is_conflicting(package), 'c', ' '),
+            'product':          package.name,
+            'version':          package.version,
             'package':          package.label,
             'full_package':     package.full_label,
             'suite':            package.suite.label,
@@ -774,16 +783,28 @@ class Session(object):
         else:
             return self.LOADED_PACKAGE_FORMAT_SHORT
 
-    def show_packages(self, title, packages, package_format):
-        d = {c: o for o, c in enumerate(Category.categories())}
-        packages = list(packages)
-        packages.sort(key=lambda package: d[package.category])
-        packages.sort(key=lambda package: package.suite.full_label)
+    def set_package_sort_keys(self, sort_keys):
+        if sort_keys is None:
+            sort_keys = self.DEFAULT_PACKAGE_SORT_KEYS
+        self._package_sort_keys = sort_keys
+
+    def set_package_dir_sort_keys(self, sort_keys):
+        if sort_keys is None:
+            sort_keys = self.DEFAULT_PACKAGE_DIR_SORT_KEYS
+        self._package_dir_sort_keys = sort_keys
+
+    def show_packages(self, title, packages, package_format, sort_keys=None):
+        if sort_keys is None:
+            sort_keys = self._package_sort_keys
+
+        package_infos = [self._package_info(package) for package in packages]
+
+        sort_keys.sort(package_infos)
 
         t = Table(package_format, title=title)
         t.set_column_title(**self.PACKAGE_HEADER_DICT)
-        for package in packages:
-            t.add_row(**self._package_info(package))
+        for package_info in package_infos:
+            t.add_row(**package_info)
 
         t.render(PRINT)
 
@@ -798,6 +819,14 @@ class Session(object):
         if package_dir_format is not None:
             validate_format(package_dir_format, **cls.PACKAGE_DIR_HEADER_DICT)
         return package_dir_format
+
+    @classmethod
+    def PackageSortKeys(cls, package_sort_keys):
+        return SortKeys(package_sort_keys, cls.PACKAGE_HEADER_DICT, 'package')
+
+    @classmethod
+    def PackageDirSortKeys(cls, package_dir_sort_keys):
+        return SortKeys(package_dir_sort_keys, cls.PACKAGE_DIR_HEADER_DICT, 'package directory')
 
     def show_defined_packages(self):
         self.show_packages("Defined packages", self.defined_packages(), self.get_available_package_format())
@@ -815,14 +844,24 @@ class Session(object):
         else:
             package.show()
 
-    def show_package_directories(self):
+    def show_package_directories(self, sort_keys=None):
+        if sort_keys is None:
+            sort_keys = self._package_dir_sort_keys
+
         package_dir_format = self._package_dir_format
         if not package_dir_format:
             package_dir_format = self.PACKAGE_DIR_FORMAT
+
+        rows = []
+        for package_dir in self._package_directories:
+            rows.append(dict(package_dir=package_dir))
+       
+        sort_keys.sort(rows)
+
         t = Table(package_dir_format, title="Package directories")
         t.set_column_title(**self.PACKAGE_DIR_HEADER_DICT)
-        for package_dir in self._package_directories:
-            t.add_row(package_dir=package_dir)
+        for row_d in rows:
+            t.add_row(**row_d)
         t.render(PRINT)
 
     def info(self):

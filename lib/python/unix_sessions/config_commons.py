@@ -29,6 +29,9 @@ CONFIG = {
     'available_session_format': '',
     'loaded_package_format': '',
     'package_dir_format': '',
+    'package_sort_keys': '',
+    'package_dir_sort_keys': '',
+    'session_sort_keys': '',
     'resolution_level': '',
     'filter_packages': '',
 }
