@@ -22,6 +22,7 @@ import re
 import string
 import collections
 
+from .debug import PRINT
 
 class _FormatSpecData(object):
     KEYS = ('fill', 'align', 'sign', 'alternate', 'zero', 'width', 'comma', 'precision', 'type')
@@ -262,13 +263,15 @@ class Table(object):
             #print(repr(row))
             yield fmt.format(*row)
 
-    def render(self, printer_function=print):
+    def render(self, printer_function=None):
+        if printer_function is None:
+            printer_function = PRINT
         for line in self:
-            print(line)
+            printer_function(line)
 
 def show_table(title, lst, printer_function=None):
     if printer_function is None:
-        printer_function = print
+        printer_function = PRINT
     lst = tuple(lst)
     if lst:
         if isinstance(lst[0], (tuple, list)):
@@ -282,19 +285,19 @@ def show_table(title, lst, printer_function=None):
             t.add_row(*row)
         t.render(printer_function)
 
-def show_title(title):
-    PRINT(Table.format_title(title))
+def show_title(title, printer_function=None):
+    if printer_function is None:
+        printer_function = PRINT
+    printer_function(Table.format_title(title))
 
 def validate_format(fmt, *p_args, **n_args):
     t = Table(fmt)
     for column in t.columns():
         if isinstance(column, int):
             if column >= len(p_args):
-                print(p_args)
                 raise KeyError("format {0!r}: no such column {1!r}".format(fmt, column))
         else:
             if not column in n_args:
-                print(n_args)
                 raise KeyError("format {0!r}: no such column {1!r}".format(fmt, column))
 
 if __name__ == "__main__":
