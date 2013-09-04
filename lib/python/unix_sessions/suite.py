@@ -29,7 +29,7 @@ __all__ = ['Suite', 'ROOT']
 class Suite(Package):
     def __init__(self, suite_family, version, *, short_description=None, long_description=None, suite=None):
         if isinstance(suite_family, str):
-            suite_family = SuiteFamily.get_family(suite_family)
+            suite_family = SuiteFamily(suite_family)
         assert isinstance(suite_family, SuiteFamily)
         self._packages = []
         super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=suite)
@@ -55,7 +55,7 @@ class Suite(Package):
 
 class _RootSuite(Suite):
     def __init__(self):
-        suite_family = SuiteFamily.get_family('')
+        suite_family = SuiteFamily('')
         version = ''
         short_description = 'The Root suite'
         long_description = 'The Root suite contains all available suites/packages'

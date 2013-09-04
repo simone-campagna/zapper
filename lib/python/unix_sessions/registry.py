@@ -34,6 +34,12 @@ class BaseRegistry(object):
     def __getitem__(self, key):
         return self._registry[key]
 
+    def __setitem__(self, key, val):
+        self._registry[key] = val
+
+    def get(self, key, default=None):
+        return self._registry.get(key, default)
+
     def __contains__(self, key):
         return key in self._registry
 

@@ -26,26 +26,43 @@ from .registry import UniqueRegister
 
 class PackageFamily(UniqueRegister):
     INVALID_CHARACTERS = '.:'
-    def __init__(self, name, category, *, short_description="", long_description=""):
-        if not isinstance(name, str):
-            name = str(name)
-        for ch in self.INVALID_CHARACTERS:
-            if ch in name:
-                raise ValueError("invalid package name {0}: cannot contain {1!r}".format(name, self.INVALID_CHARACTERS))
-        if not isinstance(category, Category):
-            category = Category(category)
-        self._name = name
-        self._category = category
-        self.short_description = short_description
-        self.long_description = long_description
+    def __new__(cls, name, category, *, short_description=None, long_description=None):
+        name_registry = cls.registry('name')
+        #print("***", cls, repr(name), name in name_registry, name_registry)
+        if name in name_registry:
+            instance = name_registry[name]
+            for key, val in (('category', category),
+                             ('short_description', short_description),
+                             ('long_description', long_description)):
+                if val is not None and getattr(instance, key) != val:
+                    raise ValueError("invalid value {} = {!r} for existing package family {}".format(key, val, name))
+        else:
+            if short_description is None:
+                short_description = ""
+            if long_description is None:
+                long_description = ""
+            if not isinstance(name, str):
+                name = str(name)
+            for ch in cls.INVALID_CHARACTERS:
+                if ch in name:
+                    raise ValueError("invalid package name {0}: cannot contain {1!r}".format(name, cls.INVALID_CHARACTERS))
+            instance = super().__new__(cls)
+            if not isinstance(category, Category):
+                category = Category(category)
+            instance._name = name
+            instance._category = category
+            instance.short_description = short_description
+            instance.long_description = long_description
+            instance.register()
+        return instance
 
     @classmethod
-    def get_family(cls, name, category):
-        name_registry = cls.registry('name')
-        if name in name_registry:
-            return name_registry[name]
-        else:
-            return PackageFamily(name, category)
+    def has_family(cls, name, default=None):
+        return name in cls.registry('name')
+
+    @classmethod
+    def get_family(cls, name, default=None):
+        return cls.registry('name').get(name, default)
 
     @property
     def name(self):

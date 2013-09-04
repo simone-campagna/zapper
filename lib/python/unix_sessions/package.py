@@ -41,7 +41,13 @@ class Package(ListRegister, Transition):
     SUITE_SEPARATOR = '.'
     def __init__(self, package_family, version, *, short_description=None, long_description=None, family_conflict=True, suite=None):
         super().__init__()
-        assert isinstance(package_family, PackageFamily)
+        if isinstance(package_family, str):
+            package_family_name = package_family
+            package_family = PackageFamily.get_family(package_family_name)
+            if package_family is None:
+                raise ValueError("undefined family {}".format(package_family_name))
+        else:
+            assert isinstance(package_family, PackageFamily)
         self._package_family = package_family
         if version is None:
             version = ''
