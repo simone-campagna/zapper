@@ -842,19 +842,45 @@ Set the format used to show the list of package directories.
 """ + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
 
     @classmethod
+    def _help_sort_keys(cls, label, example1, example2):
+        return """\
+
+Keys can be chained using ':'. For instance:
+{label}={example1!r}
+
+A '-' sign before the key reverses the sorting:
+{label}={example1!r}
+
+The sort key '__ordinal__' has no effect.
+
+""".format(label=label, example1=example1, example2=example2)
+
+    @classmethod
     def help_package_sort_keys(cls):
         PRINT("""\
 Set the keys used to sort packages.
-""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
+""" + cls._help_sort_keys(
+        label='package_sort_keys',
+        example1='category:product:version',
+        example2='category:-product:version',
+    ) + cls._help_format(Session.PACKAGE_HEADER_DICT))
 
     @classmethod
     def help_package_dir_sort_keys(cls):
         PRINT("""\
-Set the keys used to sort package directories.
-""" + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
+Set the keys used to sort package directories. 
+""" + cls._help_sort_keys(
+        label='package_dir_sort_keys',
+        example1='package_dir',
+        example2='-package_dir',
+    ) + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
 
     @classmethod
     def help_session_sort_keys(cls):
         PRINT("""\
 Set the keys used to sort sessions.
-""" + cls._help_format(cls.SESSION_HEADER_DICT))
+""" + cls._help_sort_keys(
+        label='session_sort_keys',
+        example1='type:name',
+        example2='type:-name',
+    ) + cls._help_format(cls.SESSION_HEADER_DICT))
