@@ -17,20 +17,12 @@
 
 __author__ = 'Simone Campagna'
 
-__all__ = ['SuiteFamily']
+__all__ = ['ProductSuite']
 
 import abc
 
-from .package_family import PackageFamily
+from .product import Product
 
-class SuiteFamily(PackageFamily):
+class ProductSuite(Product):
     def __new__(cls, name, *, short_description=None, long_description=None):
         return super().__new__(cls, name, 'suite', short_description=short_description, long_description=long_description)
-
-#    @classmethod
-#    def get_family(cls, name):
-#        name_registry = cls.registry('name')
-#        if name in name_registry:
-#            return name_registry[name]
-#        else:
-#            return SuiteFamily(name)

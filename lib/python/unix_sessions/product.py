@@ -17,14 +17,14 @@
 
 __author__ = 'Simone Campagna'
 
-__all__ = ['PackageFamily']
+__all__ = ['Product']
 
 import abc
 
 from .category import Category
 from .registry import UniqueRegister
 
-class PackageFamily(UniqueRegister):
+class Product(UniqueRegister):
     INVALID_CHARACTERS = '.:'
     def __new__(cls, name, category, *, short_description=None, long_description=None):
         name_registry = cls.registry('name')
@@ -35,7 +35,7 @@ class PackageFamily(UniqueRegister):
                              ('short_description', short_description),
                              ('long_description', long_description)):
                 if val is not None and getattr(instance, key) != val:
-                    raise ValueError("invalid value {} = {!r} for existing package family {}".format(key, val, name))
+                    raise ValueError("invalid value {} = {!r} for existing product {}".format(key, val, name))
         else:
             if short_description is None:
                 short_description = ""
@@ -57,11 +57,11 @@ class PackageFamily(UniqueRegister):
         return instance
 
     @classmethod
-    def has_family(cls, name, default=None):
+    def has_product(cls, name, default=None):
         return name in cls.registry('name')
 
     @classmethod
-    def get_family(cls, name, default=None):
+    def get_product(cls, name, default=None):
         return cls.registry('name').get(name, default)
 
     @property

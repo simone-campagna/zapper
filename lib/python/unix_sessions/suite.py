@@ -18,7 +18,8 @@
 __author__ = 'Simone Campagna'
 
 from .package import Package
-from .suite_family import SuiteFamily
+from .product import Product
+from .product_suite import ProductSuite
 from .utils.table import show_table, show_title
 
 
@@ -27,12 +28,12 @@ import abc
 __all__ = ['Suite', 'ROOT']
 
 class Suite(Package):
-    def __init__(self, suite_family, version, *, short_description=None, long_description=None, suite=None):
-        if isinstance(suite_family, str):
-            suite_family = SuiteFamily(suite_family)
-        assert isinstance(suite_family, SuiteFamily)
+    def __init__(self, product, version, *, short_description=None, long_description=None, suite=None):
+        if isinstance(product, str):
+            product = ProductSuite(product)
+        assert isinstance(product, Product)
         self._packages = []
-        super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=suite)
+        super().__init__(product, version, short_description=short_description, long_description=long_description, suite=suite)
 
     def packages(self):
         return iter(self._packages)
@@ -55,11 +56,11 @@ class Suite(Package):
 
 class _RootSuite(Suite):
     def __init__(self):
-        suite_family = SuiteFamily('')
+        product = ProductSuite('')
         version = ''
         short_description = 'The Root suite'
         long_description = 'The Root suite contains all available suites/packages'
-        super().__init__(suite_family, version, short_description=short_description, long_description=long_description, suite=self)
+        super().__init__(product, version, short_description=short_description, long_description=long_description, suite=self)
 
     def add_package_requirement(self, package):
         pass

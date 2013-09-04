@@ -23,7 +23,7 @@ import collections
 from .transition import *
 from .version import Version
 from .registry import ListRegister
-from .package_family import PackageFamily
+from .product import Product
 from .package_expressions import NAME, PACKAGE, HAS_TAG
 from .tag import Tag
 from .expression import Expression, ConstExpression
@@ -39,23 +39,23 @@ class Package(ListRegister, Transition):
     __package_dir__ = None
     __registry__ = None
     SUITE_SEPARATOR = '.'
-    def __init__(self, package_family, version, *, short_description=None, long_description=None, family_conflict=True, suite=None):
+    def __init__(self, product, version, *, short_description=None, long_description=None, product_conflict=True, suite=None):
         super().__init__()
-        if isinstance(package_family, str):
-            package_family_name = package_family
-            package_family = PackageFamily.get_family(package_family_name)
-            if package_family is None:
-                raise ValueError("undefined family {}".format(package_family_name))
+        if isinstance(product, str):
+            product_name = product
+            product = Product.get_product(product_name)
+            if product is None:
+                raise ValueError("undefined product {}".format(product_name))
         else:
-            assert isinstance(package_family, PackageFamily)
-        self._package_family = package_family
+            assert isinstance(product, Product)
+        self._product = product
         if version is None:
             version = ''
         if not isinstance(version, Version):
             version = self.make_version(version)
-        self._name = self._package_family._name
+        self._name = self._product._name
         self._version = version
-        self._category = self._package_family._category
+        self._category = self._product._category
         self._short_description = short_description
         self._long_description = long_description
         if suite is None:
@@ -99,7 +99,7 @@ class Package(ListRegister, Transition):
 #                self._label = self._name
 #                self._full_label = self._full_name
         self.register()
-        if family_conflict:
+        if product_conflict:
             self.conflicts(NAME == self._name)
 
     def kind(self):
@@ -133,8 +133,8 @@ class Package(ListRegister, Transition):
     def suite(self):
         return self._suite
 
-    def package_family(self):
-        return self._package_family
+    def product(self):
+        return self._product
 
     @classmethod
     def set_package_dir(cls, package_dir):
@@ -168,7 +168,7 @@ class Package(ListRegister, Transition):
         if self._short_description:
             return self._short_description
         else:
-            return self._package_family.short_description
+            return self._product.short_description
     
     def set_short_description(self, short_description):
         self._short_description = short_description
@@ -179,7 +179,7 @@ class Package(ListRegister, Transition):
         if self._long_description:
             return self._long_description
         else:
-            return self._package_family.long_description
+            return self._product.long_description
 
     def set_long_description(self, long_description):
         self._long_description = long_description
@@ -267,11 +267,11 @@ class Package(ListRegister, Transition):
                 if expression.get_value():
                     #matched.append((self, expression, package))
                     #input("... {0} vs {1} [{2}]".format(self, package, expression))
-                    matched_d[(package.package_family(), expression)].append(package)
+                    matched_d[(package.product(), expression)].append(package)
                     found = True
             if not found:
                 unmatched.append((self, expression))
-        for (package_family, expression), matching_packages in matched_d.items():
+        for (product, expression), matching_packages in matched_d.items():
             matching_packages.sort(key=lambda package: package._version)
             matched.append((self, expression, matching_packages))
         return matched, unmatched
