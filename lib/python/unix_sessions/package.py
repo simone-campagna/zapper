@@ -96,6 +96,9 @@ class Package(ListRegister, Transition):
         if family_conflict:
             self.conflicts(NAME == self._name)
 
+    def kind(self):
+        return "package"
+
     @property
     def name(self):
         return self._name

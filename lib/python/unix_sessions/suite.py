@@ -50,6 +50,9 @@ class Suite(Package):
         super().show_content()
         show_table("Packages", self.packages())
 
+    def kind(self):
+        return "suite"
+
 class _RootSuite(Suite):
     def __init__(self):
         suite_family = SuiteFamily.get_family('')

@@ -48,16 +48,18 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__:>3d}) {is_sticky} {category} {full_package} {tags}"
-    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__:>3d}) {is_sticky} {category} {full_suite} {package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
+    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__:>3d}) {abbreviated_kind}{is_sticky} {category} {full_package} {tags}"
+    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__:>3d}) {abbreviated_kind}{is_sticky} {category} {full_suite} {package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__:>3d}) {abbreviated_kind}{is_loaded}{is_conflicting} {category} {full_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__:>3d}) {abbreviated_kind}{is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
     PACKAGE_HEADER_DICT = collections.OrderedDict((
         ('__ordinal__',      '#'),
         ('category',         'CATEGORY'),
+        ('abbreviated_kind', 'K'),
         ('is_sticky',        'S'),
         ('is_loaded',        'L'),
         ('is_conflicting',   'C'),
+        ('kind',             'KIND'),
         ('package',          'PACKAGE'),
         ('full_package',     'PACKAGE'),
         ('suite',            'SUITE'),
@@ -737,8 +739,11 @@ class Session(object):
             return symbol_False
 
     def _package_info(self, package):
+        kind = package.kind()
         return {
             'category':         package.category,
+            'kind':             kind,
+            'abbreviated_kind': kind[0],
             'is_sticky':        self._mark(self.is_sticky(package), 's', ' '),
             'is_loaded':        self._mark(self.is_loaded(package), 'l', ' '),
             'is_conflicting':   self._mark(self.is_conflicting(package), 'c', ' '),
