@@ -163,6 +163,27 @@ Change the current session""",
         help="help about package_dir_format")
     help_package_dir_format_parser.set_defaults(function=manager.help_package_dir_format)
      
+    help_package_sort_keys_parser = help_subparsers.add_parser(
+        "package_sort_keys",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about package_sort_keys")
+    help_package_sort_keys_parser.set_defaults(function=manager.help_package_sort_keys)
+     
+    help_package_dir_sort_keys_parser = help_subparsers.add_parser(
+        "package_dir_sort_keys",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about package_dir_sort_keys")
+    help_package_dir_sort_keys_parser.set_defaults(function=manager.help_package_dir_sort_keys)
+     
+    help_session_sort_keys_parser = help_subparsers.add_parser(
+        "session_sort_keys",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about session_sort_keys")
+    help_session_sort_keys_parser.set_defaults(function=manager.help_session_sort_keys)
+     
         
 
     ### Package_options

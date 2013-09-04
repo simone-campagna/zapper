@@ -36,7 +36,7 @@ class SortKeys(object):
 
     def sort(self, list_of_dicts):
         for sign, key in reversed(self.keys):
-            list_of_dicts.sort(key=lambda x: x[key], reverse=self.REVERSE[sign])
+            list_of_dicts.sort(key=lambda x: x.get(key, ''), reverse=self.REVERSE[sign])
 
     def __str__(self):
         keys = []

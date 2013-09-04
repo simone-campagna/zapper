@@ -841,3 +841,20 @@ Set the format used to show the list of available sessions.
 Set the format used to show the list of package directories.
 """ + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
 
+    @classmethod
+    def help_package_sort_keys(cls):
+        PRINT("""\
+Set the keys used to sort packages.
+""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
+
+    @classmethod
+    def help_package_dir_sort_keys(cls):
+        PRINT("""\
+Set the keys used to sort package directories.
+""" + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
+
+    @classmethod
+    def help_session_sort_keys(cls):
+        PRINT("""\
+Set the keys used to sort sessions.
+""" + cls._help_format(cls.SESSION_HEADER_DICT))
