@@ -23,3 +23,5 @@ from .package_expressions import NAME, FULL_NAME, LABEL, FULL_LABEL, VERSION, CA
 from .product             import Product
 from .product_suite       import ProductSuite
 from .suite               import Suite
+
+from os.path              import expanduser, expandvars

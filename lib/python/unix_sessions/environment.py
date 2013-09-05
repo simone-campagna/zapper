@@ -108,7 +108,7 @@ class Environment(dict):
         return var_value
 
     def NORMPATH(self, var_value):
-        return os.path.normpath(var_value)
+        return os.path.normpath(os.path.expanduser(var_value))
 
     def var_set(self, var_name, var_value):
         assert isinstance(var_name, str)
