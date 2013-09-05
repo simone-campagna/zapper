@@ -71,7 +71,7 @@ class Environment(dict):
             separator = ':'
         var_value = transform(var_value)
         l = list(self._var_split_uniq(transform, var_name, var_value, separator))
-        l.insert(var_value, 0)
+        l.insert(0, var_value)
         self[var_name] = separator.join(l)
 
     def _list_append(self, transform, var_name, var_value, separator=':'):
