@@ -60,8 +60,8 @@ def main():
     ### Common parser
     common_parser = argparse.ArgumentParser(
         add_help=False,
-        formatter_class=Formatter,
-    )
+        formatter_class=Formatter)
+
     common_parser.add_argument("--verbose", "-v",
         action="store_true",
         default=manager.get_config_key('verbose'),
@@ -82,32 +82,44 @@ def main():
         default=manager.get_config_key('full_label'),
         help="show full package labels")
 
-    common_parser.add_argument("--package-format",
+    package_format_parser = argparse.ArgumentParser(
+        add_help=False,
+        formatter_class=Formatter)
+
+    package_format_parser.add_argument("--package-format",
         type=manager.PackageFormat,
         default=None,
         help="set the format for package info")
 
-    common_parser.add_argument("--package-dir-format",
-        type=manager.PackageDirFormat,
-        default=None,
-        help="set the format for package dir info")
-
-    common_parser.add_argument("--session-format",
-        type=manager.SessionFormat,
-        default=None,
-        help="set the format for session info")
-
-    common_parser.add_argument("--package-sort-keys",
+    package_format_parser.add_argument("--package-sort-keys",
         type=manager.PackageSortKeys,
         default=None,
         help="set the sorting keys for packages")
 
-    common_parser.add_argument("--package-dir-sort-keys",
+    package_dir_format_parser = argparse.ArgumentParser(
+        add_help=False,
+        formatter_class=Formatter)
+
+    package_dir_format_parser.add_argument("--package-dir-format",
+        type=manager.PackageDirFormat,
+        default=None,
+        help="set the format for package dir info")
+
+    package_dir_format_parser.add_argument("--package-dir-sort-keys",
         type=manager.PackageDirSortKeys,
         default=None,
         help="set the sorting keys for package directories")
 
-    common_parser.add_argument("--session-sort-keys",
+    session_format_parser = argparse.ArgumentParser(
+        add_help=False,
+        formatter_class=Formatter)
+
+    session_format_parser.add_argument("--session-format",
+        type=manager.SessionFormat,
+        default=None,
+        help="set the format for session info")
+
+    session_format_parser.add_argument("--session-sort-keys",
         type=manager.SessionSortKeys,
         default=None,
         help="set the sorting keys for sessions")
@@ -119,6 +131,15 @@ def main():
         description="""\
 Change the current session""",
         epilog = "")
+
+    top_level_parser.set_defaults(
+        package_format=None,
+        package_sort_keys=None,
+        package_dir_format=None,
+        package_dir_sort_keys=None,
+        session_format=None,
+        session_sort_keys=None,
+    )
 
     ### Subparsers
     top_level_subparsers = top_level_parser.add_subparsers(
@@ -333,7 +354,7 @@ Change the current session""",
     
     parser_session_available = session_subparsers.add_parser("available",
         aliases=['avail'],
-        parents=[common_parser],
+        parents=[common_parser, session_format_parser],
         formatter_class=Formatter,
         help="list all available sessions")
     parser_session_available.add_argument("--no-persistent", "-P",
@@ -503,7 +524,7 @@ Change the current session""",
 
     ### Package_dir subparsers
     parser_package_dir = top_level_subparsers.add_parser("package_dir",
-        aliases=[],
+        aliases=["dir"],
         parents=[common_parser],
         formatter_class=Formatter,
         help="package directories management")
@@ -513,7 +534,7 @@ Change the current session""",
 
     parser_package_dir_list = package_dir_subparsers.add_parser("list",
         aliases=[],
-        parents=[common_parser],
+        parents=[common_parser, package_dir_format_parser],
         formatter_class=Formatter,
         help="list current package directories")
     parser_package_dir_list.set_defaults(function=manager.show_package_directories)
@@ -541,14 +562,14 @@ Change the current session""",
     for subparsers in top_level_subparsers, package_subparsers:
         parser_package_show_available_packages = subparsers.add_parser("available",
             aliases=["avail"],
-            parents=[common_parser],
+            parents=[common_parser, package_format_parser],
             formatter_class=Formatter,
             help="list available packages")
         parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)
 
         parser_package_show_loaded_packages = subparsers.add_parser("list",
             aliases=[],
-            parents=[common_parser],
+            parents=[common_parser, package_format_parser],
             formatter_class=Formatter,
             help="list loaded packages")
         parser_package_show_loaded_packages.set_defaults(function=manager.show_loaded_packages)
