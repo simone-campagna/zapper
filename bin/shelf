@@ -30,6 +30,7 @@ import collections
 #    HAVE_ARGCOMPLETE = False
 
 from unix_sessions.manager import Manager
+from unix_sessions.helper import Helper
 from unix_sessions.errors import SessionConfigError
 from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
 from unix_sessions.utils.trace import set_trace, trace
@@ -50,6 +51,8 @@ def main():
     class Formatter(argparse.RawTextHelpFormatter):
         def __init__(self, prog, indent_increment=2, max_help_position=27, width=None):
             super().__init__(prog, indent_increment, max_help_position, width)
+
+    helper = Helper(manager)
 
     admin_mode = manager.is_admin()
 
@@ -140,50 +143,56 @@ Change the current session""",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help about available_package_format")
-    help_available_package_format_parser.set_defaults(function=manager.help_available_package_format)
+    help_available_package_format_parser.set_defaults(function=helper.help_available_package_format)
      
     help_loaded_package_format_parser = help_subparsers.add_parser(
         "loaded_package_format",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help about loaded_package_format")
-    help_loaded_package_format_parser.set_defaults(function=manager.help_loaded_package_format)
+    help_loaded_package_format_parser.set_defaults(function=helper.help_loaded_package_format)
 
     help_available_session_format_parser = help_subparsers.add_parser(
         "available_session_format",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help about available_session_format")
-    help_available_session_format_parser.set_defaults(function=manager.help_available_session_format)
+    help_available_session_format_parser.set_defaults(function=helper.help_available_session_format)
      
     help_package_dir_format_parser = help_subparsers.add_parser(
         "package_dir_format",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help about package_dir_format")
-    help_package_dir_format_parser.set_defaults(function=manager.help_package_dir_format)
+    help_package_dir_format_parser.set_defaults(function=helper.help_package_dir_format)
      
     help_package_sort_keys_parser = help_subparsers.add_parser(
         "package_sort_keys",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help about package_sort_keys")
-    help_package_sort_keys_parser.set_defaults(function=manager.help_package_sort_keys)
+    help_package_sort_keys_parser.set_defaults(function=helper.help_package_sort_keys)
      
     help_package_dir_sort_keys_parser = help_subparsers.add_parser(
         "package_dir_sort_keys",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help about package_dir_sort_keys")
-    help_package_dir_sort_keys_parser.set_defaults(function=manager.help_package_dir_sort_keys)
+    help_package_dir_sort_keys_parser.set_defaults(function=helper.help_package_dir_sort_keys)
      
     help_session_sort_keys_parser = help_subparsers.add_parser(
         "session_sort_keys",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help about session_sort_keys")
-    help_session_sort_keys_parser.set_defaults(function=manager.help_session_sort_keys)
-     
+    help_session_sort_keys_parser.set_defaults(function=helper.help_session_sort_keys)
+        
+    help_default_session_parser = help_subparsers.add_parser(
+        "default_session",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="help about default_session")
+    help_default_session_parser.set_defaults(function=helper.help_default_session)
         
 
     ### Package_options
@@ -336,14 +345,14 @@ Change the current session""",
 
     for subparser in (parser_session_create, parser_session_load, parser_session_new):
         subparser.add_argument("session_name",
-            type=str,
+            type=manager.SessionName,
             nargs='?',
             default=None,
             help="session name")
 
     for subparser in (parser_session_delete, parser_session_copy):
         subparser.add_argument("session_names",
-            type=str,
+            type=manager.SessionName,
             nargs='+',
             default=None,
             help="session names")

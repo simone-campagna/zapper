@@ -18,11 +18,13 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
-from .config_commons import GENERAL, CONFIG, VERSION_DEFAULTS
+from .common_config import GENERAL, USER_HOST_CONFIG, VERSION_DEFAULTS
+
+HOST_CONFIG = USER_HOST_CONFIG
 
 class HostConfig(Config):
     __defaults__ = {
         'general': GENERAL,
-        'config': CONFIG,
+        'config': HOST_CONFIG,
         'version_defaults': VERSION_DEFAULTS,
     }

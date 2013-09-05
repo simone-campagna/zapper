@@ -32,8 +32,9 @@ from .package import Package
 from .package_expressions import ALL_EXPRESSIONS
 from .translator import Translator
 from .translators import *
-from .user_config import UserConfig
-from .host_config import HostConfig
+from .host_config import HOST_CONFIG, HostConfig
+from .user_config import USER_CONFIG, UserConfig
+from .session_config import SESSION_CONFIG
 from .expression import Expression
 from .utils.install_data import get_home_dir, get_admin_user
 from .utils.random_name import RandomNameSequence
@@ -50,6 +51,12 @@ class Manager(object):
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
     DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name}'
+    DEFAULT_SESSION_LAST = '<last>'
+    DEFAULT_SESSION_NEW = '<new>'
+    DEFAULT_SESSION_DICT = {
+        DEFAULT_SESSION_NEW:  'use a new session',
+        DEFAULT_SESSION_LAST: 'use last session',
+    }
     SESSION_HEADER_DICT = collections.OrderedDict((
         ('__ordinal__', '#'),
         ('is_current',  'C'),
@@ -57,39 +64,32 @@ class Manager(object):
         ('name',        'NAME'),
         ('root',        'ROOT'),
     ))
-    MANAGER_CONFIG_KEYS = (
-        'verbose',
-        'debug',
-        'trace',
-        'subpackages',
-        'full_label',
-        'available_package_format',
-        'loaded_package_format',
-        'available_session_format',
-        'package_dir_format',
-        'package_sort_keys',
-        'package_dir_sort_keys',
-        'session_sort_keys',
-        'resolution_level',
-        'filter_packages',
-    )
-    MANAGER_CONFIG = {
-        'verbose': False,
-        'debug': False,
-        'trace': False,
-        'subpackages': False,
-        'full_label': False,
-        'available_package_format': None,
-        'loaded_package_format': None,
-        'available_session_format': None,
-        'package_dir_format': None,
-        'package_sort_keys': None,
-        'package_dir_sort_keys': None,
-        'session_sort_keys': None,
-        'resolution_level': 0,
-        'filter_packages': None,
+    MANAGER_CONFIG = collections.OrderedDict((
+        ('verbose', False),
+        ('debug', False),
+        ('trace', False),
+        ('subpackages', False),
+        ('full_label', False),
+        ('available_package_format', None),
+        ('loaded_package_format', None),
+        ('available_session_format', None),
+        ('package_dir_format', None),
+        ('package_sort_keys', None),
+        ('package_dir_sort_keys', None),
+        ('session_sort_keys', None),
+        ('resolution_level', 0),
+        ('filter_packages', None),
+        ('default_session', DEFAULT_SESSION_LAST),
+    ))
+    LABEL_CONFIG = {
+        'host': HOST_CONFIG,
+        'user': USER_CONFIG,
+        'session': SESSION_CONFIG,
+        'manager': MANAGER_CONFIG,
+        'current': MANAGER_CONFIG,
     }
     DEFAULT_SESSION_SORT_KEYS = SortKeys('', SESSION_HEADER_DICT, 'session')
+    SESSION_NAME_INVALID_CHARS = ':/<>'
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
         self.user = getpass.getuser()
@@ -167,6 +167,20 @@ class Manager(object):
         if session_format is not None:
             validate_format(session_format, **cls.SESSION_HEADER_DICT)
         return session_format
+
+    @classmethod
+    def SessionName(cls, session_name):
+        invalid_chars = set(session_name).intersection(cls.SESSION_NAME_INVALID_CHARS)
+        if invalid_chars:
+            raise SessionError("invalid session name {!r}: invalid chars {!r}".format(session_name, ''.join(invalid_chars)))
+        return session_name
+
+    @classmethod
+    def DefaultSession(cls, session_name):
+        if session_name in cls.DEFAULT_SESSION_DICT:
+            return session_name
+        else:
+            return cls.SessionName(session_name)
 
     def set_package_sort_keys(self, sort_keys):
         if sort_keys is None:
@@ -348,10 +362,16 @@ class Manager(object):
         self._update_package_option(option, 'session', session_package_option, self.package_options[option])
 
     ### Config
+    @classmethod
+    def iter_config_keys(cls, label):
+        for key in cls.MANAGER_CONFIG:
+            if key in cls.LABEL_CONFIG[label]:
+                yield key
+
     def _update_config(self, label, from_config, config_dict):
         assert isinstance(config_dict, dict)
         changed = False
-        for key in self.MANAGER_CONFIG.keys():
+        for key in self.iter_config_keys(label):
             value = from_config.get(key, '')
             if value == '':
                 if not key in config_dict:
@@ -396,6 +416,8 @@ class Manager(object):
             value = Session.PackageDirFormat(s_value)
         elif key in {'available_session_format'}:
             value = self.SessionFormat(s_value)
+        elif key in {'default_session'}:
+            value = self.DefaultSession(s_value)
         else:
             value = s_value
         if str(config_dict.get(key, None)) != str(value):
@@ -408,7 +430,7 @@ class Manager(object):
 
     def show_config(self, label, config, keys):
         if not keys:
-            keys = self.MANAGER_CONFIG_KEYS
+            keys = list(self.iter_config_keys(label))
         if not isinstance(config, dict):
             # convert configparser.SectionProxies -> dict
             config_dict = {}
@@ -466,7 +488,7 @@ class Manager(object):
 
     def _reset_generic_config(self, label, config, keys):
         if not keys:
-            keys = self.MANAGER_CONFIG_KEYS
+            keys = list(self.iter_config_keys(label))
         changed = False
         for key in keys:
             if not key in config:
@@ -544,7 +566,13 @@ class Manager(object):
         self.session = None
         session_root = os.environ.get("UXS_SESSION", None)
         if not session_root:
-            session_root = self.user_config['sessions']['last_session']
+            default_session = self.get_config_key('default_session')
+            if default_session == self.DEFAULT_SESSION_LAST:
+                session_root = self.user_config['sessions']['last_session']
+            elif default_session == self.DEFAULT_SESSION_NEW:
+                session_root = None
+            else:
+                session_root = self.get_session_root(default_session)
         if session_root:
             session_config_file = Session.get_session_config_file(session_root)
             if not os.path.lexists(session_config_file):
@@ -808,79 +836,3 @@ class Manager(object):
                 self.session.translate_file(translator, translation_filename=os.path.abspath(translation_filename))
             else:
                 self.session.translate_stream(translator, stream=sys.stdout)
-        
-    @classmethod
-    def _help_format(cls, format_dict):
-        return """\
-Available keys:
----------------
-{0}
-""".format('\n'.join(" * {key}".format(key=key) for key in format_dict))
-
-    @classmethod
-    def help_available_package_format(cls):
-        PRINT("""\
-Set the format used to show the list of available packages.
-""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
-
-    @classmethod
-    def help_loaded_package_format(cls):
-        PRINT("""\
-Set the format used to show the list of loaded packages.
-""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
-
-    @classmethod
-    def help_available_session_format(cls):
-        PRINT("""\
-Set the format used to show the list of available sessions.
-""" + cls._help_format(cls.SESSION_HEADER_DICT))
-
-    @classmethod
-    def help_package_dir_format(cls):
-        PRINT("""\
-Set the format used to show the list of package directories.
-""" + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
-
-    @classmethod
-    def _help_sort_keys(cls, label, example1, example2):
-        return """\
-
-Keys can be chained using ':'. For instance:
-{label}={example1!r}
-
-A '-' sign before the key reverses the sorting:
-{label}={example1!r}
-
-The sort key '__ordinal__' has no effect.
-
-""".format(label=label, example1=example1, example2=example2)
-
-    @classmethod
-    def help_package_sort_keys(cls):
-        PRINT("""\
-Set the keys used to sort packages.
-""" + cls._help_sort_keys(
-        label='package_sort_keys',
-        example1='category:product:version',
-        example2='category:-product:version',
-    ) + cls._help_format(Session.PACKAGE_HEADER_DICT))
-
-    @classmethod
-    def help_package_dir_sort_keys(cls):
-        PRINT("""\
-Set the keys used to sort package directories. 
-""" + cls._help_sort_keys(
-        label='package_dir_sort_keys',
-        example1='package_dir',
-        example2='-package_dir',
-    ) + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
-
-    @classmethod
-    def help_session_sort_keys(cls):
-        PRINT("""\
-Set the keys used to sort sessions.
-""" + cls._help_sort_keys(
-        label='session_sort_keys',
-        example1='type:name',
-        example2='type:-name',
-    ) + cls._help_format(cls.SESSION_HEADER_DICT))

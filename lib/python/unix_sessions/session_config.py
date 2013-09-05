@@ -18,7 +18,9 @@
 __author__ = 'Simone Campagna'
 
 from .config import Config
-from .config_commons import CONFIG, VERSION_DEFAULTS
+from .common_config import COMMON_CONFIG, VERSION_DEFAULTS
+
+SESSION_CONFIG = COMMON_CONFIG
 
 class SessionConfig(Config):
     __defaults__ = {
@@ -32,6 +34,6 @@ class SessionConfig(Config):
             'loaded_packages': '',
             'sticky_packages': '',
         },
-        'config': CONFIG,
+        'config': SESSION_CONFIG,
         'version_defaults': VERSION_DEFAULTS,
     }

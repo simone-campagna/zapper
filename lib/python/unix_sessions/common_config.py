@@ -19,7 +19,7 @@ __author__ = 'Simone Campagna'
 
 from .config import Config
 
-CONFIG = {
+COMMON_CONFIG = {
     'verbose': '',
     'debug': '',
     'trace': '',
@@ -35,6 +35,9 @@ CONFIG = {
     'resolution_level': '',
     'filter_packages': '',
 }
+
+USER_HOST_CONFIG = COMMON_CONFIG.copy()
+USER_HOST_CONFIG['default_session'] = ''
 
 VERSION_DEFAULTS = {
 }
