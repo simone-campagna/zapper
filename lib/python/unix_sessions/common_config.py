@@ -33,6 +33,7 @@ COMMON_CONFIG = {
     'package_dir_sort_keys': '',
     'session_sort_keys': '',
     'resolution_level': '',
+    'show_header': '',
     'filter_packages': '',
 }
 

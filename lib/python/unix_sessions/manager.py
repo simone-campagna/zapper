@@ -79,6 +79,7 @@ class Manager(object):
         ('session_sort_keys', None),
         ('resolution_level', 0),
         ('filter_packages', None),
+        ('show_header', True),
         ('default_session', DEFAULT_SESSION_LAST),
     ))
     LABEL_CONFIG = {
@@ -127,6 +128,7 @@ class Manager(object):
         self._available_session_format = None
         self._package_format = None
         self._package_dir_format = None
+        self._show_header = True
 
         self._package_sort_keys = None
         self._package_dir_sort_keys = None
@@ -181,6 +183,9 @@ class Manager(object):
             return session_name
         else:
             return cls.SessionName(session_name)
+
+    def set_show_header(self, show_header):
+        self._show_header = show_header
 
     def set_package_sort_keys(self, sort_keys):
         if sort_keys is None:
@@ -392,7 +397,7 @@ class Manager(object):
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label'}:
+        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header'}:
             if isinstance(s_value, str):
                 value = self._str2bool(s_value)
             else:
@@ -418,8 +423,10 @@ class Manager(object):
             value = self.SessionFormat(s_value)
         elif key in {'default_session'}:
             value = self.DefaultSession(s_value)
-        else:
+        elif key in {'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys'}:
             value = s_value
+        else:
+            raise KeyError("internal error: unsupported key {}".format(key))
         if str(config_dict.get(key, None)) != str(value):
             #if label is not None:
             #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
@@ -743,7 +750,7 @@ class Manager(object):
         
         sort_keys.sort(rows)
 
-        t = Table(session_format, title="Available sessions")
+        t = Table(session_format, show_header=self._show_header)
         for row_d in rows:
             t.add_row(**row_d)
         t.set_column_title(**self.SESSION_HEADER_DICT)
@@ -806,6 +813,8 @@ class Manager(object):
 
         self.session.set_package_sort_keys(self._package_sort_keys)
         self.session.set_package_dir_sort_keys(self._package_dir_sort_keys)
+
+        self.session.set_show_header(self._show_header)
 
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):

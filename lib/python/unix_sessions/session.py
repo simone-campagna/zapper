@@ -84,6 +84,7 @@ class Session(object):
         self._package_directories = []
         self._defined_packages = PackageCollection()
         self._available_packages = PackageCollection()
+        self._show_header = True
         self._orig_sticky_packages = set()
         self._sticky_packages = set()
         self._modules = {}
@@ -96,6 +97,9 @@ class Session(object):
         self.set_package_dir_sort_keys(None)
         self._version_defaults = {}
         self.load(session_root)
+
+    def set_show_header(self, show_header):
+        self._show_header = show_header
 
     def set_version_defaults(self, version_defaults):
         assert isinstance(version_defaults, collections.Mapping)
@@ -801,7 +805,7 @@ class Session(object):
 
         sort_keys.sort(package_infos)
 
-        t = Table(package_format, title=title)
+        t = Table(package_format, show_header=self._show_header) #title=title)
         t.set_column_title(**self.PACKAGE_HEADER_DICT)
         for package_info in package_infos:
             t.add_row(**package_info)
@@ -858,7 +862,7 @@ class Session(object):
        
         sort_keys.sort(rows)
 
-        t = Table(package_dir_format, title="Package directories")
+        t = Table(package_dir_format, show_header=self._show_header) #title="Package directories")
         t.set_column_title(**self.PACKAGE_DIR_HEADER_DICT)
         for row_d in rows:
             t.add_row(**row_d)
