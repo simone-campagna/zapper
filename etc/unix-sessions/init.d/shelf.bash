@@ -17,11 +17,11 @@ function shelf {
 }
 
 # set bash completion file:
-bash_completion_file=${UXS_RC_DIR}/bash_completion.shelf
-if [[ ! -f ${UXS_RC_DIR}/bash_completion.shelf ]] ; then
-    export UXS_ENABLE_BASH_COMPLETION_OPTION=True
+bash_completion_file="${UXS_RC_DIR}/completion.bash"
+if [[ ! -f ${bash_completion_file} ]] ; then
+    #export UXS_ENABLE_BASH_COMPLETION_OPTION=True
     shelf bash_completion "$bash_completion_file"
-    unset UXS_ENABLE_BASH_COMPLETION_OPTION
+    #unset UXS_ENABLE_BASH_COMPLETION_OPTION
 fi
 if [[ -f ${bash_completion_file} ]] ; then
     . ${bash_completion_file}

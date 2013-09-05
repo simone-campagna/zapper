@@ -45,14 +45,15 @@ def main():
         def __init__(self, prog, indent_increment=2, max_help_position=27, width=None):
             super().__init__(prog, indent_increment, max_help_position, width)
 
-    enable_bash_completion_option = os.environ.get("UXS_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
+    enable_bash_completion_option = True
+    #os.environ.get("UXS_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
 
     helper = Helper(manager)
 
     admin_mode = manager.is_admin()
 
     package_options = collections.OrderedDict()
-    package_options['version_defaults'] = ('versions', ['v'])
+    package_options['version_defaults'] = ('versions', [])
 
     #Formatter = argparse.HelpFormatter
 
@@ -124,9 +125,11 @@ Change the current session""",
         description="Commands to change the current session.")
 
     ### Bash completion 
-    def generate_completion(parser, filename):
+    def generate_completion(parser, filename, manager):
+        if filename == '-':
+            filename = None
         from unix_sessions.utils.argparse_completion import complete
-        complete(parser=top_level_parser, filename=filename, skip_keys=['bash_completion'])
+        complete(parser=top_level_parser, filename=filename) #, skip_keys=['bash_completion'])
             
     if enable_bash_completion_option:
         parser_bash_completion = top_level_subparsers.add_parser(
@@ -134,17 +137,18 @@ Change the current session""",
             parents=[common_parser],
             formatter_class=Formatter,
             help="generate bash completion")
-        parser_bash_completion.set_defaults(function=generate_completion, parser=top_level_parser)
+        parser_bash_completion.set_defaults(function=generate_completion, parser=top_level_parser, manager=manager)
 
         parser_bash_completion.add_argument(
             "filename",
             type=str,
+            default=os.path.join(manager.user_rc_dir, 'completion.bash'),
             nargs='?',
             help="output filename")
 
     ### Help 
     parser_help = top_level_subparsers.add_parser("help",
-        aliases=["h"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="help")
@@ -224,7 +228,7 @@ Change the current session""",
 
     ### Config subparser
     parser_config =  top_level_subparsers.add_parser("config",
-        aliases=["c"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="default values for some command line options")
@@ -234,7 +238,7 @@ Change the current session""",
 
     ### Host subparser
     parser_host = top_level_subparsers.add_parser("host",
-        aliases=['h'],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="host configuration; only available for administrators")
@@ -254,7 +258,7 @@ Change the current session""",
             description="Host {0} management.".format(option.title()))
 
     parser_host_config = host_subparsers.add_parser("config",
-        aliases=["c"],
+        aliases=[],
         formatter_class=Formatter,
         help="host default values")
 
@@ -263,7 +267,7 @@ Change the current session""",
 
     ### User subparser
     parser_user = top_level_subparsers.add_parser("user",
-        aliases=['u'],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="user configuration")
@@ -283,7 +287,7 @@ Change the current session""",
             description="User {0} management.".format(option.title()))
 
     parser_user_config = user_subparsers.add_parser("config",
-        aliases=["c"],
+        aliases=[],
         formatter_class=Formatter,
         help="user default values")
 
@@ -292,7 +296,7 @@ Change the current session""",
 
     ### Session subparser
     parser_session = top_level_subparsers.add_parser("session",
-        aliases=["s"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="session management")
@@ -301,21 +305,21 @@ Change the current session""",
         description="Session subcommand.")
 
     parser_session_create = session_subparsers.add_parser("create",
-        aliases=["cr"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="create a new session")
     parser_session_create.set_defaults(function=manager.create_session)
     
     parser_session_load = session_subparsers.add_parser("load",
-        aliases=["lo"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="load an existing session")
     parser_session_load.set_defaults(function=manager.load_session)
     
     parser_session_delete = session_subparsers.add_parser("delete",
-        aliases=["del"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="delete existing sessions")
@@ -328,7 +332,7 @@ Change the current session""",
     parser_session_new.set_defaults(function=manager.new_session)
     
     parser_session_available = session_subparsers.add_parser("available",
-        aliases=['avail', 'av'],
+        aliases=['avail'],
         parents=[common_parser],
         formatter_class=Formatter,
         help="list all available sessions")
@@ -383,7 +387,7 @@ Change the current session""",
             description="Session {0} management.".format(option.title()))
 
     parser_session_config = session_subparsers.add_parser("config",
-        aliases=["c"],
+        aliases=[],
         formatter_class=Formatter,
         help="session default values")
 
@@ -489,7 +493,7 @@ Change the current session""",
 
     ### Package subparser
     parser_package = top_level_subparsers.add_parser("package",
-        aliases=["p"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="package management")
@@ -499,7 +503,7 @@ Change the current session""",
 
     ### Package_dir subparsers
     parser_package_dir = top_level_subparsers.add_parser("package_dir",
-        aliases=["dir"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="package directories management")
@@ -508,7 +512,7 @@ Change the current session""",
         description="""Package directory subcommand.""")
 
     parser_package_dir_list = package_dir_subparsers.add_parser("list",
-        aliases=["li"],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="list current package directories")
@@ -521,7 +525,7 @@ Change the current session""",
     parser_package_dir_add.set_defaults(function=manager.add_package_directories)
 
     parser_package_dir_remove = package_dir_subparsers.add_parser("remove",
-        aliases=['rem'],
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="remove a package directory from current session")
@@ -536,14 +540,14 @@ Change the current session""",
 
     for subparsers in top_level_subparsers, package_subparsers:
         parser_package_show_available_packages = subparsers.add_parser("available",
-            aliases=["avail", "av"],
+            aliases=["avail"],
             parents=[common_parser],
             formatter_class=Formatter,
             help="list available packages")
         parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)
 
         parser_package_show_loaded_packages = subparsers.add_parser("list",
-            aliases=["li"],
+            aliases=[],
             parents=[common_parser],
             formatter_class=Formatter,
             help="list loaded packages")
@@ -570,7 +574,7 @@ Change the current session""",
         parser_package_add.set_defaults(function=manager.add_packages)
     
         parser_package_remove = subparsers.add_parser("remove",
-            aliases=['rem'],
+            aliases=[],
             parents=[common_parser],
             formatter_class=Formatter,
             help="remove packages from current session",

@@ -100,6 +100,9 @@ complete -F {function} -o filenames {name}
         else:
             return False
     
+    def _sort_key_function(self, key):
+        return key
+
     def complete(self, parser, stack):
         keys = []
         label = '.'.join(stack)
@@ -114,6 +117,7 @@ complete -F {function} -o filenames {name}
             else:
                 #print("{}:action: {}".format(label, action.option_strings))
                 keys.extend(key for key in action.option_strings if not self._key_to_skip(key))
+        #keys.sort(key=self._sort_key_function)
         self.generate_function(stack, keys)
 
 def complete(parser, filename=None, skip_keys=None):
