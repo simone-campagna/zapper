@@ -22,13 +22,6 @@ import sys
 import argparse
 import collections
 
-#try:
-#    import argcomplete
-#    HAVE_ARGCOMPLETE = True
-#except ImportError:
-#    print("no argcomplete!")
-#    HAVE_ARGCOMPLETE = False
-
 from unix_sessions.manager import Manager
 from unix_sessions.helper import Helper
 from unix_sessions.errors import SessionConfigError
@@ -51,6 +44,8 @@ def main():
     class Formatter(argparse.RawTextHelpFormatter):
         def __init__(self, prog, indent_increment=2, max_help_position=27, width=None):
             super().__init__(prog, indent_increment, max_help_position, width)
+
+    enable_bash_completion_option = os.environ.get("UXS_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
 
     helper = Helper(manager)
 
@@ -127,6 +122,25 @@ Change the current session""",
     ### Subparsers
     top_level_subparsers = top_level_parser.add_subparsers(
         description="Commands to change the current session.")
+
+    ### Bash completion 
+    def generate_completion(parser, filename):
+        from unix_sessions.utils.argparse_completion import complete
+        complete(parser=top_level_parser, filename=filename, skip_keys=['bash_completion'])
+            
+    if enable_bash_completion_option:
+        parser_bash_completion = top_level_subparsers.add_parser(
+            "bash_completion",
+            parents=[common_parser],
+            formatter_class=Formatter,
+            help="generate bash completion")
+        parser_bash_completion.set_defaults(function=generate_completion, parser=top_level_parser)
+
+        parser_bash_completion.add_argument(
+            "filename",
+            type=str,
+            nargs='?',
+            help="output filename")
 
     ### Help 
     parser_help = top_level_subparsers.add_parser("help",
@@ -610,9 +624,6 @@ Change the current session""",
 #        help="init modules to current session")
 #    parser_init.set_defaults(function=manager.init)
 
-
-#    if HAVE_ARGCOMPLETE:
-#        argcomplete.autocomplete(top_level_parser)
 
     args = top_level_parser.parse_args()
 

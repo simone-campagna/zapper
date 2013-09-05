@@ -21,6 +21,12 @@ import glob
 import getpass
 import tempfile
 
+dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
+py_dirname = os.path.join(dirname, "lib", "python")
+print(py_dirname)
+sys.path.append(py_dirname)
+from unix_sessions.manager import Manager
+
 from distutils.core import setup
 from distutils import log
 from distutils.command.install_data import install_data
@@ -39,6 +45,7 @@ class subst_command(Command):
         if not hasattr(self, 'r_list'):
             v_dict = {
                 'UXS_HOME_DIR':             self.install_base,
+                'UXS_RC_DIR_NAME':          Manager.RC_DIR_NAME,
                 'UXS_ADMIN_USER':           self.admin_user,
                 'PYTHON_EXECUTABLE':        sys.executable,
             }

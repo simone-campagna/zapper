@@ -1,4 +1,5 @@
 UXS_HOME_DIR="@UXS_HOME_DIR@"
+UXS_RC_DIR="$HOME/@UXS_RC_DIR_NAME@"
 PYTHON_EXECUTABLE="@PYTHON_EXECUTABLE@"
 function shelf {
     typeset _filename
@@ -14,3 +15,15 @@ function shelf {
         . "$_filename"
     fi
 }
+
+# set bash completion file:
+bash_completion_file=${UXS_RC_DIR}/bash_completion.shelf
+if [[ ! -f ${UXS_RC_DIR}/bash_completion.shelf ]] ; then
+    export UXS_ENABLE_BASH_COMPLETION_OPTION=True
+    shelf bash_completion "$bash_completion_file"
+    unset UXS_ENABLE_BASH_COMPLETION_OPTION
+fi
+if [[ -f ${bash_completion_file} ]] ; then
+    . ${bash_completion_file}
+fi
+unset bash_completion_file
