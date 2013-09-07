@@ -34,3 +34,18 @@ def plural(s, number):
 def plural_string(s, number):
     return "#{0} {1}".format(number, plural(s, number))
 
+def string_to_bool(s):
+    try:
+        i = int(s)
+        return bool(i)
+    except ValueError as e:
+        pass
+    if s.lower() in {'true', 'on'}:
+        return True
+    elif s.lower() in {'false', 'off'}:
+        return False
+    else:
+        raise ValueError("invalid value {0!r} for bool".format(s))
+
+def bool_to_string(b):
+    return str(bool(b))

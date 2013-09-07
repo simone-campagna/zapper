@@ -37,7 +37,7 @@ from .utils.trace import trace
 from .utils.table import Table, validate_format
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
-from .utils.strings import plural_string
+from .utils.strings import plural_string, string_to_bool, bool_to_string
 from .utils.sort_keys import SortKeys
 from .utils import sequences
 
@@ -97,6 +97,10 @@ class Session(object):
         self.set_package_dir_sort_keys(None)
         self._version_defaults = {}
         self.load(session_root)
+
+    def check_read_only(self):
+        if self.session_read_only:
+            raise SessionError("cannot change read-only session {}".format(self.session_name))
 
     def set_show_header(self, show_header):
         self._show_header = show_header
@@ -214,7 +218,8 @@ class Session(object):
         self.session_name = self.session_config['session']['name']
         self.session_type = self.session_config['session']['type']
         self.session_description = self.session_config['config']['description']
-        self.session_read_only = self.session_config['config']['read_only']
+        self.session_read_only = False
+        current_session_read_only = string_to_bool(self.session_config['config']['read_only'])
         self.session_creation_time = self.session_config['session']['creation_time']
         package_directories_string = self.session_config['packages']['directories']
         if package_directories_string:
@@ -242,6 +247,8 @@ class Session(object):
             packages_list = []
         self._sticky_packages.update(packages_list)
         self._orig_sticky_packages = self._sticky_packages.copy()
+        # this must be at the end!
+        self.session_read_only = current_session_read_only
 
     @classmethod
     def create_unique_session_root(cls, sessions_dir):
@@ -419,11 +426,13 @@ class Session(object):
         self.add(packages_list)
                 
     def store(self):
+        self.check_read_only()
         self.session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
         self.session_config['packages']['sticky_packages'] = ':'.join(self._sticky_packages)
         self.session_config.store()
         
     def add_directories(self, directories):
+        self.check_read_only()
         changed = False
         for directory in directories:
             directory = os.path.normpath(os.path.abspath(directory))
@@ -438,6 +447,7 @@ class Session(object):
             self.session_config.store()
         
     def remove_directories(self, directories):
+        self.check_read_only()
         changed = False
         for directory in directories:
             directory = os.path.normpath(os.path.abspath(directory))
@@ -511,6 +521,7 @@ class Session(object):
         return unloaded_packages
 
     def add(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
+        self.check_read_only()
         for packages in self.iteradd(package_labels):
             #print(packages)
             if subpackages:
@@ -617,8 +628,9 @@ class Session(object):
                 self._add_suite(package)
 
     def finalize(self):
-        if self._loaded_packages.is_changed() or self._orig_sticky_packages != self._sticky_packages:
-            self.store()
+        if not self.session_read_only:
+            if self._loaded_packages.is_changed() or self._orig_sticky_packages != self._sticky_packages:
+                self.store()
         
     def _add_suite(self, suite):
         self._loaded_suites.add_package(suite)
@@ -626,6 +638,7 @@ class Session(object):
             self._available_packages.add_package(package)
 
     def remove(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
+        self.check_read_only()
         packages = []
         for package_label in package_labels:
             package = self.get_loaded_package(package_label)
@@ -710,6 +723,7 @@ class Session(object):
             self._available_packages.remove_package(package)
 
     def clear(self, sticky=False, dry_run=False):
+        self.check_read_only()
         packages_to_remove = reversed(list(self._loaded_packages.values()))
         if not sticky:
             lst = []

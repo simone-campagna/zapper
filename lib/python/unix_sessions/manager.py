@@ -42,6 +42,7 @@ from .utils.table import show_table, validate_format
 from .utils.debug import PRINT
 from .utils.trace import trace
 from .utils.sort_keys import SortKeys
+from .utils.strings import string_to_bool, bool_to_string
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -83,7 +84,7 @@ class Manager(object):
         ('show_header', True),
         ('default_session', DEFAULT_SESSION_LAST),
         ('description', ''),
-        ('read_only', 'False'),
+        ('read_only', False),
     ))
     LABEL_CONFIG = {
         'host': HOST_CONFIG,
@@ -524,17 +525,7 @@ class Manager(object):
 
     @classmethod
     def _str2bool(cls, s):
-        try:
-            i = int(s)
-            return bool(i)
-        except ValueError as e:
-            pass
-        if s.lower() in {'true', 'on'}:
-            return True
-        elif s.lower() in {'false', 'off'}:
-            return False
-        else:
-            raise ValueError("invalid value {0!r} for bool".format(s))
+        return string_to_bool(s)
 
     @classmethod
     def _str2int(cls, s):
@@ -546,7 +537,7 @@ class Manager(object):
 
     @classmethod
     def _bool2str(cls, b):
-        return str(b)
+        return bool_to_string(b)
 
     @classmethod
     def _int2str(cls, i):
