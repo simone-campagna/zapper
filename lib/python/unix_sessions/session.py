@@ -213,6 +213,8 @@ class Session(object):
         self.session_config = self.get_session_config(session_config_file)
         self.session_name = self.session_config['session']['name']
         self.session_type = self.session_config['session']['type']
+        self.session_description = self.session_config['config']['description']
+        self.session_read_only = self.session_config['config']['read_only']
         self.session_creation_time = self.session_config['session']['creation_time']
         package_directories_string = self.session_config['packages']['directories']
         if package_directories_string:
@@ -260,11 +262,12 @@ class Session(object):
             return session_root
             
     @classmethod
-    def create_session_config(cls, manager, session_root, session_name, session_type):
+    def create_session_config(cls, manager, session_root, session_name, session_type, session_description):
         session_config_file = cls.get_session_config_file(session_root)
         session_config = cls.get_session_config(session_config_file)
         session_config['session']['name'] = session_name
         session_config['session']['type'] = session_type
+        session_config['config']['description'] = session_description
         package_directories = []
         if manager.user_package_dir and os.path.lexists(manager.user_package_dir):
             package_directories.append(manager.user_package_dir)
@@ -872,6 +875,8 @@ class Session(object):
         PRINT(Table.format_title("Session {0} at {1}".format(self.session_name, self.session_root)))
         PRINT("name          : {0}".format(self.session_name))
         PRINT("type          : {0}".format(self.session_type))
+        PRINT("description   : {0}".format(self.session_description))
+        PRINT("read-only     : {0}".format(self.session_read_only))
         PRINT("creation time : {0}".format(self.session_creation_time))
         self.show_package_directories()
         self.show_loaded_packages()

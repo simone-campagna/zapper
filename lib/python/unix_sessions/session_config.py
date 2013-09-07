@@ -20,7 +20,9 @@ __author__ = 'Simone Campagna'
 from .config import Config
 from .common_config import COMMON_CONFIG, VERSION_DEFAULTS
 
-SESSION_CONFIG = COMMON_CONFIG
+SESSION_CONFIG = COMMON_CONFIG.copy()
+SESSION_CONFIG['description'] = ''
+SESSION_CONFIG['read_only'] = 'False'
 
 class SessionConfig(Config):
     __defaults__ = {

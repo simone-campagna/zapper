@@ -401,6 +401,11 @@ Change the current session""",
             default=None,
             help="session name")
 
+    for subparser in (parser_session_create, parser_session_new):
+        subparser.add_argument("--description",
+            default='',
+            help="session description")
+
     for subparser in (parser_session_delete, parser_session_copy):
         subparser.add_argument("session_names",
             type=manager.SessionName,

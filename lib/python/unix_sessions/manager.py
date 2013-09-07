@@ -50,7 +50,7 @@ class Manager(object):
     PACKAGES_DIR_NAME = 'packages'
     LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
-    DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name}'
+    DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name} {description}'
     DEFAULT_SESSION_LAST = '<last>'
     DEFAULT_SESSION_NEW = '<new>'
     DEFAULT_SESSION_DICT = {
@@ -63,6 +63,7 @@ class Manager(object):
         ('type',        'TYPE'),
         ('name',        'NAME'),
         ('root',        'ROOT'),
+        ('description', 'DESCRIPTION'),
     ))
     MANAGER_CONFIG = collections.OrderedDict((
         ('verbose', False),
@@ -81,6 +82,8 @@ class Manager(object):
         ('filter_packages', None),
         ('show_header', True),
         ('default_session', DEFAULT_SESSION_LAST),
+        ('description', ''),
+        ('read_only', 'False'),
     ))
     LABEL_CONFIG = {
         'host': HOST_CONFIG,
@@ -397,7 +400,7 @@ class Manager(object):
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header'}:
+        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'read_only'}:
             if isinstance(s_value, str):
                 value = self._str2bool(s_value)
             else:
@@ -423,7 +426,7 @@ class Manager(object):
             value = self.SessionFormat(s_value)
         elif key in {'default_session'}:
             value = self.DefaultSession(s_value)
-        elif key in {'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys'}:
+        elif key in {'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys', 'description'}:
             value = s_value
         else:
             raise KeyError("internal error: unsupported key {}".format(key))
@@ -635,7 +638,7 @@ class Manager(object):
         except Exception as e:
             raise SessionError("invalid target translation {0!r}: {1}: {2}".format(translation_name, e.__class__.__name__, e))
 
-    def create_session(self, session_name=None):
+    def create_session(self, session_name=None, description=''):
         session_type = None
         if session_name is None:
             session_type = Session.SESSION_TYPE_TEMPORARY
@@ -647,12 +650,16 @@ class Manager(object):
             #if os.path.lexists(session_root):
             #    raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
             #os.makedirs(session_root)
-        Session.create_session_config(manager=self, session_root=session_root, session_name=session_name, session_type=session_type)
+        Session.create_session_config(
+            manager=self, session_root=session_root,
+            session_name=session_name,
+            session_type=session_type,
+            session_description=description)
         PRINT("created {t} session {n} at {r}".format(t=session_type, n=session_name, r=session_root))
         return session_root
 
-    def new_session(self, session_name=None):
-        session_root = self.create_session(session_name)
+    def new_session(self, session_name=None, description=''):
+        session_root = self.create_session(session_name=session_name, description=description)
         self._load_session_root(session_root)
         
     def delete_sessions(self, session_names):
@@ -746,7 +753,9 @@ class Manager(object):
                     mark_current = '*'
                 else:
                     mark_current = ' '
-                rows.append(dict(name=session_name, type=session_type, root=session_root, is_current=mark_current))
+                description = self.get_config_key('description')
+                rows.append(dict(name=session_name, type=session_type, root=session_root, is_current=mark_current,
+                                 description=description))
         
         sort_keys.sort(rows)
 
