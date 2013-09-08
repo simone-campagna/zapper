@@ -771,8 +771,16 @@ class Manager(object):
     def show_package(self, package_label):
         self.session.show_package(package_label)
 
-    def info_session(self):
-        self.session.info()
+    def session_info(self, session_name=None):
+        if session_name is None:
+            session = self.session
+        else:
+            session_root = self.get_session_root(session_name)
+            if session_root is None or not os.path.lexists(Session.get_session_config_file(session_root)):
+                LOGGER.error("session {!r} does not exists".format(session_name))
+                return
+            session = Session(session_root, load_packages=False)
+        session.info()
 
     def add_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
         self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, dry_run=dry_run)

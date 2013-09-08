@@ -386,7 +386,7 @@ Change the current session""",
         parents=[common_parser],
         formatter_class=Formatter,
         help="show information about the current session")
-    parser_session_info.set_defaults(function=manager.info_session)
+    parser_session_info.set_defaults(function=manager.session_info)
 
     parser_session_copy = session_subparsers.add_parser("copy",
         parents=[common_parser],
@@ -394,7 +394,7 @@ Change the current session""",
         help="copy sessions")
     parser_session_copy.set_defaults(function=manager.copy_sessions)
 
-    for subparser in (parser_session_create, parser_session_load, parser_session_new):
+    for subparser in (parser_session_create, parser_session_load, parser_session_new, parser_session_info):
         subparser.add_argument("session_name",
             type=manager.SessionName,
             nargs='?',

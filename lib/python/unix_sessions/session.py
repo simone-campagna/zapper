@@ -76,7 +76,7 @@ class Session(object):
     ))
     DEFAULT_PACKAGE_SORT_KEYS = SortKeys("category:product:version", PACKAGE_HEADER_DICT, 'package')
     DEFAULT_PACKAGE_DIR_SORT_KEYS = SortKeys("", PACKAGE_DIR_HEADER_DICT, 'package directory')
-    def __init__(self, session_root):
+    def __init__(self, session_root, *, load_packages=True):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
         self._loaded_packages = PackageCollection()
@@ -96,6 +96,7 @@ class Session(object):
         self.set_package_sort_keys(None)
         self.set_package_dir_sort_keys(None)
         self._version_defaults = {}
+        self._load_packages = load_packages
         self.load(session_root)
 
     def check_read_only(self):
@@ -232,13 +233,14 @@ class Session(object):
         self._package_directories = package_directories
         self.set_defined_packages()
         self.set_available_packages()
-        # loaded packages
-        packages_list_string = self.session_config['packages']['loaded_packages']
-        if packages_list_string:
-            packages_list = packages_list_string.split(':')
-        else:
-            packages_list = []
-        self.load_packages(packages_list)
+        if self._load_packages:
+            # loaded packages
+            packages_list_string = self.session_config['packages']['loaded_packages']
+            if packages_list_string:
+                packages_list = packages_list_string.split(':')
+            else:
+                packages_list = []
+            self.load_packages(packages_list)
         # sticky packages
         packages_list_string = self.session_config['packages']['sticky_packages']
         if packages_list_string:
