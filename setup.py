@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+__author__ = 'Simone Campagna'
+
 import os
 import re
 import sys
@@ -23,7 +25,6 @@ import tempfile
 
 dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
 py_dirname = os.path.join(dirname, "lib", "python")
-print(py_dirname)
 sys.path.append(py_dirname)
 from unix_sessions.manager import Manager
 
