@@ -220,6 +220,9 @@ class Table(object):
         for row in self._rows:
             table.append(row)
         
+        if len(table) == 0:
+            return 
+
         num_cols = self._num_cols
 
         max_lengths = [max(len(row[col]) for row in table) for col in range(num_cols)]

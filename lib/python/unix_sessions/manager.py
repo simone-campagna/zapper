@@ -82,7 +82,7 @@ class Manager(object):
         ('session_sort_keys', None),
         ('resolution_level', 0),
         ('filter_packages', None),
-        ('show_header', True),
+        ('show_header', False),
         ('default_session', DEFAULT_SESSION_LAST),
         ('description', ''),
         ('read_only', False),
@@ -144,6 +144,7 @@ class Manager(object):
         self.load_user_config()
 
         self.package_options = {}
+        self.package_options_from = {}
         self.load_user_package_option('version_defaults')
 
         self.load_translator()
@@ -253,11 +254,14 @@ class Manager(object):
     session = property(get_session, set_session)
 
     ### Package options
-    def _update_package_option(self, option, label, from_package_option, package_option_dict):
+    def _update_package_option(self, option, label, from_package_option, package_option_dict, package_option_from_dict):
         assert isinstance(package_option_dict, dict)
         changed = False
         for key, value in from_package_option.items():
-            changed = self._set_package_option_key(option, label, package_option_dict, key, value) or changed
+            key_changed = self._set_package_option_key(option, label, package_option_dict, key, value)
+            if key_changed:
+                package_option_from_dict[key] = label
+            changed = changed or key_changed
         return changed
 
     def _set_generic_package_option_key(self, option, label, package_option, key, value):
@@ -279,22 +283,30 @@ class Manager(object):
         else:
             return False
 
-    def show_package_option(self, option, label, package_option, keys):
+    def show_package_option(self, option, label, package_option, keys, *, package_option_from=None):
         if not keys:
             keys = package_option.keys()
         if not isinstance(package_option, dict):
             # convert configparser.SectionProxies -> dict
             package_option_dict = {}
-            self._update_package_option(option, label, package_option, package_option_dict)
+            package_option_from_dict = {}
+            self._update_package_option(option, label, package_option, package_option_dict, package_option_from_dict)
             package_option = package_option_dict
-        lst = []
+        print(self._show_header)
+        t = Table("{__ordinal__:3d}) {from_label} {key} : {value}", show_header=self._show_header)
+        t.set_column_title(from_label='FROM_CONFIG', key=option.upper())
+        if package_option_from is None:
+            package_option_from = {}
         for key in keys:
             if not key in package_option:
                 LOGGER.error("no such package option {0}: {1}".format(option, key))
                 continue
             value = package_option[key]
-            lst.append((key, ':', repr(value)))
-        show_table("{0} {1}".format(label.title(), option), lst)
+            from_label = package_option_from.get(key, label)
+            t.add_row(from_label=from_label, key=key, value=repr(value))
+        t.render(PRINT)
+        #    lst.append((key, ':', repr(value)))
+        #show_table("{0} {1}".format(label.title(), option), lst)
       
     def show_host_package_option(self, option, keys):
         return self.show_package_option(option, 'host', self.host_config[option], keys)
@@ -306,7 +318,7 @@ class Manager(object):
         return self.show_package_option(option, 'session', self.session_config[option], keys)
 
     def show_current_package_option(self, option, keys):
-        return self.show_package_option(option, 'current', self.package_options[option], keys)
+        return self.show_package_option(option, 'current', self.package_options[option], keys, package_option_from=self.package_options_from[option])
 
     def _set_generic_package_option(self, option, label, package_option, key_values):
         changed = False
@@ -317,7 +329,8 @@ class Manager(object):
             changed = self._set_generic_package_option_key(option, label, package_option, key, value) or changed
         # check:
         package_option_dict = {}
-        self._update_package_option(option, label, package_option, package_option_dict)
+        package_option_from_dict = {}
+        self._update_package_option(option, label, package_option, package_option_dict, package_option_from_dict)
         return changed
 
     def set_host_package_option(self, option, key_values):
@@ -364,12 +377,13 @@ class Manager(object):
         host_package_option = self.host_config[option]
         user_package_option = self.user_config[option]
         self.package_options[option] = {}
+        self.package_options_from[option] = {}
         for from_label, from_package_option in ('host', host_package_option), ('user', user_package_option):
-            self._update_package_option(option, from_label, from_package_option, self.package_options[option])
+            self._update_package_option(option, from_label, from_package_option, self.package_options[option], self.package_options_from[option])
 
     def load_session_package_option(self, option):
         session_package_option = self.session_config[option]
-        self._update_package_option(option, 'session', session_package_option, self.package_options[option])
+        self._update_package_option(option, 'session', session_package_option, self.package_options[option], self.package_options_from[option])
 
     ### Config
     @classmethod
@@ -378,17 +392,21 @@ class Manager(object):
             if key in cls.LABEL_CONFIG[label]:
                 yield key
 
-    def _update_config(self, label, from_config, config_dict):
+    def _update_config(self, label, from_config, config_dict, config_from_dict):
         assert isinstance(config_dict, dict)
         changed = False
         for key in self.iter_config_keys(label):
             value = from_config.get(key, '')
+            key_changed = False
             if value == '':
                 if not key in config_dict:
                     config_dict[key] = ''
-                    changed = True
+                    key_changed = True
             else:
-                changed = self._set_config_key(label, config_dict, key, value) or changed
+                key_changed = self._set_config_key(label, config_dict, key, value)
+            if key_changed:
+                config_from_dict[key] = label
+            changed = changed or key_changed
         return changed
 
     def _set_generic_config_key(self, label, config, key, value):
@@ -440,22 +458,29 @@ class Manager(object):
         else:
             return False
 
-    def show_config(self, label, config, keys):
+    def show_config(self, label, config, keys, *, config_from=None):
         if not keys:
             keys = list(self.iter_config_keys(label))
         if not isinstance(config, dict):
             # convert configparser.SectionProxies -> dict
             config_dict = {}
-            self._update_config(label, config, config_dict)
+            config_from_dict = {}
+            self._update_config(label, config, config_dict, config_from_dict)
             config = config_dict
-        lst = []
+        t = Table("{__ordinal__:3d}) {from_label} {key} : {value}", show_header=self._show_header)
+        t.set_column_title(from_label='FROM_CONFIG')
+
         for key in keys:
             if not key in config:
                 LOGGER.error("no such key: {0}".format(key))
                 continue
             value = config[key]
-            lst.append((key, ':', repr(value)))
-        show_table("{0} config".format(label.title()), lst)
+            if config_from is None:
+                from_label = label
+            else:
+                from_label = config_from.get(key, label)
+            t.add_row(from_label=from_label, key=key, value=repr(value))
+        t.render(PRINT)
      
     def show_host_config(self, keys):
         return self.show_config('host', self.host_config['config'], keys)
@@ -467,7 +492,7 @@ class Manager(object):
         return self.show_config('session', self.session_config['config'], keys)
 
     def show_current_config(self, keys):
-        return self.show_config('current', self.config, keys)
+        return self.show_config('current', self.config, keys, config_from=self.config_from)
 
     def _set_generic_config(self, label, config, key_values):
         changed = False
@@ -481,7 +506,8 @@ class Manager(object):
             changed = self._set_generic_config_key(label, config, key, value) or changed
         # check:
         config_dict = {}
-        self._update_config(label, config, config_dict)
+        config_from_dict = {}
+        self._update_config(label, config, config_dict, config_from_dict)
         return changed
 
     def set_host_config(self, key_values):
@@ -554,15 +580,16 @@ class Manager(object):
         return self.config[key]
 
     def load_user_config(self):
-        host_config = self.user_config['config']
+        host_config = self.host_config['config']
         user_config = self.user_config['config']
         self.config = {}
+        self.config_from = {}
         for from_label, from_config in ('manager', self.MANAGER_CONFIG), ('host', host_config), ('user', user_config):
-            self._update_config(from_label, from_config, self.config)
+            self._update_config(from_label, from_config, self.config, self.config_from)
 
     def load_session_config(self):
         session_config = self.session_config['config']
-        self._update_config('session', session_config, self.config)
+        self._update_config('session', session_config, self.config, self.config_from)
 
     def restore_session(self):
         self.session = None
