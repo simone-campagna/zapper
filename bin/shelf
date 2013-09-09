@@ -498,20 +498,30 @@ Change the current session""",
     
     for option in ('version_defaults', ):
         parser_package_option_show[package_option_subparsers[option]].set_defaults(
-            complete_function=manager.complete_product_names)
+            complete_function=manager.complete_version_defaults)
 
-        package_option_subparsers_dicts = []
         if admin_mode:
-            package_option_subparsers_dicts.append(host_package_option_subparsers)
-        package_option_subparsers_dicts.extend((user_package_option_subparsers, session_package_option_subparsers))
-
-        for package_option_subparsers_dict in package_option_subparsers_dicts:
-            parser_package_option_set[package_option_subparsers_dict[option]].set_defaults(
+            parser_package_option_set[host_package_option_subparsers[option]].set_defaults(
                 complete_function=manager.complete_product_names,
                 complete_add_arguments=['dummy'])
 
-        parser_package_option_reset[package_option_subparsers_dict[option]].set_defaults(
-            complete_function=manager.complete_product_names)
+            parser_package_option_reset[host_package_option_subparsers[option]].set_defaults(
+                complete_function=manager.complete_host_version_defaults)
+
+        parser_package_option_set[user_package_option_subparsers[option]].set_defaults(
+            complete_function=manager.complete_product_names,
+            complete_add_arguments=['dummy'])
+
+        parser_package_option_reset[user_package_option_subparsers[option]].set_defaults(
+            complete_function=manager.complete_user_version_defaults)
+
+        parser_package_option_set[session_package_option_subparsers[option]].set_defaults(
+            complete_function=manager.complete_product_names,
+            complete_add_arguments=['dummy'])
+
+        parser_package_option_reset[session_package_option_subparsers[option]].set_defaults(
+            complete_function=manager.complete_session_version_defaults)
+
 
     parser_config_show = {}
     for subparsers in (config_subparsers, host_config_subparsers, user_config_subparsers, session_config_subparsers):

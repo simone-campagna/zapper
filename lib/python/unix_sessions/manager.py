@@ -773,6 +773,18 @@ class Manager(object):
     def complete_product_names(self, *ignore_p_args, **ignore_n_args):
         print(' '.join(Product.get_product_names()))
 
+    def complete_host_version_defaults(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.host_config['version_defaults'].keys()))
+            
+    def complete_user_version_defaults(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.user_config['version_defaults'].keys()))
+
+    def complete_session_version_defaults(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.session_config['version_defaults'].keys()))
+
+    def complete_version_defaults(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.package_options['version_defaults'].keys()))
+
     def show_available_sessions(self, temporary=True, persistent=True, sort_keys=None):
         if sort_keys is None:
             sort_keys = self.get_session_sort_keys()
