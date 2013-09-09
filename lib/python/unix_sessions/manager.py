@@ -653,11 +653,19 @@ class Manager(object):
         session_root = self.create_session(session_name=session_name, description=description)
         self._load_session_root(session_root)
         
-    def delete_sessions(self, session_names):
+    def delete_sessions(self, session_name):
+        if isinstance(session_name, str):
+            session_names = [session_name]
+        else:
+            session_names = session_name
         for session_name in session_names:
             self.delete_session(session_name)
 
     def copy_sessions(self, session_names):
+        if isinstance(session_name, str):
+            session_names = [session_name]
+        else:
+            session_names = session_name
         if len(session_names) == 1:
             source_session_name = self.session.session_name
         else:

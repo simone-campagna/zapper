@@ -33,6 +33,7 @@ class CompletionGenerator(object):
                     output_stream=None,
                     skip_keys=None,
                     complete_function_name=None,
+                    complete_add_arguments_name=None,
                     activate_complete_function=None,
                     progname=None):
         self.parser = parser
@@ -52,6 +53,9 @@ class CompletionGenerator(object):
         if complete_function_name is None:
             complete_function_name = 'complete_function'
         self.complete_function_name = complete_function_name
+        if complete_add_arguments_name is None:
+            complete_add_arguments_name = 'complete_add_arguments'
+        self.complete_add_arguments_name = complete_add_arguments_name
         if activate_complete_function is None:
             activate_complete_function = ''
         self.activate_complete_function = activate_complete_function
@@ -85,12 +89,18 @@ UXS_CURRENT_COMPLETION_VERSION={}
         complete_function_code = ''
         complete_function = parser.get_default(self.complete_function_name)
         if complete_function:
-            complete_function_code = 'current_keys="$current_keys $({activate_complete_function} {current_stack})"'.format(
+            complete_add_arguments = parser.get_default(self.complete_add_arguments_name)
+            if complete_add_arguments:
+                add_arguments = ' '.join(complete_add_arguments)
+            else:
+                add_arguments = ''
+            complete_function_code = 'current_keys="$current_keys $({activate_complete_function} {current_stack} {add_arguments})"'.format(
                 activate_complete_function = self.activate_complete_function,
                 current_keys = current_keys,
                 current_stack = current_stack,
+                add_arguments = add_arguments,
             )
-            input(complete_function_code)
+            #input(complete_function_code)
         format_d = dict(
             function_name=function_name,
             level=len(stack),
@@ -166,6 +176,7 @@ def complete(
         version_filename=None,
         skip_keys=None,
         complete_function_name=None,
+        complete_add_arguments_name=None,
         activate_complete_function=None,
         progname=None,
         ):
@@ -176,6 +187,7 @@ def complete(
                 output_stream=f_out,
                 skip_keys=skip_keys,
                 complete_function_name=complete_function_name,
+                complete_add_arguments_name=complete_add_arguments_name,
                 activate_complete_function=activate_complete_function,
                 progname=progname)
     else:
@@ -186,6 +198,7 @@ def complete(
             output_stream=stream,
             skip_keys=skip_keys,
             complete_function_name=complete_function_name,
+            complete_add_arguments_name=complete_add_arguments_name,
             activate_complete_function=activate_complete_function,
             progname=progname)
     
