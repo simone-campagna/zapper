@@ -27,7 +27,14 @@ COMPLETION_VERSION = 1.0
 
 class CompletionGenerator(object):
     RE_INVALID = re.compile(r"[^\w]")
-    def __init__(self, parser, name=None, output_stream=None, skip_keys=None):
+    def __init__(self,
+                    parser,
+                    name=None,
+                    output_stream=None,
+                    skip_keys=None,
+                    complete_function_name=None,
+                    activate_complete_function=None,
+                    progname=None):
         self.parser = parser
         if name is None:
             name = os.path.basename(sys.argv[0])
@@ -42,6 +49,15 @@ class CompletionGenerator(object):
                 skip_re = re.compile(skip_re)
             self._skip_keys.append(skip_re)
         self.output_stream = output_stream
+        if complete_function_name is None:
+            complete_function_name = 'complete_function'
+        self.complete_function_name = complete_function_name
+        if activate_complete_function is None:
+            activate_complete_function = ''
+        self.activate_complete_function = activate_complete_function
+        if progname is None:
+            progname = sys.argv[0]
+        self.progname = progname
         self._generated_functions = set()
         self.complete(self.parser, [self.name])
         function = self.get_function_name([self.name])
@@ -61,13 +77,26 @@ UXS_CURRENT_COMPLETION_VERSION={}
     def get_function_name(self, stack):
         return '_' + '_'.join(self._convert(key) for key in stack)
 
-    def generate_function(self, stack, keys):
+    def generate_function(self, parser, stack, keys):
         #print(">>> {} : {}".format('.'.join(stack), keys))
         function_name = self.get_function_name(stack)
+        current_keys = ' '.join(keys)
+        current_stack = ' '.join(stack)
+        complete_function_code = ''
+        complete_function = parser.get_default(self.complete_function_name)
+        if complete_function:
+            complete_function_code = 'current_keys="$current_keys $({activate_complete_function} {current_stack})"'.format(
+                activate_complete_function = self.activate_complete_function,
+                current_keys = current_keys,
+                current_stack = current_stack,
+            )
+            input(complete_function_code)
         format_d = dict(
             function_name=function_name,
             level=len(stack),
-            current_keys=' '.join(keys),
+            current_keys=current_keys, 
+            current_stack=current_stack, 
+            complete_function_code=complete_function_code,
         )
         self.output_stream.write("""
 {function_name} ()
@@ -75,6 +104,7 @@ UXS_CURRENT_COMPLETION_VERSION={}
   local index
   index={level}
   local cur
+  local current_keys
   cur=${{COMP_WORDS[$index]}}
   COMPREPLY=()
   if [[ $COMP_CWORD -gt $index ]] ; then
@@ -94,7 +124,9 @@ UXS_CURRENT_COMPLETION_VERSION={}
         self.output_stream.write("""
     esac
   else
-    COMPREPLY=( $( compgen -W '{current_keys}' -- $cur) )
+    current_keys='{current_keys}'
+    {complete_function_code}
+    COMPREPLY=( $( compgen -W '$current_keys' -- $cur) )
   fi
   return 0
 }}
@@ -126,16 +158,36 @@ UXS_CURRENT_COMPLETION_VERSION={}
                 #print("{}:action: {}".format(label, action.option_strings))
                 keys.extend(key for key in action.option_strings if not self._key_to_skip(key))
         #keys.sort(key=self._sort_key_function)
-        self.generate_function(stack, keys)
+        self.generate_function(parser, stack, keys)
 
-def complete(parser, filename=None, version_filename=None, skip_keys=None):
+def complete(
+        parser,
+        filename=None,
+        version_filename=None,
+        skip_keys=None,
+        complete_function_name=None,
+        activate_complete_function=None,
+        progname=None,
+        ):
     if isinstance(filename, str):
         with open(filename, "w") as f_out:
-            CompletionGenerator(parser, output_stream=f_out, skip_keys=skip_keys)
+            CompletionGenerator(
+                parser,
+                output_stream=f_out,
+                skip_keys=skip_keys,
+                complete_function_name=complete_function_name,
+                activate_complete_function=activate_complete_function,
+                progname=progname)
     else:
         stream = filename
         filename = getattr(stream, 'name', None)
-        CompletionGenerator(parser, output_stream=stream, skip_keys=skip_keys)
+        CompletionGenerator(
+            parser,
+            output_stream=stream,
+            skip_keys=skip_keys,
+            complete_function_name=complete_function_name,
+            activate_complete_function=activate_complete_function,
+            progname=progname)
     
     if version_filename is None:
         default_version_filename = filename + '.version'

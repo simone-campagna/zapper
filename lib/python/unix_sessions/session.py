@@ -76,7 +76,7 @@ class Session(object):
     ))
     DEFAULT_PACKAGE_SORT_KEYS = SortKeys("category:product:version", PACKAGE_HEADER_DICT, 'package')
     DEFAULT_PACKAGE_DIR_SORT_KEYS = SortKeys("", PACKAGE_DIR_HEADER_DICT, 'package directory')
-    def __init__(self, session_root, *, load_packages=True):
+    def __init__(self, session_root, *, load=True):
         self._environment = Environment()
         self._orig_environment = self._environment.copy()
         self._loaded_packages = PackageCollection()
@@ -96,8 +96,13 @@ class Session(object):
         self.set_package_sort_keys(None)
         self.set_package_dir_sort_keys(None)
         self._version_defaults = {}
-        self._load_packages = load_packages
-        self.load(session_root)
+        if load:
+            self.load(session_root)
+
+    def new_session(self, session_root):
+        session = Session(session_root, load=False)
+        session.load(session_root, load_packages=True, loaded_package_directories=self._package_directories)
+        return session
 
     def check_read_only(self):
         if self.session_read_only:
@@ -165,9 +170,10 @@ class Session(object):
             module = imp.load_module(module_name, *module_info)
         return module
 
-    def set_defined_packages(self):
-        self._defined_packages.clear()
+    def set_defined_packages(self, *, loaded_package_directories):
         for package_dir in self._package_directories:
+            if loaded_package_directories and package_dir in loaded_package_directories:
+                continue
             self._load_modules(package_dir)
             for package in Package.registered_entry('package_dir', package_dir):
                 self._defined_packages.add_package(package)
@@ -210,9 +216,9 @@ class Session(object):
         target_session_config_file = cls.get_session_config_file(target_session_root)
         cls.write_session_config(source_session_config, target_session_config_file)
 
-    def load(self, session_root):
+    def load(self, session_root, *, load_packages=True, loaded_package_directories=None):
         self.session_root = os.path.abspath(session_root)
-        session_config_file = self.get_session_config_file(session_root)
+        session_config_file = self.get_session_config_file(self.session_root)
         if not os.path.lexists(session_config_file):
             LOGGER.warning("cannot load session config file {0}".format(session_config_file))
         self.session_config = self.get_session_config(session_config_file)
@@ -231,9 +237,9 @@ class Session(object):
         if uxs_package_dir:
             package_directories.extend(uxs_package_dir.split(':'))
         self._package_directories = package_directories
-        self.set_defined_packages()
+        self.set_defined_packages(loaded_package_directories=loaded_package_directories)
         self.set_available_packages()
-        if self._load_packages:
+        if load_packages:
             # loaded packages
             packages_list_string = self.session_config['packages']['loaded_packages']
             if packages_list_string:
@@ -425,7 +431,7 @@ class Session(object):
         self._add_suite(ROOT)
         self.unload_environment_packages()
         self.unload_packages()
-        self.add(packages_list)
+        self.add(packages_list, ignore_errors=True)
                 
     def store(self):
         self.check_read_only()
@@ -473,7 +479,7 @@ class Session(object):
             self.session_config['packages']['directories'] = ':'.join(self._package_directories)
             self.session_config.store()
         
-    def iteradd(self, package_labels):
+    def iteradd(self, package_labels, *, ignore_errors=False):
         while package_labels:
             packages = []
             missing_package_labels = []
@@ -494,8 +500,11 @@ class Session(object):
                 if missing_package_labels:
                     for package in missing_package_labels:
                         LOGGER.error("package {0} not found".format(package_label))
-                    raise PackageNotFoundError("{0} not found".format(
-                        plural_string('package', len(missing_package_labels))))
+                    if ignore_errors:
+                        del missing_package_labels[:]
+                    else:
+                        raise PackageNotFoundError("{0} not found".format(
+                            plural_string('package', len(missing_package_labels))))
             package_labels = missing_package_labels
 
     def _get_subpackages(self, packages):
@@ -522,9 +531,9 @@ class Session(object):
             unloaded_packages.append(package)
         return unloaded_packages
 
-    def add(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
+    def add(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, dry_run=False, ignore_errors=False):
         self.check_read_only()
-        for packages in self.iteradd(package_labels):
+        for packages in self.iteradd(package_labels, ignore_errors=ignore_errors):
             #print(packages)
             if subpackages:
                 packages = self._get_subpackages(packages)
@@ -816,21 +825,6 @@ class Session(object):
             sort_keys = self.DEFAULT_PACKAGE_DIR_SORT_KEYS
         self._package_dir_sort_keys = sort_keys
 
-    def show_packages(self, title, packages, package_format, sort_keys=None):
-        if sort_keys is None:
-            sort_keys = self._package_sort_keys
-
-        package_infos = [self._package_info(package) for package in packages]
-
-        sort_keys.sort(package_infos)
-
-        t = Table(package_format, show_header=self._show_header) #title=title)
-        t.set_column_title(**self.PACKAGE_HEADER_DICT)
-        for package_info in package_infos:
-            t.add_row(**package_info)
-
-        t.render(PRINT)
-
     @classmethod
     def PackageFormat(cls, package_format):
         if package_format is not None:
@@ -851,14 +845,32 @@ class Session(object):
     def PackageDirSortKeys(cls, package_dir_sort_keys):
         return SortKeys(package_dir_sort_keys, cls.PACKAGE_DIR_HEADER_DICT, 'package directory')
 
-    def show_defined_packages(self):
-        self.show_packages("Defined packages", self.defined_packages(), self.get_available_package_format())
+    def show_packages(self, title, packages, package_format, *, sort_keys=None, show_title=False):
+        if sort_keys is None:
+            sort_keys = self._package_sort_keys
 
-    def show_available_packages(self):
-        self.show_packages("Available packages", self.available_packages(), self.get_available_package_format())
+        package_infos = [self._package_info(package) for package in packages]
 
-    def show_loaded_packages(self):
-        self.show_packages("Loaded packages", self.loaded_packages(), self.get_loaded_package_format())
+        sort_keys.sort(package_infos)
+
+        if not show_title:
+            title = None
+
+        t = Table(package_format, show_header=self._show_header, title=title)
+        t.set_column_title(**self.PACKAGE_HEADER_DICT)
+        for package_info in package_infos:
+            t.add_row(**package_info)
+
+        t.render(PRINT)
+
+    def show_defined_packages(self, *, show_title=False):
+        self.show_packages("Defined packages", self.defined_packages(), self.get_available_package_format(), show_title=show_title)
+
+    def show_available_packages(self, *, show_title=False):
+        self.show_packages("Available packages", self.available_packages(), self.get_available_package_format(), show_title=show_title)
+
+    def show_loaded_packages(self, *, show_title=False):
+        self.show_packages("Loaded packages", self.loaded_packages(), self.get_loaded_package_format(), show_title=show_title)
 
     def show_package(self, package_label):
         package = self.get_available_package(package_label)
@@ -867,7 +879,7 @@ class Session(object):
         else:
             package.show()
 
-    def show_package_directories(self, sort_keys=None):
+    def show_package_directories(self, *, sort_keys=None, show_title=False):
         if sort_keys is None:
             sort_keys = self._package_dir_sort_keys
 
@@ -881,7 +893,9 @@ class Session(object):
        
         sort_keys.sort(rows)
 
-        t = Table(package_dir_format, show_header=self._show_header) #title="Package directories")
+        if show_title:
+            title = "Package directories"
+        t = Table(package_dir_format, show_header=self._show_header, title=title)
         t.set_column_title(**self.PACKAGE_DIR_HEADER_DICT)
         for row_d in rows:
             t.add_row(**row_d)
@@ -894,8 +908,9 @@ class Session(object):
         PRINT("description   : {0}".format(self.session_description))
         PRINT("read-only     : {0}".format(self.session_read_only))
         PRINT("creation time : {0}".format(self.session_creation_time))
-        self.show_package_directories()
-        self.show_loaded_packages()
+        self.show_package_directories(show_title=True)
+        packages_list_string = self.session_config['packages']['loaded_packages']
+        self.show_loaded_packages(show_title=True)
 
     def translate(self, translator):
         for var_name, var_value in self._environment.changeditems():

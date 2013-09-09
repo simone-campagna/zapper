@@ -725,6 +725,21 @@ class Manager(object):
             session_format = self.DEFAULT_SESSION_FORMAT
         return session_format
 
+    def complete_available_sessions(self, temporary=True, persistent=True, *p_args, **n_args):
+        sessions_dirs = []
+        if temporary:
+            sessions_dirs.append(self.temporary_sessions_dir)
+        if persistent:
+            sessions_dirs.append(self.persistent_sessions_dir)
+        l = []
+        for sessions_dir in sessions_dirs:
+            session_root_pattern = os.path.join(sessions_dir, '*')
+            for session_config_file in glob.glob(Session.get_session_config_file(session_root_pattern)):
+                session_root = Session.get_session_root(session_config_file)
+                session_name = os.path.basename(session_root)
+                l.append(session_name)
+        print(' '.join(l))
+
     def show_available_sessions(self, temporary=True, persistent=True, sort_keys=None):
         if sort_keys is None:
             sort_keys = self.get_session_sort_keys()
@@ -779,7 +794,7 @@ class Manager(object):
             if session_root is None or not os.path.lexists(Session.get_session_config_file(session_root)):
                 LOGGER.error("session {!r} does not exists".format(session_name))
                 return
-            session = Session(session_root, load_packages=False)
+            session = self.session.new_session(session_root)
         session.info()
 
     def add_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):

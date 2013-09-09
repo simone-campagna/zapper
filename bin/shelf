@@ -162,7 +162,13 @@ Change the current session""",
         if filename == '-':
             filename = None
         from unix_sessions.utils.argparse_completion import complete
-        complete(parser=top_level_parser, filename=filename) #, skip_keys=['completion'])
+        complete(
+            parser=top_level_parser,
+            filename=filename,
+            complete_function_name='complete_function',
+            progname=os.path.basename(sys.argv[0]),
+            activate_complete_function="UXS_COMPLETE_FUNCTION=true ",
+            )
             
     if enable_completion_option:
         parser_completion = top_level_subparsers.add_parser(
@@ -379,14 +385,14 @@ Change the current session""",
         action="store_true",
         default=None,
         help="list temporary sessions")
-    parser_session_available.set_defaults(function=manager.show_available_sessions)
 
     parser_session_info = session_subparsers.add_parser("info",
         aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="show information about the current session")
-    parser_session_info.set_defaults(function=manager.session_info)
+    #parser_session_info.set_defaults(function=manager.session_info)
+    parser_session_info.set_defaults(function=manager.session_info, complete_function=manager.complete_available_sessions)
 
     parser_session_copy = session_subparsers.add_parser("copy",
         parents=[common_parser],
@@ -694,18 +700,28 @@ Change the current session""",
     n_args = dict(args._get_kwargs())
     for key in {'function', 'verbose', 'debug', 'trace', 'full_label', 'show_header',
                 'package_format', 'session_format', 'package_dir_format',
-                'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys'}:
+                'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys',
+                'complete_function'}:
         if key in n_args:
             del n_args[key]
 
     manager.initialize()
-    try:
-        args.function(*p_args, **n_args)
-    except Exception as e:
-        trace()
-        LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+
+    complete_function = getattr(args, 'complete_function', None)
+    if complete_function and os.environ.get("UXS_COMPLETE_FUNCTION", ""):
+        try:
+            args.complete_function(*p_args, **n_args)
+        except Exception as e:
+            trace()
+            LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
     else:
-        manager.finalize()
+        try:
+            args.function(*p_args, **n_args)
+        except Exception as e:
+            trace()
+            LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+        else:
+            manager.finalize()
 
 if __name__ == "__main__":
     main()
