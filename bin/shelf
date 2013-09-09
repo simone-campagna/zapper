@@ -453,7 +453,7 @@ Change the current session""",
             parser_package_option_show[subparsers] = subparsers.add_parser("show",
                 parents=[common_parser],
                 formatter_class=Formatter,
-                help="show current packages version defaults")
+                help="show current packages {}".format(option))
             parser_package_option_show[subparsers].add_argument("keys",
                 nargs='*',
                 help="show keys")
@@ -475,13 +475,13 @@ Change the current session""",
             parser_package_option_set[subparsers] = subparsers.add_parser("set",
                 parents=[common_parser],
                 formatter_class=Formatter,
-                help="set default packages' versions")
+                help="set packages' {}".format(option))
             parser_package_option_set[subparsers].add_argument("key_values",
                 nargs='*',
                 help="set key=value pairs")
             parser_package_option_reset[subparsers] = subparsers.add_parser("reset",
                 parents=[common_parser],
-                help="reset default packages' versions")
+                help="reset packages' {}".format(option))
             parser_package_option_reset[subparsers].add_argument("keys",
                 nargs='*',
                 help="reset keys")
@@ -496,6 +496,23 @@ Change the current session""",
         parser_package_option_set[session_package_option_subparsers[option]].set_defaults(function=manager.set_session_package_option, option=option)
         parser_package_option_reset[session_package_option_subparsers[option]].set_defaults(function=manager.reset_session_package_option, option=option)
     
+    for option in ('version_defaults', ):
+        parser_package_option_show[package_option_subparsers[option]].set_defaults(
+            complete_function=manager.complete_product_names)
+
+        package_option_subparsers_dicts = []
+        if admin_mode:
+            package_option_subparsers_dicts.append(host_package_option_subparsers)
+        package_option_subparsers_dicts.extend((user_package_option_subparsers, session_package_option_subparsers))
+
+        for package_option_subparsers_dict in package_option_subparsers_dicts:
+            parser_package_option_set[package_option_subparsers_dict[option]].set_defaults(
+                complete_function=manager.complete_product_names,
+                complete_add_arguments=['dummy'])
+
+        parser_package_option_reset[package_option_subparsers_dict[option]].set_defaults(
+            complete_function=manager.complete_product_names)
+
     parser_config_show = {}
     for subparsers in (config_subparsers, host_config_subparsers, user_config_subparsers, session_config_subparsers):
         parser_config_show[subparsers] = subparsers.add_parser("show",

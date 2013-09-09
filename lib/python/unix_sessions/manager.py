@@ -29,6 +29,7 @@ from .errors import *
 from .session import *
 from .category import Category
 from .package import Package
+from .product import Product
 from .package_expressions import ALL_EXPRESSIONS
 from .translator import Translator
 from .translators import *
@@ -768,6 +769,9 @@ class Manager(object):
 
     def complete_config_keys(self, *ignore_p_args, **ignore_n_args):
         print(' '.join(self.config.keys()))
+
+    def complete_product_names(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(Product.get_product_names()))
 
     def show_available_sessions(self, temporary=True, persistent=True, sort_keys=None):
         if sort_keys is None:

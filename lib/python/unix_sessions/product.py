@@ -57,6 +57,10 @@ class Product(UniqueRegister):
         return instance
 
     @classmethod
+    def get_product_names(cls):
+        return (product_name for product_name in cls.registry('name'))
+
+    @classmethod
     def has_product(cls, name, default=None):
         return name in cls.registry('name')
 
