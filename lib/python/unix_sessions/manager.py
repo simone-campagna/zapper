@@ -757,6 +757,18 @@ class Manager(object):
     def complete_package_directories(self, *ignore_p_args, **ignore_n_args):
         print(' '.join(self.session.get_package_directories()))
 
+    def complete_host_config_keys(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.host_config['config'].keys()))
+
+    def complete_user_config_keys(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.user_config['config'].keys()))
+
+    def complete_session_config_keys(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.session_config['config'].keys()))
+
+    def complete_config_keys(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.config.keys()))
+
     def show_available_sessions(self, temporary=True, persistent=True, sort_keys=None):
         if sort_keys is None:
             sort_keys = self.get_session_sort_keys()

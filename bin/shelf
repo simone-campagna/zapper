@@ -497,7 +497,7 @@ Change the current session""",
         parser_package_option_reset[session_package_option_subparsers[option]].set_defaults(function=manager.reset_session_package_option, option=option)
     
     parser_config_show = {}
-    for subparsers in config_subparsers, host_config_subparsers, user_config_subparsers, session_config_subparsers:
+    for subparsers in (config_subparsers, host_config_subparsers, user_config_subparsers, session_config_subparsers):
         parser_config_show[subparsers] = subparsers.add_parser("show",
             parents=[common_parser],
             formatter_class=Formatter,
@@ -506,10 +506,18 @@ Change the current session""",
             nargs='*',
             help="show keys")
     
-    parser_config_show[config_subparsers].set_defaults(function=manager.show_current_config)
-    parser_config_show[host_config_subparsers].set_defaults(function=manager.show_host_config)
-    parser_config_show[user_config_subparsers].set_defaults(function=manager.show_user_config)
-    parser_config_show[session_config_subparsers].set_defaults(function=manager.show_session_config)
+    parser_config_show[config_subparsers].set_defaults(
+        function=manager.show_current_config,
+        complete_function=manager.complete_config_keys)
+    parser_config_show[host_config_subparsers].set_defaults(
+        function=manager.show_host_config,
+        complete_function=manager.complete_host_config_keys)
+    parser_config_show[user_config_subparsers].set_defaults(
+        function=manager.show_user_config,
+        complete_function=manager.complete_user_config_keys)
+    parser_config_show[session_config_subparsers].set_defaults(
+        function=manager.show_session_config,
+        complete_function=manager.complete_session_config_keys)
 
     parser_config_set = {}
     parser_config_reset = {}
@@ -535,14 +543,29 @@ Change the current session""",
             help="reset keys")
 
     if admin_mode:
-        parser_config_set[host_config_subparsers].set_defaults(function=manager.set_host_config)
-        parser_config_reset[host_config_subparsers].set_defaults(function=manager.reset_host_config)
+        parser_config_set[host_config_subparsers].set_defaults(
+            function=manager.set_host_config,
+            complete_function=manager.complete_host_config_keys,
+            complete_add_arguments=['dummy'])
+        parser_config_reset[host_config_subparsers].set_defaults(
+            function=manager.reset_host_config,
+            complete_function=manager.complete_host_config_keys)
  
-    parser_config_set[user_config_subparsers].set_defaults(function=manager.set_user_config)
-    parser_config_reset[user_config_subparsers].set_defaults(function=manager.reset_user_config)
+    parser_config_set[user_config_subparsers].set_defaults(
+            function=manager.set_user_config,
+            complete_function=manager.complete_user_config_keys,
+            complete_add_arguments=['dummy'])
+    parser_config_reset[user_config_subparsers].set_defaults(
+            function=manager.reset_user_config,
+            complete_function=manager.complete_user_config_keys)
 
-    parser_config_set[session_config_subparsers].set_defaults(function=manager.set_session_config)
-    parser_config_reset[session_config_subparsers].set_defaults(function=manager.reset_session_config)
+    parser_config_set[session_config_subparsers].set_defaults(
+            function=manager.set_session_config,
+            complete_function=manager.complete_session_config_keys,
+            complete_add_arguments=['dummy'])
+    parser_config_reset[session_config_subparsers].set_defaults(
+            function=manager.reset_session_config,
+            complete_function=manager.complete_session_config_keys)
 
     ### Package subparser
     parser_package = top_level_subparsers.add_parser("package",
