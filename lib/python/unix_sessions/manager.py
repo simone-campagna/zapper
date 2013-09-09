@@ -619,15 +619,15 @@ class Manager(object):
         if target_translator is None:
             return
         l = target_translator.split(':', 1)
-        translation_name = l[0]
+        self.translation_name = l[0]
         if len(l) == 1:
             self.translation_filename = None
         else:
             self.translation_filename = os.path.abspath(l[1])
         try:
-            self.translator = Translator.createbyname(translation_name)
+            self.translator = Translator.createbyname(self.translation_name)
         except Exception as e:
-            raise SessionError("invalid target translation {0!r}: {1}: {2}".format(translation_name, e.__class__.__name__, e))
+            raise SessionError("invalid target translation {0!r}: {1}: {2}".format(self.translation_name, e.__class__.__name__, e))
 
     def create_session(self, session_name=None, description=''):
         session_type = None

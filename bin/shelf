@@ -45,7 +45,7 @@ def main():
         def __init__(self, prog, indent_increment=2, max_help_position=27, width=None):
             super().__init__(prog, indent_increment, max_help_position, width)
 
-    enable_bash_completion_option = True
+    enable_completion_option = manager.translation_name == 'bash'
     #os.environ.get("UXS_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
 
     helper = Helper(manager)
@@ -162,20 +162,20 @@ Change the current session""",
         if filename == '-':
             filename = None
         from unix_sessions.utils.argparse_completion import complete
-        complete(parser=top_level_parser, filename=filename) #, skip_keys=['bash_completion'])
+        complete(parser=top_level_parser, filename=filename) #, skip_keys=['completion'])
             
-    if enable_bash_completion_option:
-        parser_bash_completion = top_level_subparsers.add_parser(
-            "bash_completion",
+    if enable_completion_option:
+        parser_completion = top_level_subparsers.add_parser(
+            "completion",
             parents=[common_parser],
             formatter_class=Formatter,
-            help="generate bash completion")
-        parser_bash_completion.set_defaults(function=generate_completion, parser=top_level_parser, manager=manager)
+            help="generate completion for {}".format(manager.translation_name))
+        parser_completion.set_defaults(function=generate_completion, parser=top_level_parser, manager=manager)
 
-        parser_bash_completion.add_argument(
+        parser_completion.add_argument(
             "filename",
             type=str,
-            default=os.path.join(manager.user_rc_dir, 'completion.bash'),
+            default=os.path.join(manager.user_rc_dir, 'completion.{}'.format(manager.translation_name)),
             nargs='?',
             help="output filename")
 
