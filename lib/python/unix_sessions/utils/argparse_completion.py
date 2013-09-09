@@ -23,6 +23,8 @@ import re
 import sys
 import argparse
 
+COMPLETION_VERSION = 1.0
+
 class CompletionGenerator(object):
     RE_INVALID = re.compile(r"[^\w]")
     def __init__(self, parser, name=None, output_stream=None, skip_keys=None):
@@ -46,6 +48,12 @@ class CompletionGenerator(object):
         self.output_stream.write("""\
 complete -F {function} -o filenames {name}
 """.format(function=function, name=name))
+
+    @classmethod
+    def write_version_file(cls, stream):
+        stream.write("""\
+UXS_CURRENT_COMPLETION_VERSION={}
+""".format(COMPLETION_VERSION))
 
     def _convert(self, key):
         return self.RE_INVALID.sub('X', key)
@@ -120,10 +128,22 @@ complete -F {function} -o filenames {name}
         #keys.sort(key=self._sort_key_function)
         self.generate_function(stack, keys)
 
-def complete(parser, filename=None, skip_keys=None):
+def complete(parser, filename=None, version_filename=None, skip_keys=None):
     if isinstance(filename, str):
         with open(filename, "w") as f_out:
             CompletionGenerator(parser, output_stream=f_out, skip_keys=skip_keys)
     else:
-        CompletionGenerator(parser, output_stream=filename, skip_keys=skip_keys)
+        stream = filename
+        filename = getattr(stream, 'name', None)
+        CompletionGenerator(parser, output_stream=stream, skip_keys=skip_keys)
     
+    if version_filename is None:
+        default_version_filename = filename + '.version'
+        version_filename = default_version_filename
+
+    if version_filename:
+        if isinstance(version_filename, str):
+            with open(version_filename, "w") as f_out:
+                CompletionGenerator.write_version_file(f_out)
+        else:
+            CompletionGenerator.write_version_file(f_out)

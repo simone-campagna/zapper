@@ -26,7 +26,9 @@ import tempfile
 dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
 py_dirname = os.path.join(dirname, "lib", "python")
 sys.path.append(py_dirname)
+
 from unix_sessions.manager import Manager
+from unix_sessions.utils.argparse_completion import COMPLETION_VERSION
 
 from distutils.core import setup
 from distutils import log
@@ -49,10 +51,11 @@ class subst_command(Command):
                 'UXS_RC_DIR_NAME':          Manager.RC_DIR_NAME,
                 'UXS_ADMIN_USER':           self.admin_user,
                 'PYTHON_EXECUTABLE':        sys.executable,
+                'UXS_COMPLETION_VERSION':   COMPLETION_VERSION,
             }
             self.r_list = []
             for key, val in v_dict.items():
-                self.r_list.append((re.compile(r"@{0}@".format(key)), val))
+                self.r_list.append((re.compile(r"@{0}@".format(key)), str(val)))
 
     def transform_file(self, infile, outfile):
         self._init()
