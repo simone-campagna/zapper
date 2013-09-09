@@ -423,7 +423,7 @@ Change the current session""",
             help="session names")
 
     for subparser in (parser_session_info, parser_session_delete, parser_session_load):
-        subparser.set_defaults(complete_function=manager.complete_available_sessions, session_name='dummy')
+        subparser.set_defaults(complete_function=manager.complete_available_sessions)
 
     for subparser in (parser_session_delete, parser_session_load):
         subparser.set_defaults(complete_add_arguments=['dummy'])
@@ -591,6 +591,10 @@ Change the current session""",
             default=None,
             help="package directory")
 
+# useless...
+#    for parser in (parser_package_dir_remove, ):
+#        parser.set_defaults(complete_function=manager.complete_package_directories, complete_add_arguments=['dummy'])
+
     for subparsers in top_level_subparsers, package_subparsers:
         parser_package_show_available_packages = subparsers.add_parser("available",
             aliases=["avail"],
@@ -674,6 +678,12 @@ Change the current session""",
                 default=False,
                 help="{0} sticky packages".format(subparser_name))
 
+        for parser in (parser_package_add, parser_package_show_package):
+            parser.set_defaults(complete_function=manager.complete_available_packages, complete_add_arguments=['dummy'])
+
+        for parser in (parser_package_remove, ):
+            parser.set_defaults(complete_function=manager.complete_loaded_packages, complete_add_arguments=['dummy'])
+
     ### other subparsers
 #    parser_init = top_level_subparsers.add_parser("init",
 #        aliases=[],
@@ -710,7 +720,7 @@ Change the current session""",
     for key in {'function', 'verbose', 'debug', 'trace', 'full_label', 'show_header',
                 'package_format', 'session_format', 'package_dir_format',
                 'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys',
-                'complete_function'}:
+                'complete_function', 'complete_add_arguments'}:
         if key in n_args:
             del n_args[key]
 

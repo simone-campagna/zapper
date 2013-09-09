@@ -170,6 +170,9 @@ class Session(object):
             module = imp.load_module(module_name, *module_info)
         return module
 
+    def get_package_directories(self):
+        return tuple(self._package_directories)
+
     def set_defined_packages(self, *, loaded_package_directories):
         for package_dir in self._package_directories:
             if loaded_package_directories and package_dir in loaded_package_directories:

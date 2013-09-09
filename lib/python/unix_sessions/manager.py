@@ -733,7 +733,7 @@ class Manager(object):
             session_format = self.DEFAULT_SESSION_FORMAT
         return session_format
 
-    def complete_available_sessions(self, temporary=True, persistent=True, *p_args, **n_args):
+    def complete_available_sessions(self, temporary=True, persistent=True, *ignore_p_args, **ignore_n_args):
         sessions_dirs = []
         if temporary:
             sessions_dirs.append(self.temporary_sessions_dir)
@@ -747,6 +747,15 @@ class Manager(object):
                 session_name = os.path.basename(session_root)
                 l.append(session_name)
         print(' '.join(l))
+
+    def complete_available_packages(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(package.name for package in self.session.available_packages()))
+
+    def complete_loaded_packages(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(package.name for package in self.session.loaded_packages()))
+
+    def complete_package_directories(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.session.get_package_directories()))
 
     def show_available_sessions(self, temporary=True, persistent=True, sort_keys=None):
         if sort_keys is None:
