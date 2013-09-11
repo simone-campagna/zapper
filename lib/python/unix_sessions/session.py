@@ -404,9 +404,13 @@ class Session(object):
         return self._available_packages.values()
 
     def unload_environment_packages(self):
+        """unload_environment_packages() -> list of previously loaded packages
+Remove all the previously loaded packages (from environment variable
+$UXS_LOADED_PACKAGES) and returns the list of removed packages""" 
+        env_loaded_packages = []
         loaded_package_labels_string = self._environment.get('UXS_LOADED_PACKAGES', None)
         if not loaded_package_labels_string:
-            return
+            return env_loaded_packages
         loaded_package_labels = loaded_package_labels_string.split(':')
 
         # loading necessary suites
@@ -422,7 +426,9 @@ class Session(object):
                 continue
             LOGGER.info("removing package {0}...".format(loaded_package))
             loaded_package.revert(self)
+            env_loaded_packages.append(loaded_package)
         del self._environment['UXS_LOADED_PACKAGES']
+        return env_loaded_packages
 
     def unload_packages(self):
         for package_label, package in self._loaded_packages.items():
@@ -432,9 +438,15 @@ class Session(object):
 
     def load_packages(self, packages_list):
         self._add_suite(ROOT)
-        self.unload_environment_packages()
+        env_loaded_packages = set(self.unload_environment_packages())
         self.unload_packages()
         self.add(packages_list, ignore_errors=True)
+        loaded_packages = set(self.loaded_packages())
+        for package in loaded_packages.difference(env_loaded_packages):
+            LOGGER.warning("package {} has been added".format(package))
+        for package in env_loaded_packages.difference(loaded_packages):
+            LOGGER.warning("package {} has been removed".format(package))
+        
                 
     def store(self):
         self.check_read_only()

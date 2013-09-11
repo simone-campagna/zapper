@@ -190,6 +190,9 @@ class Manager(object):
         else:
             return cls.SessionName(session_name)
 
+    def update_session(self):
+        pass
+
     def set_show_header(self, show_header):
         self._show_header = show_header
 
