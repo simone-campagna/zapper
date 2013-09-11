@@ -83,6 +83,7 @@ class Manager(object):
         ('resolution_level', 0),
         ('filter_packages', None),
         ('show_header', False),
+        ('show_translation', False),
         ('default_session', DEFAULT_SESSION_LAST),
         ('description', ''),
         ('read_only', False),
@@ -134,6 +135,7 @@ class Manager(object):
         self._package_format = None
         self._package_dir_format = None
         self._show_header = True
+        self._show_translation = True
 
         self._package_sort_keys = None
         self._package_dir_sort_keys = None
@@ -195,6 +197,9 @@ class Manager(object):
 
     def set_show_header(self, show_header):
         self._show_header = show_header
+
+    def set_show_translation(self, show_translation):
+        self._show_translation = show_translation
 
     def set_package_sort_keys(self, sort_keys):
         if sort_keys is None:
@@ -423,7 +428,7 @@ class Manager(object):
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'read_only'}:
+        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'show_translation', 'read_only'}:
             if isinstance(s_value, str):
                 value = self._str2bool(s_value)
             else:
@@ -933,6 +938,12 @@ class Manager(object):
             translation_filename = self.translation_filename
         if translator and translation_filename:
             self.session.translate_file(translator, translation_filename)
+        if self._show_translation:
+            translation_stream = sys.stdout
+            trailer = "=" * 70 + '\n'
+            translation_stream.write(trailer)
+            self.session.translate_stream(translator, sys.stdout)
+            translation_stream.write(trailer)
             
     def init(self, translator=None, translation_filename=None):
         environment = self.session.environment

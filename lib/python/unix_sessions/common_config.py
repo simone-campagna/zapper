@@ -34,6 +34,7 @@ COMMON_CONFIG = {
     'session_sort_keys': '',
     'resolution_level': '',
     'show_header': '',
+    'show_translation': '',
     'filter_packages': '',
 }
 

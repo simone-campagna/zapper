@@ -97,6 +97,12 @@ def main():
         default=manager.get_config_key('show_header'),
         help="do not show header in tables")
 
+    common_parser.add_argument("--show-translation",
+        dest='show_translation',
+        action="store_true",
+        default=manager.get_config_key('show_translation'),
+        help="show translation")
+
     package_format_parser = argparse.ArgumentParser(
         add_help=False,
         formatter_class=Formatter)
@@ -759,6 +765,7 @@ Change the current session""",
     set_verbose(args.verbose)
     set_debug(args.debug)
     manager.set_show_header(args.show_header)
+    manager.set_show_translation(args.show_translation)
     manager.set_show_full_label(args.full_label)
     manager.set_package_format(args.package_format)
     manager.set_package_dir_format(args.package_dir_format)
@@ -778,7 +785,8 @@ Change the current session""",
             args.temporary = False
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
-    for key in {'function', 'verbose', 'debug', 'trace', 'full_label', 'show_header',
+    for key in {'function', 'verbose', 'debug', 'trace', 'full_label',
+                'show_header', 'show_translation',
                 'package_format', 'session_format', 'package_dir_format',
                 'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys',
                 'complete_function', 'complete_add_arguments'}:
