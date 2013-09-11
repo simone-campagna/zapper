@@ -25,7 +25,7 @@ import tempfile
 
 dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
 py_dirname = os.path.join(dirname, "lib", "python")
-sys.path.append(py_dirname)
+sys.path.insert(0, py_dirname)
 
 from unix_sessions.manager import Manager
 from unix_sessions.utils.argparse_completion import COMPLETION_VERSION

@@ -600,21 +600,36 @@ class Manager(object):
         self._update_config('session', session_config, self.config, self.config_from)
 
     def restore_session(self):
+        def _verify_session_root(session_type, session_root):
+            if session_root:
+                LOGGER.info("trying to load {} session {}".format(session_type, session_root))
+                session_config_file = Session.get_session_config_file(session_root)
+                if not os.path.lexists(session_config_file):
+                    LOGGER.warning("{}: cannot restore {} session {} since it does not exist".format(session_type, session_root))
+                    session_root = None
+            return session_root
+    
         self.session = None
-        session_root = os.environ.get("UXS_SESSION", None)
+        session_root = _verify_session_root(
+            'UXS_SESSION',
+            os.environ.get("UXS_SESSION", None))
         if not session_root:
             default_session = self.get_config_key('default_session')
             if default_session == self.DEFAULT_SESSION_LAST:
-                session_root = self.user_config['sessions']['last_session']
+                session_root = _verify_session_root(
+                    'last used',
+                    self.user_config['sessions']['last_session'])
             elif default_session == self.DEFAULT_SESSION_NEW:
                 session_root = None
             else:
-                session_root = self.get_session_root(default_session)
-        if session_root:
-            session_config_file = Session.get_session_config_file(session_root)
-            if not os.path.lexists(session_config_file):
-                LOGGER.warning("cannot restore deleted session {0}".format(session_root))
-                session_root = None
+                session_root = _verify_session_root(
+                    'default',
+                    self.get_session_root(default_session))
+#        if session_root:
+#            session_config_file = Session.get_session_config_file(session_root)
+#            if not os.path.lexists(session_config_file):
+#                LOGGER.warning("cannot restore deleted session {0}".format(session_root))
+#                session_root = None
         if session_root:
             try:
                 session = Session(session_root)
