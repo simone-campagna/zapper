@@ -390,6 +390,7 @@ Change the current session""",
         action="store_true",
         default=None,
         help="list temporary sessions")
+    parser_session_available.set_defaults(function=manager.show_available_sessions)
 
     parser_session_info = session_subparsers.add_parser("info",
         aliases=[],

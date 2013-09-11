@@ -101,44 +101,67 @@ UXS_CURRENT_COMPLETION_VERSION={}
                 add_arguments = add_arguments,
             )
             #input(complete_function_code)
+        current_command = stack[-1]
+        current_level = len(stack)
         format_d = dict(
             function_name=function_name,
-            level=len(stack),
+            current_level=current_level,
+            previous_level=current_level - 1,
             current_keys=current_keys, 
             current_stack=current_stack, 
+            current_command=current_command, 
             complete_function_code=complete_function_code,
         )
+        subcommands = [key for key in keys if not key.startswith('-')]
         self.output_stream.write("""
 {function_name} ()
 {{
-  local index
-  index={level}
-  local cur
-  local current_keys
-  cur=${{COMP_WORDS[$index]}}
-  COMPREPLY=()
-  if [[ $COMP_CWORD -gt $index ]] ; then
-    case "${{COMP_WORDS[$index]}}" in
+    local index
+    local cur
+    local current_keys
+    cur=${{COMP_WORDS[$COMP_CWORD]}}
+    COMPREPLY=()
+""".format(**format_d))
+        if subcommands:
+            self.output_stream.write("""
+    # search current index
+    local index={previous_level}
+    while [[ $index -lt ${{#COMP_WORDS[*]}} ]] ; do
+        case "${{COMP_WORDS[$index]}}" in
+            {current_command})
+                break
+                ;;
+        esac
+        index=$(( $index + 1 ))
+    done
+    # search next function
+    if [[ $cur != '' ]] ; then
+        while [[ $index -lt $(( ${{#COMP_WORDS[*]}} - 1 )) ]] ; do
+            case "${{COMP_WORDS[$index]}}" in
 """.format(**format_d))
 
-        for key in keys:
-            key_function = self.get_function_name(stack + [key])
-            if not key_function in self._generated_functions:
-                continue
-            self.output_stream.write("""\
-      {key})
-        {key_function}
-        ;;
-""".format(key=key, key_function=self.get_function_name(stack + [key])))
+            for subcommand in subcommands:
+                subcommand_function = self.get_function_name(stack + [subcommand])
+                if not subcommand_function in self._generated_functions:
+                    continue
+                self.output_stream.write("""\
+                {subcommand})
+                    {subcommand_function} 
+                    return
+                    ;;
+""".format(subcommand=subcommand, subcommand_function=subcommand_function))
+            self.output_stream.write("""
+            esac
+            index=$(( $index + 1 ))
+        done
+    fi
+""")
 
         self.output_stream.write("""
-    esac
-  else
     current_keys='{current_keys}'
     {complete_function_code}
     COMPREPLY=( $( compgen -W '$current_keys' -- $cur) )
-  fi
-  return 0
+    return 0
 }}
 """.format(**format_d))
         self._generated_functions.add(function_name)
