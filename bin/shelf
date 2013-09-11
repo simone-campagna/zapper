@@ -34,6 +34,7 @@ def main():
     set_admin_user("@UXS_ADMIN_USER@")
     try:
         manager = Manager()
+        manager.restore_session()
     except Exception as e:
         trace(True)
         LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
@@ -761,9 +762,15 @@ Change the current session""",
 
     args = top_level_parser.parse_args()
 
-    set_trace(args.trace)
-    set_verbose(args.verbose)
-    set_debug(args.debug)
+    if enable_complete_function:
+        # to avoid unwanted log output during completion
+        set_trace(False)
+        set_verbose(False)
+        set_debug(False)
+    else:
+        set_trace(args.trace)
+        set_verbose(args.verbose)
+        set_debug(args.debug)
     manager.set_show_header(args.show_header)
     manager.set_show_translation(args.show_translation)
     manager.set_show_full_label(args.full_label)

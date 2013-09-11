@@ -150,7 +150,7 @@ class Manager(object):
         self.load_user_package_option('version_defaults')
 
         self.load_translator()
-        self.restore_session()
+        #self.restore_session()
 
     @classmethod
     def PackageSortKeys(cls, package_sort_keys):
@@ -602,16 +602,16 @@ class Manager(object):
     def restore_session(self):
         def _verify_session_root(session_type, session_root):
             if session_root:
-                LOGGER.info("trying to load {} session {}".format(session_type, session_root))
+                LOGGER.debug("trying to load {} session {}".format(session_type, session_root))
                 session_config_file = Session.get_session_config_file(session_root)
                 if not os.path.lexists(session_config_file):
-                    LOGGER.warning("{}: cannot restore {} session {} since it does not exist".format(session_type, session_root))
+                    LOGGER.warning("cannot restore {} session {} since it does not exist".format(session_type, session_root))
                     session_root = None
             return session_root
     
         self.session = None
         session_root = _verify_session_root(
-            'UXS_SESSION',
+            '$UXS_SESSION',
             os.environ.get("UXS_SESSION", None))
         if not session_root:
             default_session = self.get_config_key('default_session')

@@ -424,7 +424,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
             if loaded_package is None:
                 LOGGER.warning("inconsistent environment: cannot unload unknown package {0!r}".format(loaded_package_label))
                 continue
-            LOGGER.info("removing package {0}...".format(loaded_package))
+            #LOGGER.info("removing package {0}...".format(loaded_package))
             loaded_package.revert(self)
             env_loaded_packages.append(loaded_package)
         del self._environment['UXS_LOADED_PACKAGES']
@@ -440,7 +440,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         self._add_suite(ROOT)
         env_loaded_packages = set(self.unload_environment_packages())
         self.unload_packages()
-        self.add(packages_list, ignore_errors=True)
+        self.add(packages_list, ignore_errors=True, info=False)
         loaded_packages = set(self.loaded_packages())
         for package in loaded_packages.difference(env_loaded_packages):
             LOGGER.warning("package {} has been added".format(package))
@@ -546,7 +546,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
             unloaded_packages.append(package)
         return unloaded_packages
 
-    def add(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, dry_run=False, ignore_errors=False):
+    def add(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, dry_run=False, ignore_errors=False, info=True):
         self.check_read_only()
         for packages in self.iteradd(package_labels, ignore_errors=ignore_errors):
             #print(packages)
@@ -554,12 +554,12 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
                 packages = self._get_subpackages(packages)
             required_packages = packages
             packages = self._unloaded_packages(packages)
-            added_packages = self.add_packages(packages, resolution_level=resolution_level, dry_run=dry_run)
+            added_packages = self.add_packages(packages, resolution_level=resolution_level, dry_run=dry_run, info=info)
             if sticky:
                 all_packages = set(required_packages).union(added_packages)
                 self._sticky_packages.update(package.full_label for package in all_packages)
         
-    def add_packages(self, packages, resolution_level=0, dry_run=False):
+    def add_packages(self, packages, resolution_level=0, dry_run=False, info=True):
         package_dependencies = collections.defaultdict(set)
         available_packages = self.available_packages()
         defined_packages = self.defined_packages()
@@ -625,7 +625,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         suites_to_add, packages_to_add = self._separate_suites(packages_to_add)
         for packages in suites_to_add, packages_to_add:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
-            self._add_packages(sorted_packages, dry_run=dry_run)
+            self._add_packages(sorted_packages, dry_run=dry_run, info=info)
             added_packages.extend(packages)
         return added_packages
 
@@ -639,13 +639,14 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
                 non_suites.append(package)
         return suites, non_suites
 
-    def _add_packages(self, packages, dry_run=False):
+    def _add_packages(self, packages, dry_run=False, info=True):
         if dry_run:
             header = '[dry-run] '
         else:
             header = ''
         for package in packages:
-            LOGGER.info("{0}adding package {1}...".format(header, package))
+            if info:
+                LOGGER.info("{0}adding package {1}...".format(header, package))
             if dry_run:
                 continue
             package.apply(self)
