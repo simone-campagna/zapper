@@ -413,7 +413,13 @@ Change the current session""",
         help="copy sessions")
     parser_session_copy.set_defaults(function=manager.copy_sessions)
 
-    for subparser in (parser_session_create, parser_session_load, parser_session_new, parser_session_info):
+    for subparser in (parser_session_load, ):
+        subparser.add_argument("session_name",
+            type=manager.SessionName,
+            default=None,
+            help="session name")
+
+    for subparser in (parser_session_create, parser_session_new, parser_session_info):
         subparser.add_argument("session_name",
             type=manager.SessionName,
             nargs='?',

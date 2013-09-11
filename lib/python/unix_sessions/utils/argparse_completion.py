@@ -135,8 +135,7 @@ UXS_CURRENT_COMPLETION_VERSION={}
         index=$(( $index + 1 ))
     done
     # search next function
-    if [[ $cur != '' ]] ; then
-        while [[ $index -lt $(( ${{#COMP_WORDS[*]}} - 1 )) ]] ; do
+    while [[ $index -lt $(( ${{#COMP_WORDS[*]}} - 1 )) ]] ; do
             case "${{COMP_WORDS[$index]}}" in
 """.format(**format_d))
 
@@ -147,14 +146,13 @@ UXS_CURRENT_COMPLETION_VERSION={}
                 self.output_stream.write("""\
                 {subcommand})
                     {subcommand_function} 
-                    return
+                    return $?
                     ;;
 """.format(subcommand=subcommand, subcommand_function=subcommand_function))
             self.output_stream.write("""
             esac
             index=$(( $index + 1 ))
-        done
-    fi
+    done
 """)
 
         self.output_stream.write("""
@@ -164,6 +162,7 @@ UXS_CURRENT_COMPLETION_VERSION={}
     return 0
 }}
 """.format(**format_d))
+    #echo "<<<{function_name} -> {current_keys}>>>"
         self._generated_functions.add(function_name)
     
     def _key_to_skip(self, key):

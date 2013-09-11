@@ -443,9 +443,9 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         self.add(packages_list, ignore_errors=True, info=False)
         loaded_packages = set(self.loaded_packages())
         for package in loaded_packages.difference(env_loaded_packages):
-            LOGGER.warning("package {} has been added".format(package))
+            LOGGER.info("package {} has been added".format(package))
         for package in env_loaded_packages.difference(loaded_packages):
-            LOGGER.warning("package {} has been removed".format(package))
+            LOGGER.info("package {} has been removed".format(package))
         
                 
     def store(self):
