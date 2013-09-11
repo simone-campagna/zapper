@@ -28,6 +28,7 @@ from unix_sessions.errors import SessionConfigError
 from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
 from unix_sessions.utils.trace import set_trace, trace
 from unix_sessions.utils.install_data import set_home_dir, set_admin_user
+from unix_sessions.utils.argparse_autocomplete import autocomplete_monkey_patch
 
 def main():
     set_home_dir("@UXS_HOME_DIR@")
@@ -759,6 +760,13 @@ Change the current session""",
 #        help="init modules to current session")
 #    parser_init.set_defaults(function=manager.init)
 
+
+    try:
+        autocomplete_monkey_patch(top_level_parser)
+    except Exception as e:
+        print(e)
+        # ignoring these exceptions, since this is not mandatory
+        pass
 
     args = top_level_parser.parse_args()
 
