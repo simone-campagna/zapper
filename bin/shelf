@@ -256,13 +256,6 @@ Change the current session""",
             nargs='?',
             help="output filename")
 
-    ### Update
-    parser_update = top_level_subparsers.add_parser(
-        "update",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="update current session")
-    parser_update.set_defaults(function=manager.update_session)
 
     ### Package_options
     parser_package_option = {}
@@ -454,6 +447,15 @@ Change the current session""",
 
     session_config_subparsers = parser_session_config.add_subparsers(
         description="Session default values management.")
+
+    ### Update
+    for subparsers in session_subparsers, :
+        parser_update = subparsers.add_parser(
+            "update",
+            parents=[common_parser],
+            formatter_class=Formatter,
+            help="update current session")
+        parser_update.set_defaults(function=manager.update_session)
 
     for option in package_options:
         parser_package_option_show = {}
