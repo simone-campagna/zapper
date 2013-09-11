@@ -383,8 +383,8 @@ Change the current session""",
         help="create and load a new session")
     parser_session_new.set_defaults(function=manager.new_session)
     
-    parser_session_available = session_subparsers.add_parser("available",
-        aliases=['avail'],
+    parser_session_available = session_subparsers.add_parser("avail",
+        aliases=[],
         parents=[common_parser, session_format_parser],
         formatter_class=Formatter,
         help="list all available sessions")
@@ -624,8 +624,8 @@ Change the current session""",
         description="Package subcommand.")
 
     ### Package_dir subparsers
-    parser_package_dir = top_level_subparsers.add_parser("package_dir",
-        aliases=["dir"],
+    parser_package_dir = top_level_subparsers.add_parser("dir",
+        aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
         help="package directories management")
@@ -665,8 +665,8 @@ Change the current session""",
 #        parser.set_defaults(complete_function=manager.complete_package_directories, complete_add_arguments=['dummy'])
 
     for subparsers in top_level_subparsers, package_subparsers:
-        parser_package_show_available_packages = subparsers.add_parser("available",
-            aliases=["avail"],
+        parser_package_show_available_packages = subparsers.add_parser("avail",
+            aliases=[],
             parents=[common_parser, package_format_parser],
             formatter_class=Formatter,
             help="list available packages")

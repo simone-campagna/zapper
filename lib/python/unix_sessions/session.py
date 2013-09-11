@@ -911,6 +911,8 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
 
         if show_title:
             title = "Package directories"
+        else:
+            title = None
         t = Table(package_dir_format, show_header=self._show_header, title=title)
         t.set_column_title(**self.PACKAGE_DIR_HEADER_DICT)
         for row_d in rows:
