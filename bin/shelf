@@ -25,16 +25,44 @@ import collections
 from unix_sessions.manager import Manager
 from unix_sessions.helper import Helper
 from unix_sessions.errors import SessionConfigError
-from unix_sessions.utils.debug import set_verbose, set_debug, LOGGER
+from unix_sessions.utils.debug import set_quiet, set_verbose, set_debug, LOGGER
 from unix_sessions.utils.trace import set_trace, trace
 from unix_sessions.utils.install_data import set_home_dir, set_admin_user
 from unix_sessions.utils.argparse_autocomplete import autocomplete_monkey_patch
 
+def _set_global_flags(enable_complete_function, *, trace, verbose, debug):
+    if enable_complete_function:
+        # to avoid unwanted log output during completion
+        set_quiet()
+        #set_trace(False)
+        #set_verbose(False)
+        #set_debug(False)
+    else:
+        set_trace(trace)
+        set_verbose(verbose)
+        set_debug(debug)
+
 def main():
     set_home_dir("@UXS_HOME_DIR@")
     set_admin_user("@UXS_ADMIN_USER@")
+    enable_complete_function = bool(os.environ.get("UXS_COMPLETE_FUNCTION", ""))
     try:
         manager = Manager()
+    except Exception as e:
+        trace(True)
+        LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+        if not isinstance(e, SessionConfigError):
+            LOGGER.error("Unrecoverable error\n")
+        sys.exit(1)
+
+    _set_global_flags(
+        enable_complete_function,
+        trace=manager.get_config_key('trace'),
+        verbose=manager.get_config_key('verbose'),
+        debug=manager.get_config_key('debug')
+    )
+
+    try:
         manager.restore_session()
     except Exception as e:
         trace(True)
@@ -48,7 +76,6 @@ def main():
             super().__init__(prog, indent_increment, max_help_position, width)
 
     enable_completion_option = manager.translation_name == 'bash'
-    enable_complete_function = bool(os.environ.get("UXS_COMPLETE_FUNCTION", ""))
     #os.environ.get("UXS_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
 
     
@@ -776,15 +803,12 @@ Change the current session""",
 
     args = top_level_parser.parse_args()
 
-    if enable_complete_function:
-        # to avoid unwanted log output during completion
-        set_trace(False)
-        set_verbose(False)
-        set_debug(False)
-    else:
-        set_trace(args.trace)
-        set_verbose(args.verbose)
-        set_debug(args.debug)
+    _set_global_flags(
+        enable_complete_function,
+        trace=args.trace,
+        verbose=args.verbose,
+        debug=args.debug
+    )
     manager.set_show_header(args.show_header)
     manager.set_show_translation(args.show_translation)
     manager.set_show_full_label(args.full_label)

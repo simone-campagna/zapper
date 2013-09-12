@@ -53,6 +53,10 @@ def set_debug(enable):
     if enable:
         trace.set_trace(True)
 
+def set_quiet():
+    logging.disable(logging.CRITICAL)
+
+    
 def set_logger_level():
     if DEBUG:
         LOGGER.setLevel(logging.DEBUG)
