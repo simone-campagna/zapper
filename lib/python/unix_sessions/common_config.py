@@ -40,6 +40,7 @@ COMMON_CONFIG = {
 
 USER_HOST_CONFIG = COMMON_CONFIG.copy()
 USER_HOST_CONFIG['default_session'] = ''
+USER_HOST_CONFIG['default_packages'] = ''
 
 VERSION_DEFAULTS = {
 }

@@ -43,7 +43,7 @@ from .utils.table import show_table, validate_format
 from .utils.debug import PRINT
 from .utils.trace import trace
 from .utils.sort_keys import SortKeys
-from .utils.strings import string_to_bool, bool_to_string
+from .utils.strings import string_to_bool, bool_to_string, string_to_list, list_to_string
 
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
@@ -85,6 +85,7 @@ class Manager(object):
         ('show_header', False),
         ('show_translation', False),
         ('default_session', DEFAULT_SESSION_LAST),
+        ('default_packages', []),
         ('description', ''),
         ('read_only', False),
     ))
@@ -454,6 +455,8 @@ class Manager(object):
             value = self.SessionFormat(s_value)
         elif key in {'default_session'}:
             value = self.DefaultSession(s_value)
+        elif key in {'default_packages'}:
+            value = string_to_list(s_value)
         elif key in {'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys', 'description'}:
             value = s_value
         else:
@@ -482,7 +485,11 @@ class Manager(object):
             if not key in config:
                 LOGGER.error("no such key: {0}".format(key))
                 continue
-            value = config[key]
+            s_value = config[key]
+            if key in {'default_packages'}:
+                value = list_to_string(s_value)
+            else:
+                value = s_value
             if config_from is None:
                 from_label = label
             else:
@@ -692,11 +699,13 @@ class Manager(object):
             #if os.path.lexists(session_root):
             #    raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
             #os.makedirs(session_root)
+        default_packages = self.get_config_key('default_packages')
         Session.create_session_config(
             manager=self, session_root=session_root,
             session_name=session_name,
             session_type=session_type,
-            session_description=description)
+            session_description=description,
+            session_packages=default_packages)
         PRINT("created {t} session {n} at {r}".format(t=session_type, n=session_name, r=session_root))
         return session_root
 

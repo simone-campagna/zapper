@@ -49,3 +49,12 @@ def string_to_bool(s):
 
 def bool_to_string(b):
     return str(bool(b))
+
+def string_to_list(s):
+    if s:
+        return s.split(':')
+    else:
+        return []
+
+def list_to_string(l):
+    return ':'.join(l)

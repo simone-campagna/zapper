@@ -37,7 +37,7 @@ from .utils.trace import trace
 from .utils.table import Table, validate_format
 from .utils.sorted_dependencies import sorted_dependencies
 from .utils.random_name import RandomNameSequence
-from .utils.strings import plural_string, string_to_bool, bool_to_string
+from .utils.strings import plural_string, string_to_bool, bool_to_string, string_to_list, list_to_string
 from .utils.sort_keys import SortKeys
 from .utils import sequences
 
@@ -244,18 +244,20 @@ class Session(object):
         self.set_available_packages()
         if load_packages:
             # loaded packages
-            packages_list_string = self.session_config['packages']['loaded_packages']
-            if packages_list_string:
-                packages_list = packages_list_string.split(':')
-            else:
-                packages_list = []
+            packages_list = string_to_list(self.session_config['packages']['loaded_packages'])
+            #packages_list_string = self.session_config['packages']['loaded_packages']
+            #if packages_list_string:
+            #    packages_list = packages_list_string.split(':')
+            #else:
+            #    packages_list = []
             self.load_packages(packages_list)
         # sticky packages
-        packages_list_string = self.session_config['packages']['sticky_packages']
-        if packages_list_string:
-            packages_list = packages_list_string.split(':')
-        else:
-            packages_list = []
+        packages_list = string_to_list(self.session_config['packages']['sticky_packages'])
+        #packages_list_string = self.session_config['packages']['sticky_packages']
+        #if packages_list_string:
+        #    packages_list = packages_list_string.split(':')
+        #else:
+        #    packages_list = []
         self._sticky_packages.update(packages_list)
         self._orig_sticky_packages = self._sticky_packages.copy()
         # this must be at the end!
@@ -280,7 +282,7 @@ class Session(object):
             return session_root
             
     @classmethod
-    def create_session_config(cls, manager, session_root, session_name, session_type, session_description):
+    def create_session_config(cls, manager, session_root, session_name, session_type, session_description, session_packages=None):
         session_config_file = cls.get_session_config_file(session_root)
         session_config = cls.get_session_config(session_config_file)
         session_config['session']['name'] = session_name
@@ -293,6 +295,8 @@ class Session(object):
             package_directories.append(manager.uxs_package_dir)
         package_directories = [os.path.normpath(os.path.abspath(d)) for d in package_directories]
         session_config['packages']['directories'] = ':'.join(package_directories)
+        if session_packages:
+            session_config['packages']['loaded_packages'] = list_to_string(session_packages)
         session_config.store()
     
     @classmethod
@@ -927,7 +931,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         PRINT("read-only     : {0}".format(self.session_read_only))
         PRINT("creation time : {0}".format(self.session_creation_time))
         self.show_package_directories(show_title=True)
-        packages_list_string = self.session_config['packages']['loaded_packages']
+        #packages_list_string = self.session_config['packages']['loaded_packages']
         self.show_loaded_packages(show_title=True)
 
     def translate(self, translator):
