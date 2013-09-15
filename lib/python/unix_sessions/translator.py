@@ -45,18 +45,21 @@ class MetaTranslator(abc.ABCMeta):
 
 class Translator(object, metaclass=MetaTranslator):
     def __init__(self):
-        self._vars = []
+        #self._vars = []
+        self._vars = collections.OrderedDict()
 
     def var_set(self, var_name, var_value):
-        self._vars.append((var_name, var_value))
+        #self._vars.append((var_name, var_value))
+        self._vars[var_name] = var_value
 
     def var_unset(self, var_name):
-        self._vars.append((var_name, None))
+        #self._vars.append((var_name, None))
+        self._vars[var_name] = None
 
     def translate(self, stream=None):
         if stream is None:
             stream = sys.stdout
-        for var_name, var_value in self._vars:
+        for var_name, var_value in self._vars.items():
             if var_value is None:
                 #print("TRANSLATION: unset({0!r})".format(var_name))
                 self.translate_var_unset(stream, var_name)
@@ -66,7 +69,8 @@ class Translator(object, metaclass=MetaTranslator):
         self.clear()
 
     def clear(self):
-        del self._vars[:]
+        #del self._vars[:]
+        self._vars.clear()
 
     @abc.abstractmethod
     def translate_var_unset(self, stream, var_name):

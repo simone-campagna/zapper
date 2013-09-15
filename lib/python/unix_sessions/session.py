@@ -960,9 +960,9 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
             dry_run = self._dry_run
         self.translate(translator)
         if not dry_run:
-            print("-" * 70)
+            #print("-" * 70)
             translator.translate(stream)
-            print("-" * 70)
+            #print("-" * 70)
         if translation_filename:
             translator.translate_remove_filename(stream, translation_filename)
 

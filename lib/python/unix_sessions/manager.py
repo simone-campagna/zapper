@@ -935,7 +935,6 @@ class Manager(object):
             else:
                 self.new_session()
 
-        print("HERE", self._dry_run)
         self.session.set_dry_run(self._dry_run)
 
         self.session.set_package_formats(

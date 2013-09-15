@@ -825,7 +825,6 @@ Change the current session""",
         debug=args.debug,
         trace=args.trace,
     )
-    print("PPP", args.dry_run)
     manager.set_dry_run(args.dry_run)
     manager.set_show_header(args.show_header)
     manager.set_show_translation(args.show_translation)
