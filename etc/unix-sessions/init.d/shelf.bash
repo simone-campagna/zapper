@@ -38,3 +38,5 @@ if [[ -f ${bash_completion_file} ]] ; then
     . ${bash_completion_file}
 fi
 unset bash_completion_file
+
+shelf session update --quiet

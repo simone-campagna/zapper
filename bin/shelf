@@ -30,7 +30,7 @@ from unix_sessions.utils.trace import set_trace, trace
 from unix_sessions.utils.install_data import set_home_dir, set_admin_user
 from unix_sessions.utils.argparse_autocomplete import autocomplete_monkey_patch
 
-def _set_global_flags(enable_complete_function, *, trace, verbose, debug):
+def _set_global_flags(enable_complete_function, *, quiet, verbose, debug, trace):
     if enable_complete_function:
         # to avoid unwanted log output during completion
         set_quiet()
@@ -38,9 +38,12 @@ def _set_global_flags(enable_complete_function, *, trace, verbose, debug):
         #set_verbose(False)
         #set_debug(False)
     else:
+        if quiet:
+            set_quiet()
+        else:
+            set_verbose(verbose)
+            set_debug(debug)
         set_trace(trace)
-        set_verbose(verbose)
-        set_debug(debug)
 
 def main():
     set_home_dir("@UXS_HOME_DIR@")
@@ -57,9 +60,10 @@ def main():
 
     _set_global_flags(
         enable_complete_function,
-        trace=manager.get_config_key('trace'),
+        quiet=manager.get_config_key('quiet'),
         verbose=manager.get_config_key('verbose'),
-        debug=manager.get_config_key('debug')
+        debug=manager.get_config_key('debug'),
+        trace=manager.get_config_key('trace'),
     )
 
     try:
@@ -103,6 +107,11 @@ def main():
         action="store_true",
         default=manager.get_config_key('debug'),
         help="set debug on")
+
+    common_parser.add_argument("--quiet", "-q",
+        action="store_true",
+        default=manager.get_config_key('quiet'),
+        help="quiet mode")
 
     common_parser.add_argument("--trace", "-t",
         action="store_true",
@@ -805,9 +814,10 @@ Change the current session""",
 
     _set_global_flags(
         enable_complete_function,
-        trace=args.trace,
+        quiet=args.quiet,
         verbose=args.verbose,
-        debug=args.debug
+        debug=args.debug,
+        trace=args.trace,
     )
     manager.set_show_header(args.show_header)
     manager.set_show_translation(args.show_translation)
@@ -830,7 +840,7 @@ Change the current session""",
             args.temporary = False
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
-    for key in {'function', 'verbose', 'debug', 'trace', 'full_label',
+    for key in {'function', 'quiet', 'verbose', 'debug', 'trace', 'full_label',
                 'show_header', 'show_translation',
                 'package_format', 'session_format', 'package_dir_format',
                 'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys',

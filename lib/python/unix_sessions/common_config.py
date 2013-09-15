@@ -20,6 +20,7 @@ __author__ = 'Simone Campagna'
 from .config import Config
 
 COMMON_CONFIG = {
+    'quiet': '',
     'verbose': '',
     'debug': '',
     'trace': '',

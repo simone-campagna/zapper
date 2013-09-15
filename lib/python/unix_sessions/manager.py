@@ -68,6 +68,7 @@ class Manager(object):
         ('description', 'DESCRIPTION'),
     ))
     MANAGER_CONFIG = collections.OrderedDict((
+        ('quiet', False),
         ('verbose', False),
         ('debug', False),
         ('trace', False),
@@ -429,7 +430,7 @@ class Manager(object):
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        if key in {'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'show_translation', 'read_only'}:
+        if key in {'quiet', 'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'show_translation', 'read_only'}:
             if isinstance(s_value, str):
                 value = self._str2bool(s_value)
             else:
