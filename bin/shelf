@@ -118,6 +118,12 @@ def main():
         default=manager.get_config_key('trace'),
         help="show traceback on errors")
 
+    common_parser.add_argument("--dry-run", "-D",
+        dest="dry_run",
+        action="store_true",
+        default=False,
+        help="do not apply changes")
+
     common_parser.add_argument("--full-label", "-f",
         action="store_true",
         default=manager.get_config_key('full_label'),
@@ -777,8 +783,8 @@ Change the current session""",
                 help="automatically {0} all suite's packages".format(key))
          
         for subparser_name, subparser in ('add', parser_package_add), ('remove', parser_package_remove), ('clear', parser_package_clear):
-            subparser.add_argument("--dry-run", "-D",
-                dest="dry_run",
+            subparser.add_argument("--simulate",
+                dest="simulate",
                 action="store_true",
                 default=False,
                 help="show only changes")
@@ -819,6 +825,8 @@ Change the current session""",
         debug=args.debug,
         trace=args.trace,
     )
+    print("PPP", args.dry_run)
+    manager.set_dry_run(args.dry_run)
     manager.set_show_header(args.show_header)
     manager.set_show_translation(args.show_translation)
     manager.set_show_full_label(args.full_label)
@@ -841,7 +849,7 @@ Change the current session""",
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
     for key in {'function', 'quiet', 'verbose', 'debug', 'trace', 'full_label',
-                'show_header', 'show_translation',
+                'dry_run', 'show_header', 'show_translation',
                 'package_format', 'session_format', 'package_dir_format',
                 'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys',
                 'complete_function', 'complete_add_arguments'}:

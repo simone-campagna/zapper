@@ -88,6 +88,7 @@ class Session(object):
         self._orig_sticky_packages = set()
         self._sticky_packages = set()
         self._modules = {}
+        self._dry_run = False
         self._show_full_label = False
         self._package_format = None
         self._available_package_format = None
@@ -98,6 +99,9 @@ class Session(object):
         self._version_defaults = {}
         if load:
             self.load(session_root)
+
+    def set_dry_run(self, dry_run):
+        self._dry_run = bool(dry_run)
 
     def new_session(self, session_root):
         session = Session(session_root, load=False)
@@ -456,7 +460,8 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         self.check_read_only()
         self.session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
         self.session_config['packages']['sticky_packages'] = ':'.join(self._sticky_packages)
-        self.session_config.store()
+        if not self._dry_run:
+            self.session_config.store()
         
     def add_directories(self, directories):
         self.check_read_only()
@@ -471,7 +476,8 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
                 changed = True
         if changed:
             self.session_config['packages']['directories'] = ':'.join(self._package_directories)
-            self.session_config.store()
+            if not self._dry_run:
+                self.session_config.store()
         
     def remove_directories(self, directories):
         self.check_read_only()
@@ -496,7 +502,8 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
                 changed = True
         if changed:
             self.session_config['packages']['directories'] = ':'.join(self._package_directories)
-            self.session_config.store()
+            if not self._dry_run:
+                self.session_config.store()
         
     def iteradd(self, package_labels, *, ignore_errors=False):
         while package_labels:
@@ -550,7 +557,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
             unloaded_packages.append(package)
         return unloaded_packages
 
-    def add(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, dry_run=False, ignore_errors=False, info=True):
+    def add(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, simulate=False, ignore_errors=False, info=True):
         self.check_read_only()
         for packages in self.iteradd(package_labels, ignore_errors=ignore_errors):
             #print(packages)
@@ -558,12 +565,12 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
                 packages = self._get_subpackages(packages)
             required_packages = packages
             packages = self._unloaded_packages(packages)
-            added_packages = self.add_packages(packages, resolution_level=resolution_level, dry_run=dry_run, info=info)
+            added_packages = self.add_packages(packages, resolution_level=resolution_level, simulate=simulate, info=info)
             if sticky:
                 all_packages = set(required_packages).union(added_packages)
                 self._sticky_packages.update(package.full_label for package in all_packages)
         
-    def add_packages(self, packages, resolution_level=0, dry_run=False, info=True):
+    def add_packages(self, packages, resolution_level=0, simulate=False, info=True):
         package_dependencies = collections.defaultdict(set)
         available_packages = self.available_packages()
         defined_packages = self.defined_packages()
@@ -629,7 +636,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         suites_to_add, packages_to_add = self._separate_suites(packages_to_add)
         for packages in suites_to_add, packages_to_add:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
-            self._add_packages(sorted_packages, dry_run=dry_run, info=info)
+            self._add_packages(sorted_packages, simulate=simulate, info=info)
             added_packages.extend(packages)
         return added_packages
 
@@ -643,15 +650,15 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
                 non_suites.append(package)
         return suites, non_suites
 
-    def _add_packages(self, packages, dry_run=False, info=True):
-        if dry_run:
+    def _add_packages(self, packages, simulate=False, info=True):
+        if simulate:
             header = '[dry-run] '
         else:
             header = ''
         for package in packages:
             if info:
                 LOGGER.info("{0}adding package {1}...".format(header, package))
-            if dry_run:
+            if simulate:
                 continue
             package.apply(self)
             self._loaded_packages[package.full_label] = package
@@ -661,14 +668,15 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
     def finalize(self):
         if not self.session_read_only:
             if self._loaded_packages.is_changed() or self._orig_sticky_packages != self._sticky_packages:
-                self.store()
+                if not self._dry_run:
+                    self.store()
         
     def _add_suite(self, suite):
         self._loaded_suites.add_package(suite)
         for package in suite.packages():
             self._available_packages.add_package(package)
 
-    def remove(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
+    def remove(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
         self.check_read_only()
         packages = []
         for package_label in package_labels:
@@ -731,16 +739,16 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         suites_to_remove, packages_to_remove = self._separate_suites(packages_to_remove)
         for packages in packages_to_remove, suites_to_remove:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
-            self._remove_packages(sorted_packages, dry_run=dry_run)
+            self._remove_packages(sorted_packages, simulate=simulate)
 
-    def _remove_packages(self, packages, dry_run=False):
-        if dry_run:
+    def _remove_packages(self, packages, simulate=False):
+        if simulate:
             header = '[dry-run] '
         else:
             header = ''
         for package in packages:
             LOGGER.info("{0}removing package {1}...".format(header, package))
-            if dry_run:
+            if simulate:
                 continue
             package.revert(self)
             del self._loaded_packages[package.full_label]
@@ -753,7 +761,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         for package in suite.packages():
             self._available_packages.remove_package(package)
 
-    def clear(self, sticky=False, dry_run=False):
+    def clear(self, sticky=False, simulate=False):
         self.check_read_only()
         packages_to_remove = reversed(list(self._loaded_packages.values()))
         if not sticky:
@@ -764,7 +772,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
                     continue
                 lst.append(package)
             packages_to_remove = lst
-        self._remove_packages(packages_to_remove, dry_run=dry_run)
+        self._remove_packages(packages_to_remove, simulate=simulate)
             
     @property
     def environment(self):
@@ -947,9 +955,14 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         loaded_packages = ':'.join(self._loaded_packages.keys())
         translator.var_set("UXS_LOADED_PACKAGES", loaded_packages)
 
-    def translate_stream(self, translator, stream=None, translation_filename=None):
+    def translate_stream(self, translator, stream=None, translation_filename=None, *, dry_run=None):
+        if dry_run is None:
+            dry_run = self._dry_run
         self.translate(translator)
-        translator.translate(stream)
+        if not dry_run:
+            print("-" * 70)
+            translator.translate(stream)
+            print("-" * 70)
         if translation_filename:
             translator.translate_remove_filename(stream, translation_filename)
 

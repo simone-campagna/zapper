@@ -130,6 +130,8 @@ class Manager(object):
         user_config_file = os.path.join(self.user_rc_dir, self.USER_CONFIG_FILE)
         self.user_config = UserConfig(user_config_file)
 
+        self._dry_run = False
+
         self._show_full_label = False
         self._available_package_format = None
         self._loaded_package_format = None
@@ -196,6 +198,9 @@ class Manager(object):
 
     def update_session(self):
         pass
+
+    def set_dry_run(self, dry_run):
+        self._dry_run = bool(dry_run)
 
     def set_show_header(self, show_header):
         self._show_header = show_header
@@ -346,15 +351,15 @@ class Manager(object):
     def set_host_package_option(self, option, key_values):
         if not self.is_admin():
             raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.user, option))
-        if self._set_generic_package_option(option, 'host', self.host_config[option], key_values):
+        if self._set_generic_package_option(option, 'host', self.host_config[option], key_values) and not self._dry_run:
             self.host_config.store()
 
     def set_user_package_option(self, option, key_values):
-        if self._set_generic_package_option(option, 'user', self.user_config[option], key_values):
+        if self._set_generic_package_option(option, 'user', self.user_config[option], key_values) and not self._dry_run:
             self.user_config.store()
 
     def set_session_package_option(self, option, key_values):
-        if self._set_generic_package_option(option, 'session', self.session_config[option], key_values):
+        if self._set_generic_package_option(option, 'session', self.session_config[option], key_values) and not self._dry_run:
             self.session_config.store()
 
     def _reset_generic_package_option(self, option, label, package_option, keys):
@@ -372,15 +377,15 @@ class Manager(object):
     def reset_host_package_option(self, option, keys):
         if not self.is_admin():
             raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.user, option))
-        if self._reset_generic_package_option(option, 'host', self.host_config[option], keys):
+        if self._reset_generic_package_option(option, 'host', self.host_config[option], keys) and not self._dry_run:
             self.host_config.store()
 
     def reset_user_package_option(self, option, keys):
-        if self._reset_generic_package_option(option, 'user', self.user_config[option], keys):
+        if self._reset_generic_package_option(option, 'user', self.user_config[option], keys) and not self._dry_run:
             self.user_config.store()
 
     def reset_session_package_option(self, option, keys):
-        if self._reset_generic_package_option(option, 'session', self.session_config[option], keys):
+        if self._reset_generic_package_option(option, 'session', self.session_config[option], keys) and not self._dry_run:
             self.session_config.store()
 
     def load_user_package_option(self, option):
@@ -529,15 +534,15 @@ class Manager(object):
     def set_host_config(self, key_values):
         if not self.is_admin():
             raise SessionAuthError("user {0}: not authorized to change host config".format(self.user))
-        if self._set_generic_config('host', self.host_config['config'], key_values):
+        if self._set_generic_config('host', self.host_config['config'], key_values) and not self._dry_run:
             self.host_config.store()
 
     def set_user_config(self, key_values):
-        if self._set_generic_config('user', self.user_config['config'], key_values):
+        if self._set_generic_config('user', self.user_config['config'], key_values) and not self._dry_run:
             self.user_config.store()
 
     def set_session_config(self, key_values):
-        if self._set_generic_config('session', self.session_config['config'], key_values):
+        if self._set_generic_config('session', self.session_config['config'], key_values) and not self._dry_run:
             self.session_config.store()
 
     def _reset_generic_config(self, label, config, keys):
@@ -555,15 +560,15 @@ class Manager(object):
     def reset_host_config(self, keys):
         if not self.is_admin():
             raise SessionAuthError("user {0}: not authorized to change host config".format(self.user))
-        if self._reset_generic_config('host', self.host_config['config'], keys):
+        if self._reset_generic_config('host', self.host_config['config'], keys) and not self._dry_run:
             self.host_config.store()
 
     def reset_user_config(self, keys):
-        if self._reset_generic_config('user', self.user_config['config'], keys):
+        if self._reset_generic_config('user', self.user_config['config'], keys) and not self._dry_run:
             self.user_config.store()
 
     def reset_session_config(self, keys):
-        if self._reset_generic_config('session', self.session_config['config'], keys):
+        if self._reset_generic_config('session', self.session_config['config'], keys) and not self._dry_run:
             self.session_config.store()
 
     @classmethod
@@ -902,14 +907,14 @@ class Manager(object):
             session = self.session.new_session(session_root)
         session.info()
 
-    def add_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
-        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, dry_run=dry_run)
+    def add_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
+        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, simulate=simulate)
 
-    def remove_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, dry_run=False):
-        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, dry_run=dry_run)
+    def remove_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
+        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, simulate=simulate)
 
-    def clear_packages(self, sticky=False, dry_run=False):
-        self.session.clear(sticky=sticky, dry_run=dry_run)
+    def clear_packages(self, sticky=False, simulate=False):
+        self.session.clear(sticky=sticky, simulate=simulate)
 
     def add_package_directories(self, package_directories):
         self.session.add_directories(package_directories)
@@ -925,7 +930,13 @@ class Manager(object):
 
     def initialize(self):
         if not self.session:
-            self.new_session()
+            if self._dry_run:
+                return
+            else:
+                self.new_session()
+
+        print("HERE", self._dry_run)
+        self.session.set_dry_run(self._dry_run)
 
         self.session.set_package_formats(
             available=self.get_config_key('available_package_format'),
@@ -953,7 +964,8 @@ class Manager(object):
         if self.session:
             self.session.finalize()
         self.user_config['sessions']['last_session'] = self.session.session_root
-        self.user_config.store()
+        if not self._dry_run:
+            self.user_config.store()
         self.translate()
 
     def translate(self, translator=None, translation_filename=None):
@@ -967,7 +979,7 @@ class Manager(object):
             translation_stream = sys.stdout
             trailer = "=" * 70 + '\n'
             translation_stream.write(trailer)
-            self.session.translate_stream(translator, sys.stdout)
+            self.session.translate_stream(translator, translation_stream, dry_run=False)
             translation_stream.write(trailer)
             
     def init(self, translator=None, translation_filename=None):

@@ -58,10 +58,10 @@ class Translator(object, metaclass=MetaTranslator):
             stream = sys.stdout
         for var_name, var_value in self._vars:
             if var_value is None:
-                #print("SER: unset({0!r})".format(var_name))
+                #print("TRANSLATION: unset({0!r})".format(var_name))
                 self.translate_var_unset(stream, var_name)
             else:
-                #print("SER: set({0!r}, {1!r})".format(var_name, var_value))
+                #print("TRANSLATION: set({0!r}, {1!r})".format(var_name, var_value))
                 self.translate_var_set(stream, var_name, var_value)
         self.clear()
 
