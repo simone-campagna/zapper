@@ -20,8 +20,12 @@ import os
 import re
 import sys
 import glob
+import shutil
+import difflib
+import filecmp
 import getpass
 import tempfile
+import collections
 
 dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
 py_dirname = os.path.join(dirname, "lib", "python")
@@ -35,6 +39,14 @@ from distutils import log
 from distutils.command.install_data import install_data
 from distutils.command.install_scripts import install_scripts
 from distutils.cmd import Command
+
+FILES_TO_BACKUP = set()
+
+shell_setup_files = []
+shell_setup_subdir = 'etc/unix-sessions/init.d'
+for shell_setup_file in glob.glob(os.path.join(dirname, shell_setup_subdir, 'shelf.*')):
+    shell_setup_files.append(shell_setup_file)
+    FILES_TO_BACKUP.add(os.path.relpath(os.path.normpath(os.path.abspath(shell_setup_file)), dirname))
 
 class pre_command(object):
     def run(self):
@@ -66,12 +78,52 @@ class subst_command(Command):
                 source = regular_expression.sub(substitution, source)
                 #print("___>", substitution)
             f_out.write(source)
+
+    def _backup_file(self, infile, outfile):
+        if os.path.exists(outfile):
+            if os.path.isdir(outfile):
+                outfile = os.path.join(outfile, os.path.basename(infile))
+        if os.path.exists(outfile):
+            outfile = os.path.normpath(os.path.abspath(outfile))
+            outfile_relpath = os.path.relpath(outfile, self.install_dir)
+            #print("--- {} in {}: {}".format(outfile, FILES_TO_BACKUP, outfile in FILES_TO_BACKUP))
+            if outfile_relpath in FILES_TO_BACKUP:
+                #print("BACKUP: {}".format(outfile))
+                if not filecmp.cmp(infile, outfile):
+                    overwrite = False
+                    while True:
+                        answer = input("Overwrite existing file {}? [yes/no/diff] ".format(outfile))
+                        if answer == 'yes': 
+                            overwrite = True
+                            break
+                        elif answer == 'no': 
+                            overwrite = False
+                            break
+                        elif answer == 'diff': 
+                            with open(infile, 'r') as fa, open(outfile, 'r') as fb:
+                                sys.stdout.writelines(difflib.context_diff(fa.readlines(), fb.readlines(), fromfile=infile, tofile=outfile))
+                            continue
+                        else:
+                            sys.stderr.write("please, answer 'yes', 'no' or 'diff'\n")
+                    if overwrite:
+                        shutil.copy(outfile, outfile + '.bck')
+                        return True
+                    else:
+                        return False
+        return True
+                     
+                        
+                    
         
     def copy_file(self, infile, outfile, preserve_mode=1, preserve_times=1, link=None, level=1):
         with tempfile.TemporaryDirectory(prefix=os.path.basename(infile)) as tmpdir:
             tmpfile = os.path.join(tmpdir, os.path.basename(infile))
             self.transform_file(infile, tmpfile)
-            result = super().copy_file(tmpfile, outfile, preserve_mode=preserve_mode, preserve_times=preserve_times, link=link, level=level)
+            copy = self._backup_file(tmpfile, outfile)
+            if copy:
+                result = super().copy_file(tmpfile, outfile, preserve_mode=preserve_mode, preserve_times=preserve_times, link=link, level=level)
+            else:
+                result = (outfile, False)
         return result
 
     def copy_tree(self, infile, outfile, preserve_mode=1, preserve_times=1,
@@ -110,7 +162,7 @@ setup(
     ],
     data_files = [
         ('etc/unix-sessions', glob.glob('etc/unix-sessions/*.config')),
-        ('etc/unix-sessions/init.d', glob.glob('etc/unix-sessions/init.d/shelf.*')),
+        (shell_setup_subdir, shell_setup_files),
         ('etc/unix-sessions/packages', []),
     ],
     cmdclass = {
@@ -119,3 +171,4 @@ setup(
     },
 )
 
+        #('etc/unix-sessions/init.d', glob.glob('etc/unix-sessions/init.d/shelf.*')),
