@@ -39,4 +39,4 @@ if [[ -f ${bash_completion_file} ]] ; then
 fi
 unset bash_completion_file
 
-shelf session update --quiet
+env UXS_QUIET_MODE=True shelf session update --quiet

@@ -828,7 +828,7 @@ class Manager(object):
             #if os.path.lexists(session_root):
             #    raise SessionCreationError("cannot create session {0!r}, since it already exists".format(session_name))
             #os.makedirs(session_root)
-        default_packages = self.get_config_key('default_packages')
+        default_packages = string_to_list(self.get_config_key('default_packages'))
         Session.create_session_config(
             manager=self, session_root=session_root,
             session_name=session_name,
@@ -850,7 +850,7 @@ class Manager(object):
         for session_name in session_names:
             self.delete_session(session_name)
 
-    def copy_sessions(self, session_names):
+    def copy_sessions(self, session_name):
         if isinstance(session_name, str):
             session_names = [session_name]
         else:
