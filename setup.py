@@ -31,8 +31,8 @@ dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
 py_dirname = os.path.join(dirname, "lib", "python")
 sys.path.insert(0, py_dirname)
 
-from unix_sessions.manager import Manager
-from unix_sessions.utils.argparse_completion import COMPLETION_VERSION
+from zenv.manager import Manager
+from zenv.utils.argparse_completion import COMPLETION_VERSION
 
 from distutils.core import setup
 from distutils import log
@@ -43,8 +43,8 @@ from distutils.cmd import Command
 FILES_TO_BACKUP = set()
 
 shell_setup_files = []
-shell_setup_subdir = 'etc/unix-sessions/init.d'
-for shell_setup_file in glob.glob(os.path.join(dirname, shell_setup_subdir, 'shelf.*')):
+shell_setup_subdir = 'etc/profile.d'
+for shell_setup_file in glob.glob(os.path.join(dirname, shell_setup_subdir, 'zenv.*')):
     shell_setup_files.append(shell_setup_file)
     FILES_TO_BACKUP.add(os.path.relpath(os.path.normpath(os.path.abspath(shell_setup_file)), dirname))
 
@@ -59,11 +59,11 @@ class subst_command(Command):
     def _init(self):
         if not hasattr(self, 'r_list'):
             v_dict = {
-                'UXS_HOME_DIR':             self.install_base,
-                'UXS_RC_DIR_NAME':          Manager.RC_DIR_NAME,
-                'UXS_ADMIN_USER':           self.admin_user,
+                'ZENV_HOME_DIR':            self.install_base,
+                'ZENV_RC_DIR_NAME':         Manager.RC_DIR_NAME,
+                'ZENV_ADMIN_USER':          self.admin_user,
                 'PYTHON_EXECUTABLE':        sys.executable,
-                'UXS_COMPLETION_VERSION':   COMPLETION_VERSION,
+                'ZENV_COMPLETION_VERSION':  COMPLETION_VERSION,
             }
             self.r_list = []
             for key, val in v_dict.items():
@@ -148,22 +148,22 @@ class subst_install_scripts(pre_command, install_scripts, subst_command):
     pass
 
 setup(
-    name = "unix-sessions",
+    name = "zenv",
     version = "0.1",
     requires = [],
     description = "Tool to manage unix environment",
     author = "Simone Campagna",
     author_email = "simone.campagna@tiscali.it",
     url="https://github.com/simone-campagna/unix-sessions",
-    packages = ["unix_sessions", "unix_sessions.translators", "unix_sessions.utils", "unix_sessions.application"],
-    package_dir = {"unix_sessions": "lib/python/unix_sessions"},
+    packages = ["zenv", "zenv.translators", "zenv.utils", "zenv.application"],
+    package_dir = {"zenv": "lib/python/zenv"},
     scripts = [
-	'bin/shelf',
+	'bin/zenv',
     ],
     data_files = [
-        ('etc/unix-sessions', glob.glob('etc/unix-sessions/*.config')),
+        ('etc/zenv', glob.glob('etc/zenv/*.config')),
         (shell_setup_subdir, shell_setup_files),
-        ('etc/unix-sessions/packages', []),
+        ('etc/zenv/packages', []),
     ],
     cmdclass = {
         'install_data': subst_install_data,
@@ -171,4 +171,3 @@ setup(
     },
 )
 
-        #('etc/unix-sessions/init.d', glob.glob('etc/unix-sessions/init.d/shelf.*')),

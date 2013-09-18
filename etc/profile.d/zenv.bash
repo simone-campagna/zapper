@@ -1,16 +1,16 @@
-UXS_HOME_DIR="@UXS_HOME_DIR@"
-UXS_RC_DIR="$HOME/@UXS_RC_DIR_NAME@"
+ZENV_HOME_DIR="@ZENV_HOME_DIR@"
+ZENV_RC_DIR="$HOME/@ZENV_RC_DIR_NAME@"
 PYTHON_EXECUTABLE="@PYTHON_EXECUTABLE@"
-UXS_REQUIRED_COMPLETION_VERSION="@UXS_COMPLETION_VERSION@"
+ZENV_REQUIRED_COMPLETION_VERSION="@ZENV_COMPLETION_VERSION@"
 
-function shelf {
+function zenv {
     typeset _filename
     typeset _tmpdir=${TMPDIR:-/tmp}
     unset _filename
     while [[ -f ${_filename:="$_tmpdir/bash.$$.$RANDOM"} ]] ; do
         unset _filename
     done
-    env UXS_TARGET_TRANSLATOR="bash:${_filename}" PYTHONPATH="${PYTHONPATH}:${UXS_HOME_DIR}/lib/python" ${UXS_HOME_DIR}/bin/shelf "$@"
+    env ZENV_TARGET_TRANSLATOR="bash:${_filename}" PYTHONPATH="${PYTHONPATH}:${ZENV_HOME_DIR}/lib/python" ${ZENV_HOME_DIR}/bin/zenv "$@"
     if [[ -f ${_filename} ]] ; then
         #echo "---> $_filename"
         #cat "$_filename"
@@ -19,24 +19,27 @@ function shelf {
 }
 
 # set bash completion file:
-bash_completion_file="${UXS_RC_DIR}/completion.bash"
+bash_completion_file="${ZENV_RC_DIR}/completion.bash"
 bash_completion_version_file="${bash_completion_file}.version"
 if [[ ! -f ${bash_completion_version_file} ]] ; then
     rm -f "$bash_completion_file"
 else
     . "$bash_completion_version_file"
-    if [[ $UXS_CURRENT_COMPLETION_VERSION != $UXS_REQUIRED_COMPLETION_VERSION ]] ; then
+    if [[ $ZENV_CURRENT_COMPLETION_VERSION != $ZENV_REQUIRED_COMPLETION_VERSION ]] ; then
         rm -f "$bash_completion_version_file"
         rm -f "$bash_completion_file"
     fi
 fi
-unset UXS_CURRENT_COMPLETION_VERSION
+unset ZENV_CURRENT_COMPLETION_VERSION
 if [[ ! -f ${bash_completion_file} ]] ; then
-    shelf completion "$bash_completion_file"
+    zenv completion "$bash_completion_file"
 fi
 if [[ -f ${bash_completion_file} ]] ; then
     . ${bash_completion_file}
 fi
 unset bash_completion_file
 
-env UXS_QUIET_MODE=True shelf session update --quiet
+# zenv update
+export ZENV_QUIET_MODE=True
+zenv session update --quiet
+unset ZENV_QUIET_MODE

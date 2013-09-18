@@ -37,7 +37,7 @@ def _create_logger(name, level=logging.WARNING, formatter=None):
     logger.setLevel(level)
     return logger
 
-LOGGER = _create_logger('UXS')
+LOGGER = _create_logger('ZENV')
 PRINT_LOGGER = _create_logger('PRINT', level=logging.INFO, formatter=logging.Formatter("%(message)s"))
 PRINT = PRINT_LOGGER.info
 

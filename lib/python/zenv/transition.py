@@ -52,7 +52,7 @@ class EnvVarTransition(Transition):
         self.var_name = var_name
 
     def _cache_var_name(self):
-        return "_UXS_CACHE_{0}_".format(self.var_name)
+        return "_ZENV_CACHE_{0}_".format(self.var_name)
 
     @classmethod
     def label(cls):

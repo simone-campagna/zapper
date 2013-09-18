@@ -1,4 +1,4 @@
-from unix_sessions.package_file import *
+from zenv.package_file import *
 
 #print("# MySuite...")
 

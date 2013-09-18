@@ -45,7 +45,7 @@ from .utils import sequences
 class Session(object):
     SESSION_SUFFIX = ".session"
     MODULE_PATTERN = "*.py"
-    RANDOM_NAME_SEQUENCE = RandomNameSequence(width=5)
+    RANDOM_NAME_SEQUENCE = RandomNameSequence(width=4)
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
@@ -249,9 +249,9 @@ class Session(object):
             package_directories = package_directories_string.split(':')
         else:
             package_directories = []
-        uxs_package_dir = os.environ.get("UXS_PACKAGE_DIR", None)
-        if uxs_package_dir:
-            package_directories.extend(uxs_package_dir.split(':'))
+        zenv_package_dir = os.environ.get("ZENV_PACKAGE_DIR", None)
+        if zenv_package_dir:
+            package_directories.extend(zenv_package_dir.split(':'))
         self._package_directories = package_directories
         self.set_defined_packages(loaded_package_directories=loaded_package_directories)
         self.set_available_packages()
@@ -279,7 +279,7 @@ class Session(object):
     @classmethod
     def create_unique_session_root(cls, sessions_dir):
         for name in cls.RANDOM_NAME_SEQUENCE:
-            session_name = "uxs{0}".format(name)
+            session_name = "zenv{0}".format(name)
             session_root = os.path.join(sessions_dir, session_name)
             session_config_file = cls.get_session_config_file(session_root)
             if os.path.lexists(session_config_file):
@@ -419,9 +419,9 @@ class Session(object):
     def unload_environment_packages(self):
         """unload_environment_packages() -> list of previously loaded packages
 Remove all the previously loaded packages (from environment variable
-$UXS_LOADED_PACKAGES) and returns the list of removed packages""" 
+$ZENV_LOADED_PACKAGES) and returns the list of removed packages""" 
         env_loaded_packages = []
-        loaded_package_labels_string = self._environment.get('UXS_LOADED_PACKAGES', None)
+        loaded_package_labels_string = self._environment.get('ZENV_LOADED_PACKAGES', None)
         if not loaded_package_labels_string:
             return env_loaded_packages
         loaded_package_labels = loaded_package_labels_string.split(':')
@@ -440,7 +440,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
             #LOGGER.info("removing package {0}...".format(loaded_package))
             loaded_package.revert(self)
             env_loaded_packages.append(loaded_package)
-        del self._environment['UXS_LOADED_PACKAGES']
+        del self._environment['ZENV_LOADED_PACKAGES']
         return env_loaded_packages
 
     def unload_packages(self):
@@ -917,9 +917,9 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
             elif var_value != orig_var_value:
                 # set
                 translator.var_set(var_name, var_value)
-        translator.var_set("UXS_SESSION", self.session_root)
+        translator.var_set("ZENV_SESSION", self.session_root)
         loaded_packages = ':'.join(self._loaded_packages.keys())
-        translator.var_set("UXS_LOADED_PACKAGES", loaded_packages)
+        translator.var_set("ZENV_LOADED_PACKAGES", loaded_packages)
 
     def translate_stream(self, translator, stream=None, translation_filename=None, *, dry_run=None):
         if dry_run is None:

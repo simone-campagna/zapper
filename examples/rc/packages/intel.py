@@ -1,4 +1,4 @@
-from unix_sessions.package_file import *
+from zenv.package_file import *
 
 intel = Suite('intel', NULL_VERSION)
 intel.add_conflicting_tag('compiler-suite')

@@ -60,11 +60,11 @@ def _expand(s):
     return os.path.expanduser(os.path.expandvars(s))
 
 class Manager(object):
-    RC_DIR_NAME = '.unix-sessions'
-    TEMP_DIR_PREFIX = 'unix-sessions'
+    RC_DIR_NAME = '.zenv'
+    TEMP_DIR_PREFIX = 'zenv'
     SESSIONS_DIR_NAME = 'sessions'
     PACKAGES_DIR_NAME = 'packages'
-    LOADED_PACKAGES_VARNAME = "UXS_LOADED_PACKAGES"
+    LOADED_PACKAGES_VARNAME = "ZENV_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
     DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name} {description}'
     DEFAULT_SESSION_LAST = '<last>'
@@ -98,7 +98,7 @@ class Manager(object):
         ('session_sort_keys', None),
         ('resolution_level', 0),
         ('filter_packages', None),
-        ('show_header', False),
+        ('show_header', True),
         ('show_translation', False),
         ('default_session', DEFAULT_SESSION_LAST),
         ('default_packages', []),
@@ -145,9 +145,9 @@ class Manager(object):
         self.admin_user = get_admin_user()
         self.user_rc_dir = os.path.join(user_home_dir, self.RC_DIR_NAME)
         self.user_package_dir = os.path.join(self.user_rc_dir, self.PACKAGES_DIR_NAME)
-        uxs_home_dir = get_home_dir()
-        if uxs_home_dir and os.path.lexists(uxs_home_dir):
-            host_etc_dir = os.path.join(uxs_home_dir, 'etc', 'unix-sessions')
+        zenv_home_dir = get_home_dir()
+        if zenv_home_dir and os.path.lexists(zenv_home_dir):
+            host_etc_dir = os.path.join(zenv_home_dir, 'etc', 'zenv')
             self.host_package_dir = os.path.join(host_etc_dir, self.PACKAGES_DIR_NAME)
             host_config_file = os.path.join(host_etc_dir, 'host.config')
             self.host_config = HostConfig(host_config_file)
@@ -297,7 +297,6 @@ class Manager(object):
         if categories_s:
             categories = categories_s.split(':')
             Category.add_category(*categories)
-
         
     def get_session(self):
         return self._session
@@ -350,7 +349,7 @@ class Manager(object):
             self._update_package_option(option, label, package_option, package_option_dict, package_option_from_dict)
             package_option = package_option_dict
         #print(self._show_header)
-        t = Table("{__ordinal__:3d}) {from_label} {key} : {value}", show_header=self._show_header)
+        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header)
         t.set_column_title(from_label='FROM_CONFIG', key=option.upper())
         if package_option_from is None:
             package_option_from = {}
@@ -521,40 +520,6 @@ class Manager(object):
         assert isinstance(config_dict, dict)
         key_type = self.MANAGER_CONFIG_TYPE.get(key, type)
         value = key_type(s_value)
-#        if key in {'quiet', 'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'show_translation', 'read_only'}:
-#            if isinstance(s_value, str):
-#                value = self._str2bool(s_value)
-#            else:
-#                value = s_value
-#                assert isinstance(s_value, bool)
-#        elif key in {'resolution_level'}:
-#            if isinstance(s_value, str):
-#                value = self._str2int(s_value)
-#            else:
-#                value = s_value
-#                assert isinstance(s_value, int)
-#        elif key in {'filter_packages'}:
-#            if isinstance(s_value, str):
-#                value = self._str2expression(s_value)
-#            else:
-#                value = s_value
-#                assert isinstance(value, Expression) or value is None
-#        elif key in {'available_package_format', 'loaded_package_format'}:
-#            value = Session.PackageFormat(s_value)
-#        elif key in {'package_dir_format'}:
-#            value = Session.PackageDirFormat(s_value)
-#        elif key in {'available_session_format'}:
-#            value = self.SessionFormat(s_value)
-#        elif key in {'default_session'}:
-#            value = self.DefaultSession(s_value)
-#        elif key in {'default_packages'}:
-#            value = string_to_list(s_value)
-#        elif key in {'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys', 'description'}:
-#            value = s_value
-#        elif key in {'directories'}:
-#            value = s_value
-#        else:
-#            raise KeyError("internal error: unsupported key {}".format(key))
         if str(config_dict.get(key, None)) != str(value):
             #if label is not None:
             #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
@@ -572,7 +537,7 @@ class Manager(object):
             config_from_dict = {}
             self._update_config(label, config, config_dict, config_from_dict)
             config = config_dict
-        t = Table("{__ordinal__:3d}) {from_label} {key} : {value}", show_header=self._show_header)
+        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header)
         t.set_column_title(from_label='FROM_CONFIG')
 
         for key in keys:
@@ -747,8 +712,8 @@ class Manager(object):
     
         self.session = None
         session_root = _verify_session_root(
-            '$UXS_SESSION',
-            os.environ.get("UXS_SESSION", None))
+            '$ZENV_SESSION',
+            os.environ.get("ZENV_SESSION", None))
         if not session_root:
             default_session = self.get_config_key('default_session')
             if default_session == self.DEFAULT_SESSION_LAST:
@@ -800,7 +765,7 @@ class Manager(object):
         self.load_session_package_option('version_defaults')
                     
     def load_translator(self):
-        target_translator = os.environ.get("UXS_TARGET_TRANSLATOR", None)
+        target_translator = os.environ.get("ZENV_TARGET_TRANSLATOR", None)
         self.translation_filename = None
         self.translator = None
         if target_translator is None:
@@ -1097,8 +1062,8 @@ class Manager(object):
             
     def init(self, translator=None, translation_filename=None):
         environment = self.session.environment
-        if not 'UXS_SESSION' in environment:
-            environment['UXS_SESSION'] = self.session.session_root
+        if not 'ZENV_SESSION' in environment:
+            environment['ZENV_SESSION'] = self.session.session_root
         if translator:
             if translation_filename:
                 self.session.translate_file(translator, translation_filename=os.path.abspath(translation_filename))

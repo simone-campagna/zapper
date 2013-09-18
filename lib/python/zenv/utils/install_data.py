@@ -18,21 +18,21 @@
 
 __author__ = 'Simone Campagna'
 
-UXS_HOME_DIR = None
-UXS_ADMIN_USER = None
+ZENV_HOME_DIR = None
+ZENV_ADMIN_USER = None
 
 def set_home_dir(home_dir):
-    global UXS_HOME_DIR
-    UXS_HOME_DIR = home_dir
+    global ZENV_HOME_DIR
+    ZENV_HOME_DIR = home_dir
 
 def get_home_dir():
-    return UXS_HOME_DIR
+    return ZENV_HOME_DIR
 
 def set_admin_user(admin_user):
-    global UXS_ADMIN_USER
-    UXS_ADMIN_USER = admin_user
+    global ZENV_ADMIN_USER
+    ZENV_ADMIN_USER = admin_user
 
 def get_admin_user():
-    return UXS_ADMIN_USER
+    return ZENV_ADMIN_USER
 
     
