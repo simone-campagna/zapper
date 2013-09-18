@@ -32,7 +32,6 @@ class SessionConfig(Config):
             'creation_time': '',
         },
         'packages': {
-            'directories': '',
             'loaded_packages': '',
             'sticky_packages': '',
         },

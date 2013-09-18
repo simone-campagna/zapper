@@ -151,6 +151,7 @@ class Session(object):
 
     def _load_modules(self, package_dir):
         modules = []
+        LOGGER.info("loading modules from {}".format(package_dir))
         for module_path in glob.glob(os.path.join(package_dir, self.MODULE_PATTERN)):
             module_path = os.path.normpath(os.path.abspath(module_path))
             if not module_path in self._modules:
@@ -169,6 +170,7 @@ class Session(object):
         package_dirname, module_basename = os.path.split(module_path)
         module_name = module_basename[:-3]
         sys_path = [package_dirname]
+        LOGGER.info("loading module {}".format(module_path))
         module_info = imp.find_module(module_name, sys_path)
         if module_info:
             module = imp.load_module(module_name, *module_info)
@@ -235,7 +237,7 @@ class Session(object):
         self.session_read_only = False
         current_session_read_only = string_to_bool(self.session_config['config']['read_only'])
         self.session_creation_time = self.session_config['session']['creation_time']
-        package_directories_string = self.session_config['packages']['directories']
+        package_directories_string = self.session_config['config']['directories']
         if package_directories_string:
             package_directories = package_directories_string.split(':')
         else:
@@ -292,13 +294,9 @@ class Session(object):
         session_config['session']['name'] = session_name
         session_config['session']['type'] = session_type
         session_config['config']['description'] = session_description
-        package_directories = []
-        if manager.user_package_dir and os.path.lexists(manager.user_package_dir):
-            package_directories.append(manager.user_package_dir)
-        if manager.uxs_package_dir and os.path.lexists(manager.uxs_package_dir):
-            package_directories.append(manager.uxs_package_dir)
+        package_directories = string_to_list(manager.get_user_config_key('directories'))
         package_directories = [os.path.normpath(os.path.abspath(d)) for d in package_directories]
-        session_config['packages']['directories'] = ':'.join(package_directories)
+        session_config['config']['directories'] = list_to_string(package_directories)
         if session_packages:
             session_config['packages']['loaded_packages'] = list_to_string(session_packages)
         session_config.store()
@@ -422,7 +420,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         loaded_package_labels = loaded_package_labels_string.split(':')
 
         # loading necessary suites
-        for packages in self.iteradd(loaded_package_labels):
+        for packages in self.iterdep(loaded_package_labels):
             for package in packages:
                 if isinstance(package, Suite):
                     self._add_suite(package)
@@ -463,49 +461,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
         if not self._dry_run:
             self.session_config.store()
         
-    def add_directories(self, directories):
-        self.check_read_only()
-        changed = False
-        for directory in directories:
-            directory = os.path.normpath(os.path.abspath(directory))
-            if directory in self._package_directories:
-                LOGGER.warning("package directory {0} already in use".format(directory))
-            else:
-                LOGGER.info("adding package directory {0}...".format(directory))
-                self._package_directories.append(directory)
-                changed = True
-        if changed:
-            self.session_config['packages']['directories'] = ':'.join(self._package_directories)
-            if not self._dry_run:
-                self.session_config.store()
-        
-    def remove_directories(self, directories):
-        self.check_read_only()
-        changed = False
-        for directory in directories:
-            directory = os.path.normpath(os.path.abspath(directory))
-            if directory in self._package_directories:
-                num_loaded_packages = 0
-                for package in self._loaded_packages.values():
-                    if package.package_dir == directory:
-                        LOGGER.error("cannot remove directory {0}, since package {1} has been loaded from it".format(directory, package))
-                        num_loaded_packages += 1
-                if num_loaded_packages:
-                    raise SessionError("cannot remove directory {0}: {1} loaded from it".format(
-                        directory,
-                        plural_string('package', num_loaded_packages)))
-                if directory in self._package_directories:
-                    LOGGER.info("removing package directory {0}...".format(directory))
-                    self._package_directories.remove(directory)
-                else:
-                    LOGGER.warning("package directory {0} not in use".format(directory))
-                changed = True
-        if changed:
-            self.session_config['packages']['directories'] = ':'.join(self._package_directories)
-            if not self._dry_run:
-                self.session_config.store()
-        
-    def iteradd(self, package_labels, *, ignore_errors=False):
+    def iterdep(self, package_labels, *, ignore_errors=False):
         while package_labels:
             packages = []
             missing_package_labels = []
@@ -559,7 +515,7 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
 
     def add(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, simulate=False, ignore_errors=False, info=True):
         self.check_read_only()
-        for packages in self.iteradd(package_labels, ignore_errors=ignore_errors):
+        for packages in self.iterdep(package_labels, ignore_errors=ignore_errors):
             #print(packages)
             if subpackages:
                 packages = self._get_subpackages(packages)

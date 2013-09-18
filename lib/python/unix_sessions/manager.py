@@ -45,6 +45,20 @@ from .utils.trace import trace
 from .utils.sort_keys import SortKeys
 from .utils.strings import string_to_bool, bool_to_string, string_to_list, list_to_string
 
+def _expression(s):
+    if s is None:
+        return None
+    return eval(s, ALL_EXPRESSIONS, {})
+
+def _bool(s):
+    return string_to_bool(s)
+
+def _list(s):
+    return s
+
+def _expand(s):
+    return os.path.expanduser(os.path.expandvars(s))
+
 class Manager(object):
     RC_DIR_NAME = '.unix-sessions'
     TEMP_DIR_PREFIX = 'unix-sessions'
@@ -74,6 +88,7 @@ class Manager(object):
         ('trace', False),
         ('subpackages', False),
         ('full_label', False),
+        ('directories', ''),
         ('available_package_format', None),
         ('loaded_package_format', None),
         ('available_session_format', None),
@@ -90,6 +105,31 @@ class Manager(object):
         ('description', ''),
         ('read_only', False),
     ))
+    MANAGER_CONFIG_TYPE = dict(
+        quiet=_bool,
+        verbose=_bool,
+        debug=_bool,
+        trace=_bool,
+        subpackages=_bool,
+        full_label=_bool,
+        directories=_list,
+        available_package_format=Session.PackageFormat,
+        loaded_package_format=Session.PackageFormat,
+        available_session_format=str,
+        package_dir_format=Session.PackageDirFormat,
+        package_sort_keys=str,
+        package_dir_sort_keys=str,
+        session_sort_keys=str,
+        resolution_level=int,
+        filter_packages=_expression,
+        show_header=_bool,
+        show_translation=_bool,
+        default_session=str,
+        default_packages=_list,
+        description=str,
+        read_only=_bool,
+    )
+    EXPAND_KEYS = {'directories'}
     LABEL_CONFIG = {
         'host': HOST_CONFIG,
         'user': USER_CONFIG,
@@ -107,12 +147,12 @@ class Manager(object):
         self.user_package_dir = os.path.join(self.user_rc_dir, self.PACKAGES_DIR_NAME)
         uxs_home_dir = get_home_dir()
         if uxs_home_dir and os.path.lexists(uxs_home_dir):
-            uxs_etc_dir = os.path.join(uxs_home_dir, 'etc', 'unix-sessions')
-            self.uxs_package_dir = os.path.join(uxs_etc_dir, self.PACKAGES_DIR_NAME)
-            host_config_file = os.path.join(uxs_etc_dir, 'host.config')
+            host_etc_dir = os.path.join(uxs_home_dir, 'etc', 'unix-sessions')
+            self.host_package_dir = os.path.join(host_etc_dir, self.PACKAGES_DIR_NAME)
+            host_config_file = os.path.join(host_etc_dir, 'host.config')
             self.host_config = HostConfig(host_config_file)
         else:
-            self.uxs_package_dir = None
+            self.host_package_dir = None
             self.host_config = HostConfig()
         tmpdir = os.environ.get("TMPDIR", "/tmp")
         self.tmp_dir = os.path.join(tmpdir, "{0}-{1}".format(self.TEMP_DIR_PREFIX, self.user))
@@ -148,6 +188,8 @@ class Manager(object):
         self.load_general()
 
         self.load_user_config()
+        if not self.host_config['config']['directories']:
+            self.host_config['config']['directories'] = list_to_string([self.host_package_dir, self.user_package_dir])
 
         self.package_options = {}
         self.package_options_from = {}
@@ -307,7 +349,7 @@ class Manager(object):
             package_option_from_dict = {}
             self._update_package_option(option, label, package_option, package_option_dict, package_option_from_dict)
             package_option = package_option_dict
-        print(self._show_header)
+        #print(self._show_header)
         t = Table("{__ordinal__:3d}) {from_label} {key} : {value}", show_header=self._show_header)
         t.set_column_title(from_label='FROM_CONFIG', key=option.upper())
         if package_option_from is None:
@@ -424,49 +466,95 @@ class Manager(object):
             changed = changed or key_changed
         return changed
 
-    def _set_generic_config_key(self, label, config, key, value):
-        if config.get(key, None) != value:
-            if label is not None:
-                LOGGER.info("setting {0} config {1!r}={2!r}".format(label, key, value))
-            config[key] = str(value)
-            return True
+    def _set_generic_config_key(self, label, config, key, action, value):
+        current_value = config.get(key, None)
+        key_type = self.MANAGER_CONFIG_TYPE.get(key, str)
+        if key in self.EXPAND_KEYS:
+            value = _expand(value)
+        if action == '=':
+            if current_value != value:
+                new_value = str(value)
         else:
-            return False
+            if action == '+=':
+                add = True
+            else:
+                add = False
+            if key_type in {int, float}:
+                value = key_type(value)
+                if not add:
+                    value = - value
+                if current_value:
+                    new_value = key_type(current_value) + value
+                else:
+                    new_value = value
+                new_value = str(new_value)
+            elif key_type == _list:
+                if current_value is None:
+                    new_lst = []
+                else:
+                    new_lst = string_to_list(current_value)
+                if not new_lst:
+                    if add:
+                        new_lst.append(value)
+                else:
+                    if add:
+                        if not value in new_lst:
+                            new_lst.append(value)
+                    else:
+                        #print(new_lst, value, value in new_lst)
+                        if value in new_lst:
+                            new_lst.remove(value)
+                new_value = list_to_string(new_lst)
+            else:
+                LOGGER.error("unsupported {} for config key {}".format(action, key))
+        if new_value != current_value:
+            if label is not None:
+                if action == '=':
+                    new_value_str = ""
+                else:
+                    new_value_str = " [{!r}]".format(new_value)
+                LOGGER.info("setting {} config {}{}{!r}{}".format(label, key, action, value, new_value_str))
+                #print(new_value, type(new_value))
+            config[key] = new_value
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        if key in {'quiet', 'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'show_translation', 'read_only'}:
-            if isinstance(s_value, str):
-                value = self._str2bool(s_value)
-            else:
-                value = s_value
-                assert isinstance(s_value, bool)
-        elif key in {'resolution_level'}:
-            if isinstance(s_value, str):
-                value = self._str2int(s_value)
-            else:
-                value = s_value
-                assert isinstance(s_value, int)
-        elif key in {'filter_packages'}:
-            if isinstance(s_value, str):
-                value = self._str2expression(s_value)
-            else:
-                value = s_value
-                assert isinstance(value, Expression) or value is None
-        elif key in {'available_package_format', 'loaded_package_format'}:
-            value = Session.PackageFormat(s_value)
-        elif key in {'package_dir_format'}:
-            value = Session.PackageDirFormat(s_value)
-        elif key in {'available_session_format'}:
-            value = self.SessionFormat(s_value)
-        elif key in {'default_session'}:
-            value = self.DefaultSession(s_value)
-        elif key in {'default_packages'}:
-            value = string_to_list(s_value)
-        elif key in {'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys', 'description'}:
-            value = s_value
-        else:
-            raise KeyError("internal error: unsupported key {}".format(key))
+        key_type = self.MANAGER_CONFIG_TYPE.get(key, type)
+        value = key_type(s_value)
+#        if key in {'quiet', 'verbose', 'debug', 'trace', 'subpackages', 'full_label', 'show_header', 'show_translation', 'read_only'}:
+#            if isinstance(s_value, str):
+#                value = self._str2bool(s_value)
+#            else:
+#                value = s_value
+#                assert isinstance(s_value, bool)
+#        elif key in {'resolution_level'}:
+#            if isinstance(s_value, str):
+#                value = self._str2int(s_value)
+#            else:
+#                value = s_value
+#                assert isinstance(s_value, int)
+#        elif key in {'filter_packages'}:
+#            if isinstance(s_value, str):
+#                value = self._str2expression(s_value)
+#            else:
+#                value = s_value
+#                assert isinstance(value, Expression) or value is None
+#        elif key in {'available_package_format', 'loaded_package_format'}:
+#            value = Session.PackageFormat(s_value)
+#        elif key in {'package_dir_format'}:
+#            value = Session.PackageDirFormat(s_value)
+#        elif key in {'available_session_format'}:
+#            value = self.SessionFormat(s_value)
+#        elif key in {'default_session'}:
+#            value = self.DefaultSession(s_value)
+#        elif key in {'default_packages'}:
+#            value = string_to_list(s_value)
+#        elif key in {'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys', 'description'}:
+#            value = s_value
+#        elif key in {'directories'}:
+#            value = s_value
+#        else:
+#            raise KeyError("internal error: unsupported key {}".format(key))
         if str(config_dict.get(key, None)) != str(value):
             #if label is not None:
             #    LOGGER.debug("setting {0}[{1!r}] = {2!r}".format(label, key, value))
@@ -518,13 +606,16 @@ class Manager(object):
     def _set_generic_config(self, label, config, key_values):
         changed = False
         for key_value in key_values:
-            if not '=' in key_value:
+            for action in '+=', '-=', '=':
+                if action in key_value:
+                    key, value = key_value.split(action, 1)
+                    break
+            else:
                 raise ValueError("{0}: invalid key=value pair {1!r}".format(label, key_value))
-            key, value = key_value.split('=', 1)
             if not key in config:
                 LOGGER.error("{0}: no such key: {1}".format(label, key))
                 continue
-            changed = self._set_generic_config_key(label, config, key, value) or changed
+            changed = self._set_generic_config_key(label, config, key, action, value) or changed
         # check:
         config_dict = {}
         config_from_dict = {}
@@ -571,34 +662,66 @@ class Manager(object):
         if self._reset_generic_config('session', self.session_config['config'], keys) and not self._dry_run:
             self.session_config.store()
 
-    @classmethod
-    def _str2bool(cls, s):
-        return string_to_bool(s)
-
-    @classmethod
-    def _str2int(cls, s):
-        return int(s)
-
-    @classmethod
-    def _str2expression(cls, s):
-        return eval(s, ALL_EXPRESSIONS, {})
-
-    @classmethod
-    def _bool2str(cls, b):
-        return bool_to_string(b)
-
-    @classmethod
-    def _int2str(cls, i):
-        return str(i)
-
-    @classmethod
-    def _expression2str(cls, expression):
-        return str(expression)
+#    @classmethod
+#    def _str2bool(cls, s):
+#        return string_to_bool(s)
+#
+#    @classmethod
+#    def _str2int(cls, s):
+#        return int(s)
+#
+#    @classmethod
+#    def _str2expression(cls, s):
+#        return _expression(s)
+#
+#    @classmethod
+#    def _bool2str(cls, b):
+#        return bool_to_string(b)
+#
+#    @classmethod
+#    def _int2str(cls, i):
+#        return str(i)
+#
+#    @classmethod
+#    def _expression2str(cls, expression):
+#        return str(expression)
 
     def get_config_key(self, key):
         if not key in self.config:
              raise ValueError("invalid key {0!r}".format(key))
-        return self.config[key]
+        value = self.config[key]
+        LOGGER.debug("getting config key {}={!r} from {}".format(key, value, self.config_from.get(key, '...')))
+        return value
+
+    def get_config_key_from(self, key, from_list):
+        if not key in self.MANAGER_CONFIG:
+            raise ValueError("invalid key {0!r}".format(key))
+        current_value = ''
+        current_config_name = ''
+        for config_name in from_list:
+            if config_name == 'manager':
+                config = self.MANAGER_CONFIG
+            elif config_name == 'host':
+                config = self.host_config['config']
+            elif config_name == 'user':
+                config = self.user_config['config']
+            elif config_name == 'session':
+                config = self.session_config['config']
+            else:
+                raise ValueError("invalid config name {!r}".format(config_name))
+            if key in config:
+                value = config[key]
+                if value or current_value == '':
+                    current_value = value
+                    current_config_name = config_name
+        LOGGER.debug("getting config key {}={!r} from {}".format(key, current_value, current_config_name))
+        return current_value
+        
+    def get_host_config_key(self, key):
+        return self.get_config_key_from(key, ('manager', 'host'))
+
+    def get_user_config_key(self, key):
+        return self.get_config_key_from(key, ('manager', 'host', 'user'))
 
     def load_user_config(self):
         host_config = self.host_config['config']
@@ -890,9 +1013,6 @@ class Manager(object):
     def show_loaded_packages(self):
         self.session.show_loaded_packages()
 
-    def show_package_directories(self):
-        self.session.show_package_directories()
-
     def show_package(self, package_label):
         self.session.show_package(package_label)
 
@@ -915,12 +1035,6 @@ class Manager(object):
 
     def clear_packages(self, sticky=False, simulate=False):
         self.session.clear(sticky=sticky, simulate=simulate)
-
-    def add_package_directories(self, package_directories):
-        self.session.add_directories(package_directories)
-
-    def remove_package_directories(self, package_directories):
-        self.session.remove_directories(package_directories)
 
     def apply(self, translator=None, translation_filename=None):
         pass

@@ -671,42 +671,42 @@ Change the current session""",
     package_subparsers = parser_package.add_subparsers(
         description="Package subcommand.")
 
-    ### Package_dir subparsers
-    parser_package_dir = top_level_subparsers.add_parser("dir",
-        aliases=[],
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="package directories management")
-
-    package_dir_subparsers = parser_package_dir.add_subparsers(
-        description="""Package directory subcommand.""")
-
-    parser_package_dir_list = package_dir_subparsers.add_parser("list",
-        aliases=[],
-        parents=[common_parser, package_dir_format_parser],
-        formatter_class=Formatter,
-        help="list current package directories")
-    parser_package_dir_list.set_defaults(function=manager.show_package_directories)
-
-    parser_package_dir_add = package_dir_subparsers.add_parser("add",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="add a package directory to current session")
-    parser_package_dir_add.set_defaults(function=manager.add_package_directories)
-
-    parser_package_dir_remove = package_dir_subparsers.add_parser("remove",
-        aliases=[],
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="remove a package directory from current session")
-    parser_package_dir_remove.set_defaults(function=manager.remove_package_directories)
-
-    for subparser in parser_package_dir_add, parser_package_dir_remove:
-        subparser.add_argument("package_directories",
-            type=str,
-            nargs='+',
-            default=None,
-            help="package directory")
+#    ### Package_dir subparsers
+#    parser_package_dir = top_level_subparsers.add_parser("dir",
+#        aliases=[],
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="package directories management")
+#
+#    package_dir_subparsers = parser_package_dir.add_subparsers(
+#        description="""Package directory subcommand.""")
+#
+#    parser_package_dir_list = package_dir_subparsers.add_parser("list",
+#        aliases=[],
+#        parents=[common_parser, package_dir_format_parser],
+#        formatter_class=Formatter,
+#        help="list current package directories")
+#    parser_package_dir_list.set_defaults(function=manager.show_package_directories)
+#
+#    parser_package_dir_add = package_dir_subparsers.add_parser("add",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="add a package directory to current session")
+#    parser_package_dir_add.set_defaults(function=manager.add_package_directories)
+#
+#    parser_package_dir_remove = package_dir_subparsers.add_parser("remove",
+#        aliases=[],
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="remove a package directory from current session")
+#    parser_package_dir_remove.set_defaults(function=manager.remove_package_directories)
+#
+#    for subparser in parser_package_dir_add, parser_package_dir_remove:
+#        subparser.add_argument("package_directories",
+#            type=str,
+#            nargs='+',
+#            default=None,
+#            help="package directory")
 
 # useless...
 #    for parser in (parser_package_dir_remove, ):
