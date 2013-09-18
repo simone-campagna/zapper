@@ -65,7 +65,7 @@ class EnvVarTransition(Transition):
         return "{0}({1!r})".format(self.__class__.__name__, self.var_name)
 
     def __str__(self):
-        return "{0}({1})".format(self.label())
+        return "{0}({1})".format(self.label(), self.var_name)
 
 
 class EnvVarValueTransition(EnvVarTransition):

@@ -37,6 +37,8 @@ __all__ = ['Package']
 class Package(ListRegister, Transition):
     __version_factory__ = Version
     __package_dir__ = None
+    __package_file__ = None
+    __package_module__ = None
     __registry__ = None
     SUITE_SEPARATOR = '.'
     def __init__(self, product, version, *, short_description=None, long_description=None, product_conflict=True, suite=None):
@@ -66,6 +68,8 @@ class Package(ListRegister, Transition):
             assert isinstance(suite, Suite)
         self._suite = suite
         self._package_dir = self.__package_dir__
+        self._package_file = self.__package_file__
+        self._package_module = self.__package_module__
         self._transitions = []
         self._requirements = []
         self._preferences = []
@@ -140,13 +144,31 @@ class Package(ListRegister, Transition):
     def set_package_dir(cls, package_dir):
         cls.__package_dir__ = package_dir
 
+    @classmethod
+    def unset_package_dir(cls):
+        cls.__package_dir__ = None
+
+    @classmethod
+    def set_package_module(cls, package_file, package_module):
+        cls.__package_file__ = package_file
+        cls.__package_module__ = package_module
+
+    @classmethod
+    def unset_package_module(cls):
+        cls.__package_file__ = None
+        cls.__package_module__ = None
+
     @property
     def package_dir(self):
         return self._package_dir
 
-    @classmethod
-    def unset_package_dir(cls):
-        cls.__package_dir__ = None
+    @property
+    def package_file(self):
+        return self._package_file
+
+    @property
+    def package_module(self):
+        return self._package_module
 
     def get_transitions(self):
         for transition in self._transitions:
@@ -188,11 +210,14 @@ class Package(ListRegister, Transition):
 
     def show_content(self):
         show_title("{0} {1}".format(self.__class__.__name__, self._label))
-        PRINT("name     : {0}".format(self._name))
-        PRINT("version  : {0}".format(self._version))
-        PRINT("category : {0}".format(self._category))
-        PRINT("suite    : {0}".format(self._suite._full_label))
-        PRINT("full     : {0}".format(self._full_label))
+        PRINT("name       : {0}".format(self._name))
+        PRINT("version    : {0}".format(self._version))
+        PRINT("category   : {0}".format(self._category))
+        PRINT("suite      : {0}".format(self._suite._full_label))
+        PRINT("full label : {0}".format(self._full_label))
+        PRINT("directory  : {0}".format(self._package_dir))
+        PRINT("file       : {0}".format(self._package_file))
+        PRINT("module     : {0}".format(self._package_module))
         show_table("Transitions", self.get_transitions())
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())

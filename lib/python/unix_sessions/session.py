@@ -68,6 +68,9 @@ class Session(object):
         ('suite',            'SUITE'),
         ('full_suite',       'SUITE'),
         ('tags',             'TAGS'),
+        ('package_dir',      'PACKAGE_DIR'),
+        ('package_file',     'PACKAGE_FILE'),
+        ('package_module',   'PACKAGE_MODULE'),
     ))
     PACKAGE_DIR_FORMAT = "{__ordinal__:>3d}) {package_dir}"
     PACKAGE_DIR_HEADER_DICT = collections.OrderedDict((
@@ -173,7 +176,11 @@ class Session(object):
         LOGGER.info("loading module {}".format(module_path))
         module_info = imp.find_module(module_name, sys_path)
         if module_info:
-            module = imp.load_module(module_name, *module_info)
+            Package.set_package_module(module_path, module_name)
+            try:
+                module = imp.load_module(module_name, *module_info)
+            finally:
+                Package.unset_package_module()
         return module
 
     def get_package_directories(self):
@@ -776,7 +783,10 @@ $UXS_LOADED_PACKAGES) and returns the list of removed packages"""
             'full_package':     package.full_label,
             'suite':            package.suite.label,
             'full_suite':       package.suite.full_label,
-            'tags':             ', '.join(str(tag) for tag in package.tags)
+            'tags':             ', '.join(str(tag) for tag in package.tags),
+            'package_dir':      package.package_dir,
+            'package_file':     package.package_file,
+            'package_module':   package.package_module,
         }
 
     def get_available_package_format(self):
