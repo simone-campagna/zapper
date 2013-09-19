@@ -81,7 +81,7 @@ class Manager(object):
         ('root',        'ROOT'),
         ('description', 'DESCRIPTION'),
     ))
-    MANAGER_CONFIG = collections.OrderedDict((
+    DEFAULT_CONFIG = collections.OrderedDict((
         ('quiet', False),
         ('verbose', False),
         ('debug', False),
@@ -105,7 +105,7 @@ class Manager(object):
         ('description', ''),
         ('read_only', False),
     ))
-    MANAGER_CONFIG_TYPE = dict(
+    DEFAULT_CONFIG_TYPE = dict(
         quiet=_bool,
         verbose=_bool,
         debug=_bool,
@@ -130,12 +130,14 @@ class Manager(object):
         read_only=_bool,
     )
     EXPAND_KEYS = {'directories'}
+    DEFAULT_LABEL = '<default>'
+    CURRENT_LABEL = '<current>'
     LABEL_CONFIG = {
-        'host': HOST_CONFIG,
-        'user': USER_CONFIG,
-        'session': SESSION_CONFIG,
-        'manager': MANAGER_CONFIG,
-        'current': MANAGER_CONFIG,
+        'host':         HOST_CONFIG,
+        'user':         USER_CONFIG,
+        'session':      SESSION_CONFIG,
+        DEFAULT_LABEL:  DEFAULT_CONFIG,
+        CURRENT_LABEL:  DEFAULT_CONFIG,
     }
     DEFAULT_SESSION_SORT_KEYS = SortKeys('', SESSION_HEADER_DICT, 'session')
     SESSION_NAME_INVALID_CHARS = ':/<>'
@@ -374,7 +376,7 @@ class Manager(object):
         return self.show_package_option(option, 'session', self.session_config[option], keys)
 
     def show_current_package_option(self, option, keys):
-        return self.show_package_option(option, 'current', self.package_options[option], keys, package_option_from=self.package_options_from[option])
+        return self.show_package_option(option, self.CURRENT_LABEL, self.package_options[option], keys, package_option_from=self.package_options_from[option])
 
     def _set_generic_package_option(self, option, label, package_option, key_values):
         changed = False
@@ -444,7 +446,7 @@ class Manager(object):
     ### Config
     @classmethod
     def iter_config_keys(cls, label):
-        for key in cls.MANAGER_CONFIG:
+        for key in cls.DEFAULT_CONFIG:
             if key in cls.LABEL_CONFIG[label]:
                 yield key
 
@@ -467,7 +469,7 @@ class Manager(object):
 
     def _set_generic_config_key(self, label, config, key, action, value):
         current_value = config.get(key, None)
-        key_type = self.MANAGER_CONFIG_TYPE.get(key, str)
+        key_type = self.DEFAULT_CONFIG_TYPE.get(key, str)
         if key in self.EXPAND_KEYS:
             value = _expand(value)
         if action == '=':
@@ -518,7 +520,7 @@ class Manager(object):
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)
-        key_type = self.MANAGER_CONFIG_TYPE.get(key, type)
+        key_type = self.DEFAULT_CONFIG_TYPE.get(key, type)
         value = key_type(s_value)
         if str(config_dict.get(key, None)) != str(value):
             #if label is not None:
@@ -566,7 +568,7 @@ class Manager(object):
         return self.show_config('session', self.session_config['config'], keys)
 
     def show_current_config(self, keys):
-        return self.show_config('current', self.config, keys, config_from=self.config_from)
+        return self.show_config(self.CURRENT_LABEL, self.config, keys, config_from=self.config_from)
 
     def _set_generic_config(self, label, config, key_values):
         changed = False
@@ -659,13 +661,13 @@ class Manager(object):
         return value
 
     def get_config_key_from(self, key, from_list):
-        if not key in self.MANAGER_CONFIG:
+        if not key in self.DEFAULT_CONFIG:
             raise ValueError("invalid key {0!r}".format(key))
         current_value = ''
         current_config_name = ''
         for config_name in from_list:
-            if config_name == 'manager':
-                config = self.MANAGER_CONFIG
+            if config_name == self.DEFAULT_LABEL:
+                config = self.DEFAULT_CONFIG
             elif config_name == 'host':
                 config = self.host_config['config']
             elif config_name == 'user':
@@ -683,17 +685,17 @@ class Manager(object):
         return current_value
         
     def get_host_config_key(self, key):
-        return self.get_config_key_from(key, ('manager', 'host'))
+        return self.get_config_key_from(key, (self.DEFAULT_LABEL, 'host'))
 
     def get_user_config_key(self, key):
-        return self.get_config_key_from(key, ('manager', 'host', 'user'))
+        return self.get_config_key_from(key, (self.DEFAULT_LABEL, 'host', 'user'))
 
     def load_user_config(self):
         host_config = self.host_config['config']
         user_config = self.user_config['config']
         self.config = {}
         self.config_from = {}
-        for from_label, from_config in ('manager', self.MANAGER_CONFIG), ('host', host_config), ('user', user_config):
+        for from_label, from_config in (self.DEFAULT_LABEL, self.DEFAULT_CONFIG), ('host', host_config), ('user', user_config):
             self._update_config(from_label, from_config, self.config, self.config_from)
 
     def load_session_config(self):
