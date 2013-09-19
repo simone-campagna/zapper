@@ -129,6 +129,11 @@ class Manager(object):
         description=str,
         read_only=_bool,
     )
+    DEFAULT_CONFIG_CHECKERS = dict(
+        session=dict(
+            directories='CHECK_session_directories',
+        )
+    )
     EXPAND_KEYS = {'directories'}
     DEFAULT_LABEL = '<default>'
     CURRENT_LABEL = '<current>'
@@ -509,6 +514,12 @@ class Manager(object):
             else:
                 LOGGER.error("unsupported {} for config key {}".format(action, key))
         if new_value != current_value:
+            checkers = self.DEFAULT_CONFIG_CHECKERS.get(label, {})
+            if key in checkers:
+                checker = getattr(self, checkers[key])
+                if not checker(label, key, new_value):
+                    LOGGER.error("cannot set {} config key {}={!r}".format(label, key, value))
+                    return False
             if label is not None:
                 if action == '=':
                     new_value_str = ""
@@ -529,6 +540,9 @@ class Manager(object):
             return True
         else:
             return False
+
+    def CHECK_session_directories(self, label, key, value):
+        return self.session.check_directories(value)
 
     def show_config(self, label, config, keys, *, config_from=None):
         if not keys:

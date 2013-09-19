@@ -152,11 +152,15 @@ class Session(object):
                 package = package_collection.pop(package_label)
                 LOGGER.debug("discarding package {0} not matching expression {1}".format(package, expression))
 
+    @classmethod
+    def _normpath(cls, path):
+        return os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(path))))
+
     def _load_modules(self, package_dir):
         modules = []
         LOGGER.info("loading modules from {}".format(package_dir))
         for module_path in glob.glob(os.path.join(package_dir, self.MODULE_PATTERN)):
-            module_path = os.path.normpath(os.path.abspath(module_path))
+            module_path = self._normpath(module_path)
             if not module_path in self._modules:
                 Package.set_package_dir(package_dir)
                 try:
@@ -302,7 +306,7 @@ class Session(object):
         session_config['session']['type'] = session_type
         session_config['config']['description'] = session_description
         package_directories = string_to_list(manager.get_user_config_key('directories'))
-        package_directories = [os.path.normpath(os.path.abspath(d)) for d in package_directories]
+        package_directories = [cls._normpath(d) for d in package_directories]
         session_config['config']['directories'] = list_to_string(package_directories)
         if session_packages:
             session_config['packages']['loaded_packages'] = list_to_string(session_packages)
@@ -939,3 +943,16 @@ $ZENV_LOADED_PACKAGES) and returns the list of removed packages"""
         except Exception as e:
             trace()
             LOGGER.warning("cannot translate {0}".format(translation_filename))
+
+    def check_directories(self, directories):
+        dirs = {self._normpath(d) for d in string_to_list(directories)}
+        orphans = set()
+        for package in self._loaded_packages.values():
+            d = self._normpath(package._package_dir)
+            if not d in dirs:
+                orphans.add(package.full_label)
+        if orphans:
+            LOGGER.error("cannot set directories={!r}: will leave {} orphan packages: {}".format(directories, len(orphans), list_to_string(orphans)))
+            return False
+        else:
+            return True
