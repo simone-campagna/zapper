@@ -25,40 +25,34 @@ class Helper(object):
     def __init__(self, manager):
         self.manager = manager
 
-    @classmethod
-    def _help_format(cls, format_dict):
+    def _help_format(self, format_dict):
         return """\
 Available keys:
 ---------------
 {0}
 """.format('\n'.join(" * {key}".format(key=key) for key in format_dict))
 
-    @classmethod
-    def help_available_package_format(cls):
-        PRINT("""\
+    def help_available_package_format(self):
+        return """\
 Set the format used to show the list of available packages.
-""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
+""" + self._help_format(Session.PACKAGE_HEADER_DICT)
 
-    @classmethod
-    def help_loaded_package_format(cls):
-        PRINT("""\
+    def help_loaded_package_format(self):
+        return """\
 Set the format used to show the list of loaded packages.
-""" + cls._help_format(Session.PACKAGE_HEADER_DICT))
+""" + self._help_format(Session.PACKAGE_HEADER_DICT)
 
-    @classmethod
-    def help_available_session_format(cls):
-        PRINT("""\
+    def help_available_session_format(self):
+        return """\
 Set the format used to show the list of available sessions.
-""" + cls._help_format(Manager.SESSION_HEADER_DICT))
+""" + self._help_format(Manager.SESSION_HEADER_DICT)
 
-    @classmethod
-    def help_package_dir_format(cls):
-        PRINT("""\
+    def help_package_dir_format(self):
+        return """\
 Set the format used to show the list of package directories.
-""" + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
+""" + self._help_format(Session.PACKAGE_DIR_HEADER_DICT)
 
-    @classmethod
-    def _help_sort_keys(cls, label, example1, example2):
+    def _help_sort_keys(self, label, example1, example2):
         return """\
 
 Keys can be chained using ':'. For instance:
@@ -71,45 +65,63 @@ The sort key '__ordinal__' has no effect.
 
 """.format(label=label, example1=example1, example2=example2)
 
-    @classmethod
-    def help_package_sort_keys(cls):
-        PRINT("""\
+    def help_package_sort_keys(self):
+        return """\
 Set the keys used to sort packages.
-""" + cls._help_sort_keys(
+""" + self._help_sort_keys(
         label='package_sort_keys',
         example1='category:product:version',
         example2='category:-product:version',
-    ) + cls._help_format(Session.PACKAGE_HEADER_DICT))
+    ) + self._help_format(Session.PACKAGE_HEADER_DICT)
 
-    @classmethod
-    def help_package_dir_sort_keys(cls):
-        PRINT("""\
+    def help_package_dir_sort_keys(self):
+        return """\
 Set the keys used to sort package directories. 
-""" + cls._help_sort_keys(
+""" + self._help_sort_keys(
         label='package_dir_sort_keys',
         example1='package_dir',
         example2='-package_dir',
-    ) + cls._help_format(Session.PACKAGE_DIR_HEADER_DICT))
+    ) + self._help_format(Session.PACKAGE_DIR_HEADER_DICT)
 
-    @classmethod
-    def help_session_sort_keys(cls):
-        PRINT("""\
+    def help_session_sort_keys(self):
+        return """\
 Set the keys used to sort sessions.
-""" + cls._help_sort_keys(
+""" + self._help_sort_keys(
         label='session_sort_keys',
         example1='type:name',
         example2='type:-name',
-    ) + cls._help_format(Manager.SESSION_HEADER_DICT))
+    ) + self._help_format(Manager.SESSION_HEADER_DICT)
 
-    @classmethod
-    def help_default_session(cls):
+    def help_default_session(self):
         d = Manager.DEFAULT_SESSION_DICT.copy()
         d['my_session'] = "load session named 'my_session'"
-        PRINT("""\
+        return """\
 Set the default session to be loaded when shelf is used in a
 clean environment.
 
 Available values are:
 {}
 
-""".format('\n'.join("{!r:16s}: {}".format(k, v) for k, v in d.items())))
+""".format('\n'.join("{!r:16s}: {}".format(k, v) for k, v in d.items()))
+
+    def help_general(self):
+        return """\
+Available topics:
+{}
+""".format('\n'.join("  {}".format(topic) for topic in self.iter_topics()))
+
+    def show_topic(self, topic):
+        attr_name = "help_{}".format(topic)
+        if not hasattr(self, attr_name):
+            raise ValueError("invalid help topic {}".format(topic))
+        PRINT("=== {} ".format(topic))
+        PRINT(getattr(self, attr_name)())
+
+
+    def iter_topics(self):
+        for attr_name in dir(self):
+            if attr_name.startswith('help_') and callable(getattr(self, attr_name)):
+                yield attr_name[len('help_'):]
+
+    def get_topics(self):
+        return list(self.iter_topics())

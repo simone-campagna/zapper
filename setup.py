@@ -27,6 +27,8 @@ import getpass
 import tempfile
 import collections
 
+ZENV_VERSION = "0.1"
+
 dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
 py_dirname = os.path.join(dirname, "lib", "python")
 sys.path.insert(0, py_dirname)
@@ -59,6 +61,7 @@ class subst_command(Command):
     def _init(self):
         if not hasattr(self, 'r_list'):
             v_dict = {
+                'ZENV_VERSION':             ZENV_VERSION,
                 'ZENV_HOME_DIR':            self.install_base,
                 'ZENV_RC_DIR_NAME':         Manager.RC_DIR_NAME,
                 'ZENV_ADMIN_USER':          self.admin_user,
@@ -149,7 +152,7 @@ class subst_install_scripts(pre_command, install_scripts, subst_command):
 
 setup(
     name = "zenv",
-    version = "0.1",
+    version = ZENV_VERSION,
     requires = [],
     description = "Tool to manage unix environment",
     author = "Simone Campagna",

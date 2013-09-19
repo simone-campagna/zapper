@@ -186,6 +186,11 @@ ZENV_CURRENT_COMPLETION_VERSION={}
                         continue
                     self.complete(subparser, stack + [key])
                     keys.append(key)
+            elif hasattr(action, 'choices') and action.choices:
+                for key in action.choices:
+                    if self._key_to_skip(key):
+                        continue
+                    keys.append(key)
             else:
                 #print("{}:action: {}".format(label, action.option_strings))
                 keys.extend(key for key in action.option_strings if not self._key_to_skip(key))

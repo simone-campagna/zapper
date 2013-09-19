@@ -27,7 +27,7 @@ from zenv.helper import Helper
 from zenv.errors import SessionConfigError
 from zenv.utils.debug import set_quiet, set_verbose, set_debug, LOGGER
 from zenv.utils.trace import set_trace, trace
-from zenv.utils.install_data import set_home_dir, set_admin_user
+from zenv.utils.install_data import set_home_dir, set_admin_user, set_version, get_version
 from zenv.utils.argparse_autocomplete import autocomplete_monkey_patch
 from zenv.utils.strings import string_to_bool
 
@@ -49,6 +49,7 @@ def _set_global_flags(enable_complete_function, *, quiet, verbose, debug, trace)
 def main():
     set_home_dir("@ZENV_HOME_DIR@")
     set_admin_user("@ZENV_ADMIN_USER@")
+    set_version("@ZENV_VERSION@")
     enable_complete_function = string_to_bool(os.environ.get("ZENV_COMPLETE_FUNCTION", "False"))
     quiet_mode = string_to_bool(os.environ.get("ZENV_QUIET_MODE", "False"))
     try:
@@ -99,6 +100,11 @@ def main():
     common_parser = argparse.ArgumentParser(
         add_help=False,
         formatter_class=Formatter)
+
+    common_parser.add_argument("--version", "-V",
+        action="version",
+        version="@ZENV_VERSION@",
+        help="set verbose on")
 
     common_parser.add_argument("--verbose", "-v",
         action="store_true",
@@ -218,65 +224,72 @@ Change the current session""",
         parents=[common_parser],
         formatter_class=Formatter,
         help="help")
+    parser_help.set_defaults(function=helper.show_topic)
 
-    help_subparsers = parser_help.add_subparsers(
-        description="help topics")
+    parser_help.add_argument('topic',
+        nargs='?',
+        default='general',
+        choices=helper.get_topics(),
+        help="help topic")
 
-    help_available_package_format_parser = help_subparsers.add_parser(
-        "available_package_format",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about available_package_format")
-    help_available_package_format_parser.set_defaults(function=helper.help_available_package_format)
-     
-    help_loaded_package_format_parser = help_subparsers.add_parser(
-        "loaded_package_format",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about loaded_package_format")
-    help_loaded_package_format_parser.set_defaults(function=helper.help_loaded_package_format)
-
-    help_available_session_format_parser = help_subparsers.add_parser(
-        "available_session_format",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about available_session_format")
-    help_available_session_format_parser.set_defaults(function=helper.help_available_session_format)
-     
-    help_package_dir_format_parser = help_subparsers.add_parser(
-        "package_dir_format",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about package_dir_format")
-    help_package_dir_format_parser.set_defaults(function=helper.help_package_dir_format)
-     
-    help_package_sort_keys_parser = help_subparsers.add_parser(
-        "package_sort_keys",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about package_sort_keys")
-    help_package_sort_keys_parser.set_defaults(function=helper.help_package_sort_keys)
-     
-    help_package_dir_sort_keys_parser = help_subparsers.add_parser(
-        "package_dir_sort_keys",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about package_dir_sort_keys")
-    help_package_dir_sort_keys_parser.set_defaults(function=helper.help_package_dir_sort_keys)
-     
-    help_session_sort_keys_parser = help_subparsers.add_parser(
-        "session_sort_keys",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about session_sort_keys")
-    help_session_sort_keys_parser.set_defaults(function=helper.help_session_sort_keys)
-        
-    help_default_session_parser = help_subparsers.add_parser(
-        "default_session",
-        parents=[common_parser],
-        formatter_class=Formatter,
-        help="help about default_session")
-    help_default_session_parser.set_defaults(function=helper.help_default_session)
+#    help_subparsers = parser_help.add_subparsers(
+#        description="help topics")
+#
+#    help_available_package_format_parser = help_subparsers.add_parser(
+#        "available_package_format",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about available_package_format")
+#    help_available_package_format_parser.set_defaults(function=helper.help_available_package_format)
+#     
+#    help_loaded_package_format_parser = help_subparsers.add_parser(
+#        "loaded_package_format",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about loaded_package_format")
+#    help_loaded_package_format_parser.set_defaults(function=helper.help_loaded_package_format)
+#
+#    help_available_session_format_parser = help_subparsers.add_parser(
+#        "available_session_format",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about available_session_format")
+#    help_available_session_format_parser.set_defaults(function=helper.help_available_session_format)
+#     
+#    help_package_dir_format_parser = help_subparsers.add_parser(
+#        "package_dir_format",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about package_dir_format")
+#    help_package_dir_format_parser.set_defaults(function=helper.help_package_dir_format)
+#     
+#    help_package_sort_keys_parser = help_subparsers.add_parser(
+#        "package_sort_keys",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about package_sort_keys")
+#    help_package_sort_keys_parser.set_defaults(function=helper.help_package_sort_keys)
+#     
+#    help_package_dir_sort_keys_parser = help_subparsers.add_parser(
+#        "package_dir_sort_keys",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about package_dir_sort_keys")
+#    help_package_dir_sort_keys_parser.set_defaults(function=helper.help_package_dir_sort_keys)
+#     
+#    help_session_sort_keys_parser = help_subparsers.add_parser(
+#        "session_sort_keys",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about session_sort_keys")
+#    help_session_sort_keys_parser.set_defaults(function=helper.help_session_sort_keys)
+#        
+#    help_default_session_parser = help_subparsers.add_parser(
+#        "default_session",
+#        parents=[common_parser],
+#        formatter_class=Formatter,
+#        help="help about default_session")
+#    help_default_session_parser.set_defaults(function=helper.help_default_session)
         
 
     ### Bash completion 

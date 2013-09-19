@@ -20,6 +20,7 @@ __author__ = 'Simone Campagna'
 
 ZENV_HOME_DIR = None
 ZENV_ADMIN_USER = None
+ZENV_VERSION = None
 
 def set_home_dir(home_dir):
     global ZENV_HOME_DIR
@@ -33,6 +34,13 @@ def set_admin_user(admin_user):
     ZENV_ADMIN_USER = admin_user
 
 def get_admin_user():
-    return ZENV_ADMIN_USER
+    return ZENV_VERSION
+
+def set_version(version):
+    global ZENV_VERSION
+    ZENV_VERSION = version
+
+def get_version():
+    return ZENV_VERSION
 
     
