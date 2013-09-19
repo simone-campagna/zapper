@@ -232,66 +232,6 @@ Change the current session""",
         choices=helper.get_topics(),
         help="help topic")
 
-#    help_subparsers = parser_help.add_subparsers(
-#        description="help topics")
-#
-#    help_available_package_format_parser = help_subparsers.add_parser(
-#        "available_package_format",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about available_package_format")
-#    help_available_package_format_parser.set_defaults(function=helper.help_available_package_format)
-#     
-#    help_loaded_package_format_parser = help_subparsers.add_parser(
-#        "loaded_package_format",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about loaded_package_format")
-#    help_loaded_package_format_parser.set_defaults(function=helper.help_loaded_package_format)
-#
-#    help_available_session_format_parser = help_subparsers.add_parser(
-#        "available_session_format",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about available_session_format")
-#    help_available_session_format_parser.set_defaults(function=helper.help_available_session_format)
-#     
-#    help_package_dir_format_parser = help_subparsers.add_parser(
-#        "package_dir_format",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about package_dir_format")
-#    help_package_dir_format_parser.set_defaults(function=helper.help_package_dir_format)
-#     
-#    help_package_sort_keys_parser = help_subparsers.add_parser(
-#        "package_sort_keys",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about package_sort_keys")
-#    help_package_sort_keys_parser.set_defaults(function=helper.help_package_sort_keys)
-#     
-#    help_package_dir_sort_keys_parser = help_subparsers.add_parser(
-#        "package_dir_sort_keys",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about package_dir_sort_keys")
-#    help_package_dir_sort_keys_parser.set_defaults(function=helper.help_package_dir_sort_keys)
-#     
-#    help_session_sort_keys_parser = help_subparsers.add_parser(
-#        "session_sort_keys",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about session_sort_keys")
-#    help_session_sort_keys_parser.set_defaults(function=helper.help_session_sort_keys)
-#        
-#    help_default_session_parser = help_subparsers.add_parser(
-#        "default_session",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="help about default_session")
-#    help_default_session_parser.set_defaults(function=helper.help_default_session)
-        
-
     ### Bash completion 
     def generate_completion(parser, filename, manager):
         if filename == '-':
@@ -685,47 +625,6 @@ Change the current session""",
 
     package_subparsers = parser_package.add_subparsers(
         description="Package subcommand.")
-
-#    ### Package_dir subparsers
-#    parser_package_dir = top_level_subparsers.add_parser("dir",
-#        aliases=[],
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="package directories management")
-#
-#    package_dir_subparsers = parser_package_dir.add_subparsers(
-#        description="""Package directory subcommand.""")
-#
-#    parser_package_dir_list = package_dir_subparsers.add_parser("list",
-#        aliases=[],
-#        parents=[common_parser, package_dir_format_parser],
-#        formatter_class=Formatter,
-#        help="list current package directories")
-#    parser_package_dir_list.set_defaults(function=manager.show_package_directories)
-#
-#    parser_package_dir_add = package_dir_subparsers.add_parser("add",
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="add a package directory to current session")
-#    parser_package_dir_add.set_defaults(function=manager.add_package_directories)
-#
-#    parser_package_dir_remove = package_dir_subparsers.add_parser("remove",
-#        aliases=[],
-#        parents=[common_parser],
-#        formatter_class=Formatter,
-#        help="remove a package directory from current session")
-#    parser_package_dir_remove.set_defaults(function=manager.remove_package_directories)
-#
-#    for subparser in parser_package_dir_add, parser_package_dir_remove:
-#        subparser.add_argument("package_directories",
-#            type=str,
-#            nargs='+',
-#            default=None,
-#            help="package directory")
-
-# useless...
-#    for parser in (parser_package_dir_remove, ):
-#        parser.set_defaults(complete_function=manager.complete_package_directories, complete_add_arguments=['dummy'])
 
     for subparsers in top_level_subparsers, package_subparsers:
         parser_package_show_available_packages = subparsers.add_parser("avail",
