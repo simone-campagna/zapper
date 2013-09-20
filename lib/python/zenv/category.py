@@ -19,10 +19,10 @@ __author__ = 'Simone Campagna'
 
 class Category(str):
     __categories__ = ['suite']
-    def __init__(self, value):
-        if not value in self.__categories__:
+    def __new__(cls, value):
+        if not value in cls.__categories__:
             raise KeyError("invalid category {0!r}".format(value))
-        super().__init__(value)
+        return super().__new__(cls, value)
 
     @classmethod
     def categories(cls):

@@ -19,10 +19,10 @@ __author__ = 'Simone Campagna'
 
 class Tag(str):
     __tags__ = set()
-    def __init__(self, value):
-        if not value in self.__tags__:
-            self.add_tag(value)
-        super().__init__(value)
+    def __new__(cls, value):
+        if not value in cls.__tags__:
+            cls.add_tag(value)
+        return super().__new__(cls, value)
 
     @classmethod
     def add_tag(cls, tag):

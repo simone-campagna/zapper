@@ -24,17 +24,18 @@ import re
 
 class Version(str):
     RE_SPLIT = re.compile(r"[\.\-_]")
-    def __init__(self, version):
+    def __new__(cls, version):
         if ':' in version:
             raise ValueError("invalid version {0}: cannot contain ':'".format(version))
-        super().__init__(version)
-        self._tokens = []
-        for token in self.RE_SPLIT.split(self):
+        instance = super().__new__(cls, version)
+        instance._tokens = []
+        for token in cls.RE_SPLIT.split(instance):
             try:
                 token = int(token)
             except ValueError:
                 pass
-            self._tokens.append(token)
+            instance._tokens.append(token)
+        return instance
         
     def comparable(self, token_a, token_b):
         if isinstance(token_a, str):
