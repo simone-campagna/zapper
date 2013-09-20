@@ -60,11 +60,11 @@ def _expand(s):
     return os.path.expanduser(os.path.expandvars(s))
 
 class Manager(object):
-    RC_DIR_NAME = '.zenv'
-    TEMP_DIR_PREFIX = 'zenv'
+    RC_DIR_NAME = '.zapper'
+    TEMP_DIR_PREFIX = 'zapper'
     SESSIONS_DIR_NAME = 'sessions'
     PACKAGES_DIR_NAME = 'packages'
-    LOADED_PACKAGES_VARNAME = "ZENV_LOADED_PACKAGES"
+    LOADED_PACKAGES_VARNAME = "ZAPPER_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
     DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name} {description}'
     DEFAULT_SESSION_LAST = '<last>'
@@ -152,9 +152,9 @@ class Manager(object):
         self.admin_user = get_admin_user()
         self.user_rc_dir = os.path.join(user_home_dir, self.RC_DIR_NAME)
         self.user_package_dir = os.path.join(self.user_rc_dir, self.PACKAGES_DIR_NAME)
-        zenv_home_dir = get_home_dir()
-        if zenv_home_dir and os.path.lexists(zenv_home_dir):
-            host_etc_dir = os.path.join(zenv_home_dir, 'etc', 'zenv')
+        zapper_home_dir = get_home_dir()
+        if zapper_home_dir and os.path.lexists(zapper_home_dir):
+            host_etc_dir = os.path.join(zapper_home_dir, 'etc', 'zapper')
             self.host_package_dir = os.path.join(host_etc_dir, self.PACKAGES_DIR_NAME)
             host_config_file = os.path.join(host_etc_dir, 'host.config')
             self.host_config = HostConfig(host_config_file)
@@ -728,8 +728,8 @@ class Manager(object):
     
         self.session = None
         session_root = _verify_session_root(
-            '$ZENV_SESSION',
-            os.environ.get("ZENV_SESSION", None))
+            '$ZAPPER_SESSION',
+            os.environ.get("ZAPPER_SESSION", None))
         if not session_root:
             default_session = self.get_config_key('default_session')
             if default_session == self.DEFAULT_SESSION_LAST:
@@ -781,7 +781,7 @@ class Manager(object):
         self.load_session_package_option('version_defaults')
                     
     def load_translator(self):
-        target_translator = os.environ.get("ZENV_TARGET_TRANSLATOR", None)
+        target_translator = os.environ.get("ZAPPER_TARGET_TRANSLATOR", None)
         self.translation_filename = None
         self.translator = None
         if target_translator is None:
@@ -1078,8 +1078,8 @@ class Manager(object):
             
     def init(self, translator=None, translation_filename=None):
         environment = self.session.environment
-        if not 'ZENV_SESSION' in environment:
-            environment['ZENV_SESSION'] = self.session.session_root
+        if not 'ZAPPER_SESSION' in environment:
+            environment['ZAPPER_SESSION'] = self.session.session_root
         if translator:
             if translation_filename:
                 self.session.translate_file(translator, translation_filename=os.path.abspath(translation_filename))

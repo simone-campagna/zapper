@@ -45,7 +45,8 @@ from .utils import sequences
 class Session(object):
     SESSION_SUFFIX = ".session"
     MODULE_PATTERN = "*.py"
-    RANDOM_NAME_SEQUENCE = RandomNameSequence(width=4)
+    TEMPORARY_SESSION_NAME_FORMAT = 'zap{name}'
+    RANDOM_NAME_SEQUENCE = RandomNameSequence(width=8 - len(TEMPORARY_SESSION_NAME_FORMAT.format(name='')))
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
@@ -253,9 +254,9 @@ class Session(object):
             package_directories = package_directories_string.split(':')
         else:
             package_directories = []
-        zenv_package_dir = os.environ.get("ZENV_PACKAGE_DIR", None)
-        if zenv_package_dir:
-            package_directories.extend(zenv_package_dir.split(':'))
+        zapper_package_dir = os.environ.get("ZAPPER_PACKAGE_DIR", None)
+        if zapper_package_dir:
+            package_directories.extend(zapper_package_dir.split(':'))
         self._package_directories = package_directories
         self.set_defined_packages(loaded_package_directories=loaded_package_directories)
         self.set_available_packages()
@@ -283,7 +284,7 @@ class Session(object):
     @classmethod
     def create_unique_session_root(cls, sessions_dir):
         for name in cls.RANDOM_NAME_SEQUENCE:
-            session_name = "zenv{0}".format(name)
+            session_name = cls.TEMPORARY_SESSION_NAME_FORMAT.format(name=name)
             session_root = os.path.join(sessions_dir, session_name)
             session_config_file = cls.get_session_config_file(session_root)
             if os.path.lexists(session_config_file):
@@ -423,9 +424,9 @@ class Session(object):
     def unload_environment_packages(self):
         """unload_environment_packages() -> list of previously loaded packages
 Remove all the previously loaded packages (from environment variable
-$ZENV_LOADED_PACKAGES) and returns the list of removed packages""" 
+$ZAPPER_LOADED_PACKAGES) and returns the list of removed packages""" 
         env_loaded_packages = []
-        loaded_package_labels_string = self._environment.get('ZENV_LOADED_PACKAGES', None)
+        loaded_package_labels_string = self._environment.get('ZAPPER_LOADED_PACKAGES', None)
         if not loaded_package_labels_string:
             return env_loaded_packages
         loaded_package_labels = loaded_package_labels_string.split(':')
@@ -444,7 +445,7 @@ $ZENV_LOADED_PACKAGES) and returns the list of removed packages"""
             #LOGGER.info("removing package {0}...".format(loaded_package))
             loaded_package.revert(self)
             env_loaded_packages.append(loaded_package)
-        del self._environment['ZENV_LOADED_PACKAGES']
+        del self._environment['ZAPPER_LOADED_PACKAGES']
         return env_loaded_packages
 
     def unload_packages(self):
@@ -921,9 +922,9 @@ $ZENV_LOADED_PACKAGES) and returns the list of removed packages"""
             elif var_value != orig_var_value:
                 # set
                 translator.var_set(var_name, var_value)
-        translator.var_set("ZENV_SESSION", self.session_root)
+        translator.var_set("ZAPPER_SESSION", self.session_root)
         loaded_packages = ':'.join(self._loaded_packages.keys())
-        translator.var_set("ZENV_LOADED_PACKAGES", loaded_packages)
+        translator.var_set("ZAPPER_LOADED_PACKAGES", loaded_packages)
 
     def translate_stream(self, translator, stream=None, translation_filename=None, *, dry_run=None):
         if dry_run is None:

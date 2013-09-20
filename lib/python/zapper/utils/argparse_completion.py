@@ -72,7 +72,7 @@ complete -F {function} -o filenames {name}
     @classmethod
     def write_version_file(cls, stream):
         stream.write("""\
-ZENV_CURRENT_COMPLETION_VERSION={}
+ZAPPER_CURRENT_COMPLETION_VERSION={}
 """.format(COMPLETION_VERSION))
 
     def _convert(self, key):

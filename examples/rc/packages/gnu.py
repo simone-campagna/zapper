@@ -1,4 +1,4 @@
-from zenv.package_file import *
+from zapper.package_file import *
 
 gnu = Suite('gnu', NULL_VERSION)
 gnu.add_conflicting_tag('compiler-suite')

@@ -27,14 +27,14 @@ import getpass
 import tempfile
 import collections
 
-ZENV_VERSION = "0.1"
+ZAPPER_VERSION = "0.1"
 
 dirname = os.path.dirname(os.path.abspath(sys.argv[0]))
 py_dirname = os.path.join(dirname, "lib", "python")
 sys.path.insert(0, py_dirname)
 
-from zenv.manager import Manager
-from zenv.utils.argparse_completion import COMPLETION_VERSION
+from zapper.manager import Manager
+from zapper.utils.argparse_completion import COMPLETION_VERSION
 
 from distutils.core import setup
 from distutils import log
@@ -46,7 +46,7 @@ FILES_TO_BACKUP = set()
 
 shell_setup_files = []
 shell_setup_subdir = 'etc/profile.d'
-for shell_setup_file in glob.glob(os.path.join(dirname, shell_setup_subdir, 'zenv.*')):
+for shell_setup_file in glob.glob(os.path.join(dirname, shell_setup_subdir, 'zapper.*')):
     shell_setup_files.append(shell_setup_file)
     FILES_TO_BACKUP.add(os.path.relpath(os.path.normpath(os.path.abspath(shell_setup_file)), dirname))
 
@@ -61,12 +61,12 @@ class subst_command(Command):
     def _init(self):
         if not hasattr(self, 'r_list'):
             v_dict = {
-                'ZENV_VERSION':             ZENV_VERSION,
-                'ZENV_HOME_DIR':            self.install_base,
-                'ZENV_RC_DIR_NAME':         Manager.RC_DIR_NAME,
-                'ZENV_ADMIN_USER':          self.admin_user,
-                'PYTHON_EXECUTABLE':        sys.executable,
-                'ZENV_COMPLETION_VERSION':  COMPLETION_VERSION,
+                'ZAPPER_VERSION':             ZAPPER_VERSION,
+                'ZAPPER_HOME_DIR':            self.install_base,
+                'ZAPPER_RC_DIR_NAME':         Manager.RC_DIR_NAME,
+                'ZAPPER_ADMIN_USER':          self.admin_user,
+                'PYTHON_EXECUTABLE':          sys.executable,
+                'ZAPPER_COMPLETION_VERSION':  COMPLETION_VERSION,
             }
             self.r_list = []
             for key, val in v_dict.items():
@@ -151,22 +151,22 @@ class subst_install_scripts(pre_command, install_scripts, subst_command):
     pass
 
 setup(
-    name = "zenv",
-    version = ZENV_VERSION,
+    name = "zapper",
+    version = ZAPPER_VERSION,
     requires = [],
     description = "Tool to manage unix environment",
     author = "Simone Campagna",
     author_email = "simone.campagna@tiscali.it",
     url="https://github.com/simone-campagna/unix-sessions",
-    packages = ["zenv", "zenv.translators", "zenv.utils", "zenv.application"],
-    package_dir = {"zenv": "lib/python/zenv"},
+    packages = ["zapper", "zapper.translators", "zapper.utils", "zapper.application"],
+    package_dir = {"zapper": "lib/python/zapper"},
     scripts = [
-	'bin/zenv',
+	'bin/zapper',
     ],
     data_files = [
-        ('etc/zenv', glob.glob('etc/zenv/*.config')),
+        ('etc/zapper', glob.glob('etc/zapper/*.config')),
         (shell_setup_subdir, shell_setup_files),
-        ('etc/zenv/packages', []),
+        ('etc/zapper/packages', []),
     ],
     cmdclass = {
         'install_data': subst_install_data,

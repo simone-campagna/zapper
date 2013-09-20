@@ -18,29 +18,29 @@
 
 __author__ = 'Simone Campagna'
 
-ZENV_HOME_DIR = None
-ZENV_ADMIN_USER = None
-ZENV_VERSION = None
+ZAPPER_HOME_DIR = None
+ZAPPER_ADMIN_USER = None
+ZAPPER_VERSION = None
 
 def set_home_dir(home_dir):
-    global ZENV_HOME_DIR
-    ZENV_HOME_DIR = home_dir
+    global ZAPPER_HOME_DIR
+    ZAPPER_HOME_DIR = home_dir
 
 def get_home_dir():
-    return ZENV_HOME_DIR
+    return ZAPPER_HOME_DIR
 
 def set_admin_user(admin_user):
-    global ZENV_ADMIN_USER
-    ZENV_ADMIN_USER = admin_user
+    global ZAPPER_ADMIN_USER
+    ZAPPER_ADMIN_USER = admin_user
 
 def get_admin_user():
-    return ZENV_VERSION
+    return ZAPPER_VERSION
 
 def set_version(version):
-    global ZENV_VERSION
-    ZENV_VERSION = version
+    global ZAPPER_VERSION
+    ZAPPER_VERSION = version
 
 def get_version():
-    return ZENV_VERSION
+    return ZAPPER_VERSION
 
     

@@ -22,14 +22,14 @@ import sys
 import argparse
 import collections
 
-from zenv.manager import Manager
-from zenv.helper import Helper
-from zenv.errors import SessionConfigError
-from zenv.utils.debug import set_quiet, set_verbose, set_debug, LOGGER
-from zenv.utils.trace import set_trace, trace
-from zenv.utils.install_data import set_home_dir, set_admin_user, set_version, get_version
-from zenv.utils.argparse_autocomplete import autocomplete_monkey_patch
-from zenv.utils.strings import string_to_bool
+from zapper.manager import Manager
+from zapper.helper import Helper
+from zapper.errors import SessionConfigError
+from zapper.utils.debug import set_quiet, set_verbose, set_debug, LOGGER
+from zapper.utils.trace import set_trace, trace
+from zapper.utils.install_data import set_home_dir, set_admin_user, set_version, get_version
+from zapper.utils.argparse_autocomplete import autocomplete_monkey_patch
+from zapper.utils.strings import string_to_bool
 
 def _set_global_flags(enable_complete_function, *, quiet, verbose, debug, trace):
     if enable_complete_function:
@@ -47,11 +47,11 @@ def _set_global_flags(enable_complete_function, *, quiet, verbose, debug, trace)
         set_trace(trace)
 
 def main():
-    set_home_dir("@ZENV_HOME_DIR@")
-    set_admin_user("@ZENV_ADMIN_USER@")
-    set_version("@ZENV_VERSION@")
-    enable_complete_function = string_to_bool(os.environ.get("ZENV_COMPLETE_FUNCTION", "False"))
-    quiet_mode = string_to_bool(os.environ.get("ZENV_QUIET_MODE", "False"))
+    set_home_dir("@ZAPPER_HOME_DIR@")
+    set_admin_user("@ZAPPER_ADMIN_USER@")
+    set_version("@ZAPPER_VERSION@")
+    enable_complete_function = string_to_bool(os.environ.get("ZAPPER_COMPLETE_FUNCTION", "False"))
+    quiet_mode = string_to_bool(os.environ.get("ZAPPER_QUIET_MODE", "False"))
     try:
         manager = Manager()
     except Exception as e:
@@ -75,7 +75,7 @@ def main():
         trace(True)
         LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
         if not isinstance(e, SessionConfigError):
-            LOGGER.error("Session is corrupted. Unset environment variable ZENV_SESSION and try again with a new session.")
+            LOGGER.error("Session is corrupted. Unset environment variable ZAPPER_SESSION and try again with a new session.")
         sys.exit(1)
 
     class Formatter(argparse.RawTextHelpFormatter):
@@ -83,7 +83,7 @@ def main():
             super().__init__(prog, indent_increment, max_help_position, width)
 
     enable_completion_option = manager.translation_name == 'bash'
-    #os.environ.get("ZENV_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
+    #os.environ.get("ZAPPER_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
 
     
 
@@ -103,7 +103,7 @@ def main():
 
     common_parser.add_argument("--version", "-V",
         action="version",
-        version="@ZENV_VERSION@",
+        version="@ZAPPER_VERSION@",
         help="set verbose on")
 
     common_parser.add_argument("--verbose", "-v",
@@ -236,14 +236,14 @@ Change the current session""",
     def generate_completion(parser, filename, manager):
         if filename == '-':
             filename = None
-        from zenv.utils.argparse_completion import complete
+        from zapper.utils.argparse_completion import complete
         complete(
             parser=top_level_parser,
             filename=filename,
             complete_function_name='complete_function',
             complete_add_arguments_name='complete_add_arguments',
             progname=os.path.basename(sys.argv[0]),
-            activate_complete_function="ZENV_COMPLETE_FUNCTION=true ",
+            activate_complete_function="ZAPPER_COMPLETE_FUNCTION=true ",
             )
             
     if enable_completion_option:
@@ -772,7 +772,7 @@ Change the current session""",
     manager.initialize()
 
     complete_function = getattr(args, 'complete_function', None)
-    if complete_function and os.environ.get("ZENV_COMPLETE_FUNCTION", ""):
+    if complete_function and os.environ.get("ZAPPER_COMPLETE_FUNCTION", ""):
         try:
             args.complete_function(*p_args, **n_args)
         except Exception as e:
