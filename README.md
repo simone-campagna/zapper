@@ -1,4 +1,4 @@
-session
+zapper
 =======
 
-Unix session manager
+Zapper is a Unix environment variables manager.
