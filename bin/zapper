@@ -281,6 +281,7 @@ Change the current session""",
         parents=[common_parser],
         formatter_class=Formatter,
         help="default values for some command line options")
+    #parser_config.set_defaults(default_function=manager.show_current_config, keys=None)
 
     config_subparsers = parser_config.add_subparsers(
         description="Config subcommand.")
@@ -310,6 +311,7 @@ Change the current session""",
         aliases=[],
         formatter_class=Formatter,
         help="host default values")
+    #parser_host_config.set_defaults(default_function=manager.show_host_config, keys=None)
 
     host_config_subparsers = parser_host_config.add_subparsers(
         description="Host default values management.")
@@ -339,6 +341,7 @@ Change the current session""",
         aliases=[],
         formatter_class=Formatter,
         help="user default values")
+    parser_user_config.set_defaults(function=manager.show_user_config, keys=None)
 
     user_config_subparsers = parser_user_config.add_subparsers(
         description="User default values management.")
@@ -456,6 +459,7 @@ Change the current session""",
         aliases=[],
         formatter_class=Formatter,
         help="session default values")
+    #parser_session_config.set_defaults(default_function=manager.show_session_config, keys=None)
 
     session_config_subparsers = parser_session_config.add_subparsers(
         description="Session default values management.")
@@ -779,8 +783,12 @@ Change the current session""",
             trace()
             LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
     else:
+        function = getattr(args, 'function', None)
+        if function is None:
+            LOGGER.error("invalid command line (this is probably due to a bug in argparse)")
+            sys.exit(1)
         try:
-            args.function(*p_args, **n_args)
+            function(*p_args, **n_args)
         except Exception as e:
             trace()
             LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
