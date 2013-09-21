@@ -43,12 +43,18 @@ from distutils.command.install_scripts import install_scripts
 from distutils.cmd import Command
 
 FILES_TO_BACKUP = set()
+def add_file_to_backup(filename, dirname):
+    global FILES_TO_BACKUP
+    FILES_TO_BACKUP.add(os.path.relpath(os.path.normpath(os.path.abspath(filename)), dirname))
 
 shell_setup_files = []
 shell_setup_subdir = 'etc/profile.d'
 for shell_setup_file in glob.glob(os.path.join(dirname, shell_setup_subdir, 'zapper.*')):
     shell_setup_files.append(shell_setup_file)
-    FILES_TO_BACKUP.add(os.path.relpath(os.path.normpath(os.path.abspath(shell_setup_file)), dirname))
+    add_file_to_backup(shell_setup_file, dirname)
+
+host_config_file = os.path.join(dirname, 'etc', 'zapper', 'host.config')
+add_file_to_backup(host_config_file, dirname)
 
 class pre_command(object):
     def run(self):

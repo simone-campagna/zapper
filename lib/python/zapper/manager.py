@@ -528,6 +528,7 @@ class Manager(object):
                 LOGGER.info("setting {} config {}{}{!r}{}".format(label, key, action, value, new_value_str))
                 #print(new_value, type(new_value))
             config[key] = new_value
+            return True
 
     def _set_config_key(self, label, config_dict, key, s_value):
         assert isinstance(config_dict, dict)

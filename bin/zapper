@@ -54,11 +54,12 @@ def main():
     quiet_mode = string_to_bool(os.environ.get("ZAPPER_QUIET_MODE", "False"))
     try:
         manager = Manager()
-    except Exception as e:
+    except:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
         trace(True)
-        LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+        LOGGER.critical("{0}: {1}".format(exc_type.__name__, exc_value))
         if not isinstance(e, SessionConfigError):
-            LOGGER.error("Unrecoverable error\n")
+            LOGGER.critical("Unrecoverable error\n")
         sys.exit(1)
 
     _set_global_flags(
@@ -71,11 +72,12 @@ def main():
 
     try:
         manager.restore_session()
-    except Exception as e:
+    except:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
         trace(True)
-        LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
-        if not isinstance(e, SessionConfigError):
-            LOGGER.error("Session is corrupted. Unset environment variable ZAPPER_SESSION and try again with a new session.")
+        LOGGER.critical("{0}: {1}".format(exc_type.__name__, exc_value))
+        if not isinstance(exc_value, SessionConfigError):
+            LOGGER.critical("Session is corrupted. Unset environment variable ZAPPER_SESSION and try again with a new session.")
         sys.exit(1)
 
     class Formatter(argparse.RawTextHelpFormatter):
@@ -341,7 +343,7 @@ Change the current session""",
         aliases=[],
         formatter_class=Formatter,
         help="user default values")
-    parser_user_config.set_defaults(function=manager.show_user_config, keys=None)
+    #parser_user_config.set_defaults(default_function=manager.show_user_config, keys=None)
 
     user_config_subparsers = parser_user_config.add_subparsers(
         description="User default values management.")
@@ -729,8 +731,9 @@ Change the current session""",
 
     try:
         autocomplete_monkey_patch(top_level_parser)
-    except Exception as e:
-        print(e)
+    except:
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print(exc_value)
         # ignoring these exceptions, since this is not mandatory
         pass
 
@@ -779,19 +782,23 @@ Change the current session""",
     if complete_function and os.environ.get("ZAPPER_COMPLETE_FUNCTION", ""):
         try:
             args.complete_function(*p_args, **n_args)
-        except Exception as e:
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
             trace()
-            LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+            LOGGER.critical("{0}: {1}".format(exc_type.__name__, exc_value))
     else:
         function = getattr(args, 'function', None)
         if function is None:
-            LOGGER.error("invalid command line (this is probably due to a bug in argparse)")
+            LOGGER.critical("invalid command line (this is probably due to a bug in argparse)")
             sys.exit(1)
         try:
             function(*p_args, **n_args)
-        except Exception as e:
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
             trace()
-            LOGGER.error("{0}: {1}".format(e.__class__.__name__, e))
+            #sys.stderr.write("ERR: {}: {}\n".format(exc_type.__name__, exc_value))
+            LOGGER.critical("{0}: {1}".format(exc_type.__name__, exc_value))
+            sys.exit(1)
         else:
             manager.finalize()
 

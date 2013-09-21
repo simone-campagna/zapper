@@ -39,7 +39,7 @@ def _create_logger(name, level=logging.WARNING, formatter=None):
 
 LOGGER = _create_logger('ZAPPER')
 PRINT_LOGGER = _create_logger('PRINT', level=logging.INFO, formatter=logging.Formatter("%(message)s"))
-PRINT = PRINT_LOGGER.info
+PRINT = PRINT_LOGGER.critical
 
 def set_verbose(enable):
     global VERBOSE, LOGGER
@@ -54,7 +54,7 @@ def set_debug(enable):
         trace.set_trace(True)
 
 def set_quiet():
-    logging.disable(logging.CRITICAL)
+    logging.disable(logging.ERROR)
 
     
 def set_logger_level():
