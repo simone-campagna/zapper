@@ -34,7 +34,7 @@ def set_admin_user(admin_user):
     ZAPPER_ADMIN_USER = admin_user
 
 def get_admin_user():
-    return ZAPPER_VERSION
+    return ZAPPER_ADMIN_USER
 
 def set_version(version):
     global ZAPPER_VERSION
