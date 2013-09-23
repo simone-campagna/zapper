@@ -17,13 +17,14 @@
 
 __author__ = 'Simone Campagna'
 
+import zapper # to allow relative imports in zapper.application
 from zapper.utils.install_data import set_home_dir, set_admin_user, set_version, get_version
 
 set_home_dir("@ZAPPER_HOME_DIR@")
 set_admin_user("@ZAPPER_ADMIN_USER@")
 set_version("@ZAPPER_VERSION@")
 
-from zapper.application.zapper import zapper_main
+from zapper.application.zapper_main import zapper_main
 
 if __name__ == "__main__":
     zapper_main()

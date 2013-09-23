@@ -42,14 +42,14 @@ import sys
 import argparse
 import collections
 
-from zapper.manager import Manager
-from zapper.helper import Helper
-from zapper.errors import SessionConfigError
-from zapper.utils.debug import set_quiet, set_verbose, set_debug, LOGGER
-from zapper.utils.trace import set_trace, trace
-from zapper.utils.install_data import set_home_dir, set_admin_user, set_version, get_version
-from zapper.utils.argparse_autocomplete import autocomplete_monkey_patch
-from zapper.utils.strings import string_to_bool
+from ..manager import Manager
+from ..helper import Helper
+from ..errors import SessionConfigError
+from ..utils.debug import set_quiet, set_verbose, set_debug, LOGGER
+from ..utils.trace import set_trace, trace
+from ..utils.install_data import set_home_dir, set_admin_user, set_version, get_version
+from ..utils.argparse_autocomplete import autocomplete_monkey_patch
+from ..utils.strings import string_to_bool
 
 _ZAPPER_COMPLETE_FUNCTION = string_to_bool(os.environ.get("ZAPPER_COMPLETE_FUNCTION", "False"))
 _ZAPPER_QUIET_MODE = string_to_bool(os.environ.get("ZAPPER_QUIET_MODE", "False"))
