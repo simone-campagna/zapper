@@ -310,7 +310,7 @@ class Manager(object):
 
     def set_session(self, session):
         if self._session is not None:
-            self.session.unload_packages()
+            self.session.unload_all_loaded_packages()
             self.session.translate(self.translator)
         self._session = session
 
@@ -1009,11 +1009,11 @@ class Manager(object):
             session = self.session.new_session(session_root)
         session.info()
 
-    def add_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
-        self.session.add(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, simulate=simulate)
+    def load_package_labels(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
+        self.session.load_package_labels(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, simulate=simulate)
 
-    def remove_packages(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
-        self.session.remove(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, simulate=simulate)
+    def unload_package_labels(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
+        self.session.unload_package_labels(package_labels, resolution_level=resolution_level, subpackages=subpackages, sticky=sticky, simulate=simulate)
 
     def clear_packages(self, sticky=False, simulate=False):
         self.session.clear(sticky=sticky, simulate=simulate)

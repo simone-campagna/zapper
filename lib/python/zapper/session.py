@@ -144,12 +144,12 @@ class Session(object):
 
     def filter_packages(self, expression):
         for package_collection in self._defined_packages, self._available_packages:
-            to_remove = set()
+            to_unload = set()
             for package_label, package in package_collection.items():
                 expression.bind(package)
                 if not expression.get_value():
-                    to_remove.add(package_label)
-            for package_label in to_remove:
+                    to_unload.add(package_label)
+            for package_label in to_unload:
                 package = package_collection.pop(package_label)
                 LOGGER.debug("discarding package {0} not matching expression {1}".format(package, expression))
 
@@ -268,7 +268,7 @@ class Session(object):
             #    packages_list = packages_list_string.split(':')
             #else:
             #    packages_list = []
-            self.load_packages(packages_list)
+            self.initialize_loaded_packages(packages_list)
         # sticky packages
         packages_list = string_to_list(self.session_config['packages']['sticky_packages'])
         #packages_list_string = self.session_config['packages']['sticky_packages']
@@ -428,7 +428,7 @@ class Session(object):
     def unload_environment_packages(self):
         """unload_environment_packages() -> list of previously loaded packages
 Remove all the previously loaded packages (from environment variable
-$ZAPPER_LOADED_PACKAGES) and returns the list of removed packages""" 
+$ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages""" 
         env_loaded_packages = []
         loaded_package_labels_string = self._environment.get('ZAPPER_LOADED_PACKAGES', None)
         if not loaded_package_labels_string:
@@ -446,28 +446,28 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
             if loaded_package is None:
                 LOGGER.warning("inconsistent environment: cannot unload unknown package {0!r}".format(loaded_package_label))
                 continue
-            #LOGGER.info("removing package {0}...".format(loaded_package))
+            #LOGGER.info("unloading package {0}...".format(loaded_package))
             loaded_package.revert(self)
             env_loaded_packages.append(loaded_package)
         del self._environment['ZAPPER_LOADED_PACKAGES']
         return env_loaded_packages
 
-    def unload_packages(self):
+    def unload_all_loaded_packages(self):
         for package_label, package in self._loaded_packages.items():
-            LOGGER.info("removing package {0}...".format(package_label))
+            LOGGER.info("unloading package {0}...".format(package_label))
             package.revert(self)
         self._loaded_packages.clear()
 
-    def load_packages(self, packages_list):
+    def initialize_loaded_packages(self, packages_list):
         self._add_suite(ROOT)
         env_loaded_packages = set(self.unload_environment_packages())
-        self.unload_packages()
-        self.add(packages_list, ignore_errors=True, info=False)
+        self.unload_all_loaded_packages()
+        self.load_package_labels(packages_list, ignore_errors=True, info=False)
         loaded_packages = set(self.loaded_packages())
         for package in loaded_packages.difference(env_loaded_packages):
-            LOGGER.info("package {} has been added".format(package))
+            LOGGER.info("package {} has been loaded".format(package))
         for package in env_loaded_packages.difference(loaded_packages):
-            LOGGER.info("package {} has been removed".format(package))
+            LOGGER.info("package {} has been unloaded".format(package))
         
                 
     def store(self):
@@ -529,7 +529,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
             unloaded_packages.append(package)
         return unloaded_packages
 
-    def add(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, simulate=False, ignore_errors=False, info=True):
+    def load_package_labels(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, simulate=False, ignore_errors=False, info=True):
         self.check_read_only()
         for packages in self.iterdep(package_labels, ignore_errors=ignore_errors):
             #print(packages)
@@ -537,20 +537,20 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
                 packages = self._get_subpackages(packages)
             required_packages = packages
             packages = self._unloaded_packages(packages)
-            added_packages = self.add_packages(packages, resolution_level=resolution_level, simulate=simulate, info=info)
+            loaded_packages = self.load_packages(packages, resolution_level=resolution_level, simulate=simulate, info=info)
             if sticky:
-                all_packages = set(required_packages).union(added_packages)
+                all_packages = set(required_packages).union(loaded_packages)
                 self._sticky_packages.update(package.full_label for package in all_packages)
         
-    def add_packages(self, packages, resolution_level=0, simulate=False, info=True):
+    def load_packages(self, packages, resolution_level=0, simulate=False, info=True):
         package_dependencies = collections.defaultdict(set)
         available_packages = self.available_packages()
         defined_packages = self.defined_packages()
-        packages_to_add = set()
-        added_packages = []
+        packages_to_load = set()
+        loaded_packages = []
         while packages:
             simulated_loaded_packages = list(sequences.unique(list(self._loaded_packages.values()) + packages))
-            automatically_added_packages = []
+            automatically_loaded_packages = []
             for package_index, package in enumerate(packages):
                 package_label = package.full_label
                 matched_requirements, unmatched_requirements = package.match_requirements(simulated_loaded_packages)
@@ -566,9 +566,9 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
                         pkg1 = pkg_lst[-1]
                         if not pkg1 in simulated_loaded_packages:
                             #LOGGER.debug("matching: {0}".format(pkg1))
-                            if not pkg1 in automatically_added_packages:
-                                LOGGER.info("package {0} will be automatically added".format(pkg1))
-                                automatically_added_packages.append(pkg1)
+                            if not pkg1 in automatically_loaded_packages:
+                                LOGGER.info("package {0} will be automatically loaded".format(pkg1))
+                                automatically_loaded_packages.append(pkg1)
                     if unmatched_requirements and resolution_level > 1:
                         # search in defined_packages:
                         LOGGER.debug("resolution[2]: package {0}: searching {1} <{2}> in defined packages...".format(
@@ -581,13 +581,13 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
                             pkg1 = pkg_lst[-1]
                             if not pkg1 in simulated_loaded_packages:
                                 #LOGGER.debug("matching: {0}".format(pkg1))
-                                if not pkg1 in automatically_added_packages:
-                                    LOGGER.info("package {0} will be automatically added".format(pkg1))
-                                    automatically_added_packages.append(pkg1)
+                                if not pkg1 in automatically_loaded_packages:
+                                    LOGGER.info("package {0} will be automatically loaded".format(pkg1))
+                                    automatically_loaded_packages.append(pkg1)
                 if unmatched_requirements:
                     for pkg, expression in unmatched_requirements:
                         LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
-                    raise AddPackageError("cannot add package {0}: {1}".format(
+                    raise AddPackageError("cannot load package {0}: {1}".format(
                         package,
                         plural_string('unmatched requirements', len(unmatched_requirements))))
                 for pkg0, expression, pkg_lst in matched_requirements:
@@ -597,20 +597,20 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
                 if conflicts:
                     for pkg0, expression, pkg1 in conflicts:
                         LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
-                    raise AddPackageError("cannot add package {0}: {1}".format(
+                    raise AddPackageError("cannot load package {0}: {1}".format(
                         package,
                         plural_string('conflict', len(conflicts))))
 
-                packages_to_add.update(packages)
+                packages_to_load.update(packages)
                 #packages = list(sequences.difference(packages, simulated_loaded_packages))
-                LOGGER.debug("automatically_added_packages={0}".format([str(p) for p in automatically_added_packages]))
-                packages = list(sequences.unique(automatically_added_packages))
-        suites_to_add, packages_to_add = self._separate_suites(packages_to_add)
-        for packages in suites_to_add, packages_to_add:
+                LOGGER.debug("automatically_loaded_packages={0}".format([str(p) for p in automatically_loaded_packages]))
+                packages = list(sequences.unique(automatically_loaded_packages))
+        suites_to_load, packages_to_load = self._separate_suites(packages_to_load)
+        for packages in suites_to_load, packages_to_load:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
-            self._add_packages(sorted_packages, simulate=simulate, info=info)
-            added_packages.extend(packages)
-        return added_packages
+            self._load_packages(sorted_packages, simulate=simulate, info=info)
+            loaded_packages.extend(packages)
+        return loaded_packages
 
     def _separate_suites(self, packages):
         suites = []
@@ -622,14 +622,14 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
                 non_suites.append(package)
         return suites, non_suites
 
-    def _add_packages(self, packages, simulate=False, info=True):
+    def _load_packages(self, packages, simulate=False, info=True):
         if simulate:
             header = '[dry-run] '
         else:
             header = ''
         for package in packages:
             if info:
-                LOGGER.info("{0}adding package {1}...".format(header, package))
+                LOGGER.info("{0}loading package {1}...".format(header, package))
             if simulate:
                 continue
             package.apply(self)
@@ -648,7 +648,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
         for package in suite.packages():
             self._available_packages.add_package(package)
 
-    def remove(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
+    def unload_package_labels(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
         self.check_read_only()
         packages = []
         for package_label in package_labels:
@@ -672,10 +672,10 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
         if subpackages:
             packages = self._get_subpackages(packages)
 
-        packages_to_remove = set()
+        packages_to_unload = set()
 
         while packages:
-            automatically_removed_packages = []
+            automatically_unloaded_packages = []
             # check missing dependencies:
             for package in packages:
                 new_loaded_packages = [pkg for pkg in self._loaded_packages.values() if not pkg in packages]
@@ -683,43 +683,43 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
                     matched_requirements, unmatched_requirements = pkg.match_requirements(filter(lambda pkg0: pkg0 is not pkg, new_loaded_packages))
                     if unmatched_requirements:
                         if resolution_level > 0:
-                            LOGGER.debug("resolution[1]: automatically removing {0} <{1}>...".format(
+                            LOGGER.debug("resolution[1]: automatically unloading {0} <{1}>...".format(
                                 plural_string('depending package', len(unmatched_requirements)),
                                 ', '.join(str(e[0]) for e in unmatched_requirements)
                             ))
                             for pkg0, expression in unmatched_requirements:
-                                if not pkg in automatically_removed_packages:
-                                    LOGGER.info("package {0} will be automatically removed".format(pkg))
-                                    automatically_removed_packages.append(pkg)
+                                if not pkg in automatically_unloaded_packages:
+                                    LOGGER.info("package {0} will be automatically unloaded".format(pkg))
+                                    automatically_unloaded_packages.append(pkg)
                         else:
                             for pkg0, expression in unmatched_requirements:
                                 LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg0, expression))
-                            raise RemovePackageError("cannot remove package {0}: would leave {1}".format(
+                            raise RemovePackageError("cannot unload package {0}: would leave {1}".format(
                                 package,
                                 plural_string('unmatched requirement', len(unmatched_requirements))))
-            packages_to_remove.update(packages)
-            packages = list(sequences.unique(automatically_removed_packages))
+            packages_to_unload.update(packages)
+            packages = list(sequences.unique(automatically_unloaded_packages))
 
-        # compute dependencies between packages to remove:
-        # it is used to remove packages in the correct order
+        # compute dependencies between packages to unload:
+        # it is used to unload packages in the correct order
         package_dependencies = collections.defaultdict(set)
-        for package in packages_to_remove:
-            matched_requirements, unmatched_requirements = package.match_requirements(filter(lambda pkg0: pkg0 is not package, packages_to_remove))
+        for package in packages_to_unload:
+            matched_requirements, unmatched_requirements = package.match_requirements(filter(lambda pkg0: pkg0 is not package, packages_to_unload))
             for pkg0, expression, pkg_lst in matched_requirements:
                 package_dependencies[pkg0].add(pkg_lst[-1])
 
-        suites_to_remove, packages_to_remove = self._separate_suites(packages_to_remove)
-        for packages in packages_to_remove, suites_to_remove:
+        suites_to_unload, packages_to_unload = self._separate_suites(packages_to_unload)
+        for packages in packages_to_unload, suites_to_unload:
             sorted_packages = sorted_dependencies(package_dependencies, packages)
-            self._remove_packages(sorted_packages, simulate=simulate)
+            self._unload_packages(sorted_packages, simulate=simulate)
 
-    def _remove_packages(self, packages, simulate=False):
+    def _unload_packages(self, packages, simulate=False):
         if simulate:
             header = '[dry-run] '
         else:
             header = ''
         for package in packages:
-            LOGGER.info("{0}removing package {1}...".format(header, package))
+            LOGGER.info("{0}unloading package {1}...".format(header, package))
             if simulate:
                 continue
             package.revert(self)
@@ -735,16 +735,16 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
 
     def clear(self, sticky=False, simulate=False):
         self.check_read_only()
-        packages_to_remove = reversed(list(self._loaded_packages.values()))
+        packages_to_unload = reversed(list(self._loaded_packages.values()))
         if not sticky:
             lst = []
-            for package in packages_to_remove:
+            for package in packages_to_unload:
                 if package.full_label in self._sticky_packages:
-                    LOGGER.info("sticky package {0} will not be removed".format(package))
+                    LOGGER.info("sticky package {0} will not be unloaded".format(package))
                     continue
                 lst.append(package)
-            packages_to_remove = lst
-        self._remove_packages(packages_to_remove, simulate=simulate)
+            packages_to_unload = lst
+        self._unload_packages(packages_to_unload, simulate=simulate)
             
     @property
     def environment(self):

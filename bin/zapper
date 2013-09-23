@@ -661,7 +661,7 @@ Change the current session""",
             help="package label")
         parser_package_show_package.set_defaults(function=manager.show_package)
     
-        parser_package_add = subparsers.add_parser("add",
+        parser_package_load = subparsers.add_parser("load",
             parents=[common_parser],
             formatter_class=Formatter,
             help="add packages to current session",
@@ -670,9 +670,9 @@ Change the current session""",
   > 0: missing requirements are searched in available packages
   > 1: missing requirements are searched in defined packages
 """)
-        parser_package_add.set_defaults(function=manager.add_packages)
+        parser_package_load.set_defaults(function=manager.load_package_labels)
     
-        parser_package_remove = subparsers.add_parser("remove",
+        parser_package_unload = subparsers.add_parser("unload",
             aliases=[],
             parents=[common_parser],
             formatter_class=Formatter,
@@ -682,15 +682,15 @@ Change the current session""",
   > 0: packages with unsatisfied requirements after removal will be
        automatically removed
 """)
-        parser_package_remove.set_defaults(function=manager.remove_packages)
+        parser_package_unload.set_defaults(function=manager.unload_package_labels)
 
         parser_package_clear = subparsers.add_parser("clear",
             parents=[common_parser],
             formatter_class=Formatter,
-            help="remove all loaded packages from current session")
+            help="unload all loaded packages from current session")
         parser_package_clear.set_defaults(function=manager.clear_packages)
 
-        for key, subparser in ('add', parser_package_add), ('remove', parser_package_remove):
+        for key, subparser in ('load', parser_package_load), ('unload', parser_package_unload):
             subparser.add_argument("package_labels",
                 type=str,
                 nargs='+',
@@ -707,7 +707,7 @@ Change the current session""",
                 default=manager.get_config_key('subpackages'),
                 help="automatically {0} all suite's packages".format(key))
          
-        for subparser_name, subparser in ('add', parser_package_add), ('remove', parser_package_remove), ('clear', parser_package_clear):
+        for subparser_name, subparser in ('load', parser_package_load), ('unload', parser_package_unload), ('clear', parser_package_clear):
             subparser.add_argument("--simulate",
                 dest="simulate",
                 action="store_true",
@@ -720,10 +720,10 @@ Change the current session""",
                 default=False,
                 help="{0} sticky packages".format(subparser_name))
 
-        for parser in (parser_package_add, parser_package_show_package):
+        for parser in (parser_package_load, parser_package_show_package):
             parser.set_defaults(complete_function=manager.complete_available_packages, complete_add_arguments=['dummy'])
 
-        for parser in (parser_package_remove, ):
+        for parser in (parser_package_unload, ):
             parser.set_defaults(complete_function=manager.complete_loaded_packages, complete_add_arguments=['dummy'])
 
     ### other subparsers
