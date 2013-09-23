@@ -25,4 +25,4 @@ from .product import Product
 
 class ProductSuite(Product):
     def __new__(cls, name, *, short_description=None, long_description=None):
-        return super().__new__(cls, name, 'suite', short_description=short_description, long_description=long_description)
+        return super().__new__(cls, name, category='', short_description=short_description, long_description=long_description)

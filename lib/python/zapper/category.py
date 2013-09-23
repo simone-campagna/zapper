@@ -18,7 +18,7 @@
 __author__ = 'Simone Campagna'
 
 class Category(str):
-    __categories__ = ['suite']
+    __categories__ = ['']
     def __new__(cls, value):
         if not value in cls.__categories__:
             raise KeyError("invalid category {0!r}".format(value))
