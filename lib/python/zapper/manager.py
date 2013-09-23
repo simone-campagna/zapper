@@ -989,8 +989,8 @@ class Manager(object):
     def show_defined_packages(self):
         self.session.show_defined_packages()
 
-    def show_available_packages(self):
-        self.session.show_available_packages()
+    def show_available_packages(self, package_labels):
+        self.session.show_available_packages(package_labels)
 
     def show_loaded_packages(self):
         self.session.show_loaded_packages()

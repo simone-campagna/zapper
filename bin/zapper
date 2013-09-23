@@ -638,6 +638,11 @@ Change the current session""",
             parents=[common_parser, package_format_parser],
             formatter_class=Formatter,
             help="list available packages")
+
+        parser_package_show_available_packages.add_argument("package_labels",
+            default=[],
+            nargs='*',
+            help='package labels')
         parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)
 
         parser_package_show_loaded_packages = subparsers.add_parser("list",

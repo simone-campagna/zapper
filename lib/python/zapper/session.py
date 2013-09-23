@@ -336,7 +336,7 @@ class Session(object):
         cls.create_session_config(manager, session_root, session_name, session_type)
         return cls(session_root)
         
-    def get_package(self, package_label, package_list):
+    def get_packages(self, package_label, package_list):
         l = package_label.split('/', 1)
         package_name = l[0]
         if Package.SUITE_SEPARATOR in package_name:
@@ -353,6 +353,10 @@ class Session(object):
             if getattr(package, name_attr) == package_name and match_operator(package.version):
                 packages.append(package)
         LOGGER.debug("get_package({0!r}) : packages={1}".format(package_label, [str(p) for p in packages]))
+        return packages
+
+    def get_package(self, package_label, package_list):
+        packages = self.get_packages(package_label, package_list)
         if packages:
              package = self._choose_package(packages)
         else:
@@ -865,8 +869,16 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of removed packages"""
     def show_defined_packages(self, *, show_title=False):
         self.show_packages("Defined packages", self.defined_packages(), self.get_available_package_format(), show_title=show_title)
 
-    def show_available_packages(self, *, show_title=False):
-        self.show_packages("Available packages", self.available_packages(), self.get_available_package_format(), show_title=show_title)
+    def show_available_packages(self, package_labels, *, show_title=False):
+        if package_labels:
+            packages = []
+            for package_label in package_labels:
+                for package in self.get_packages(package_label, self.available_packages()):
+                    if not package in packages:
+                        packages.append(package)
+        else:
+            packages = self.available_packages()
+        self.show_packages("Available packages", packages, self.get_available_package_format(), show_title=show_title)
 
     def show_loaded_packages(self, *, show_title=False):
         self.show_packages("Loaded packages", self.loaded_packages(), self.get_loaded_package_format(), show_title=show_title)
