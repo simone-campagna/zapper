@@ -18,17 +18,27 @@
 __author__ = 'Simone Campagna'
 
 import abc
+import collections
 
 class MetaVersionOperator(abc.ABCMeta):
     __operators__ = {}
+    __sorted_operators__ = None
     def __new__(mcls, class_name, class_bases, class_dict):
         cls = super().__new__(mcls, class_name, class_bases, class_dict)
         symbol = cls.__symbol__
         if symbol is not None:
             assert not symbol in mcls.__operators__
             mcls.__operators__[symbol] = cls
+        cls.__sorted_operators__ = None
         return cls
 
+    @classmethod
+    def get_sorted_operators(mcls):
+        if mcls.__sorted_operators__ is None:
+            mcls.__sorted_operators__ = collections.OrderedDict()
+            for key in sorted(mcls.__operators__.keys(), key=lambda x: len(x), reverse=True):
+                mcls.__sorted_operators__[key] = mcls.__operators__[key]
+        return mcls.__sorted_operators__
         
 class VersionOperator(metaclass=MetaVersionOperator):
     __symbol__ = None
@@ -81,7 +91,7 @@ def get_version_operator(version):
     if version is None:
         operator_class = TrueOperatorVersion
     else:
-        for symbol, operator_class in VersionOperator.__operators__.items():
+        for symbol, operator_class in VersionOperator.get_sorted_operators().items():
             if version.startswith(symbol):
                 version = version[len(symbol):]
                 break

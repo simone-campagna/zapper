@@ -101,7 +101,7 @@ class subst_command(Command):
                 if not filecmp.cmp(infile, outfile):
                     overwrite = False
                     while True:
-                        answer = input("Overwrite existing file {}? [yes/no/diff] ".format(outfile))
+                        answer = input("=" * 70  + "\nOverwrite existing file {}? [yes/no/diff] ".format(outfile))
                         if answer == 'yes': 
                             overwrite = True
                             break
