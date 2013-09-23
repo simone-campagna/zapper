@@ -29,10 +29,10 @@ class SessionInternalError(SessionError):
 class SessionCreationError(SessionError):
     pass
 
-class AddPackageError(SessionError):
+class LoadPackageError(SessionError):
     pass
 
-class RemovePackageError(SessionError):
+class UnloadPackageError(SessionError):
     pass
 
 class SessionConfigError(SessionError):

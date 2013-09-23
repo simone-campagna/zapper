@@ -587,7 +587,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 if unmatched_requirements:
                     for pkg, expression in unmatched_requirements:
                         LOGGER.error("{0}: unmatched requirement {1}".format(pkg, expression))
-                    raise AddPackageError("cannot load package {0}: {1}".format(
+                    raise LoadPackageError("cannot load package {0}: {1}".format(
                         package,
                         plural_string('unmatched requirements', len(unmatched_requirements))))
                 for pkg0, expression, pkg_lst in matched_requirements:
@@ -597,7 +597,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 if conflicts:
                     for pkg0, expression, pkg1 in conflicts:
                         LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
-                    raise AddPackageError("cannot load package {0}: {1}".format(
+                    raise LoadPackageError("cannot load package {0}: {1}".format(
                         package,
                         plural_string('conflict', len(conflicts))))
 
@@ -666,7 +666,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 continue
             package = self.get_available_package(package_label)
             if package is None:
-                raise AddPackageError("no such package: {0}".format(package_label))
+                raise LoadPackageError("no such package: {0}".format(package_label))
             packages.append(package)
 
         if subpackages:
@@ -694,7 +694,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                         else:
                             for pkg0, expression in unmatched_requirements:
                                 LOGGER.error("after unload of {0}: {1}: unmatched requirement {2}".format(package, pkg0, expression))
-                            raise RemovePackageError("cannot unload package {0}: would leave {1}".format(
+                            raise UnloadPackageError("cannot unload package {0}: would leave {1}".format(
                                 package,
                                 plural_string('unmatched requirement', len(unmatched_requirements))))
             packages_to_unload.update(packages)
