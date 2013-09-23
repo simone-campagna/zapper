@@ -196,7 +196,8 @@ class Manager(object):
 
         self.load_user_config()
         if not self.host_config['config']['directories']:
-            self.host_config['config']['directories'] = list_to_string([self.host_package_dir, self.user_package_dir])
+            dirs = filter(lambda x: x is not None, [self.host_package_dir, self.user_package_dir])
+            self.host_config['config']['directories'] = list_to_string(dirs)
 
         self.package_options = {}
         self.package_options_from = {}
