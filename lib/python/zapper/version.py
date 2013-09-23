@@ -24,16 +24,18 @@ import re
 
 class Version(str):
     RE_SPLIT = re.compile(r"[\.\-_]")
+    RE_INTEGER = re.compile(r"^[1-9]\d*")
     def __new__(cls, version):
         if ':' in version:
             raise ValueError("invalid version {0}: cannot contain ':'".format(version))
         instance = super().__new__(cls, version)
         instance._tokens = []
         for token in cls.RE_SPLIT.split(instance):
-            try:
-                token = int(token)
-            except ValueError:
-                pass
+            if cls.RE_INTEGER.match(token):
+                try:
+                    token = int(token)
+                except ValueError:
+                    pass
             instance._tokens.append(token)
         return instance
         
