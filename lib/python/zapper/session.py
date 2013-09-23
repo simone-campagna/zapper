@@ -693,7 +693,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                                     automatically_unloaded_packages.append(pkg)
                         else:
                             for pkg0, expression in unmatched_requirements:
-                                LOGGER.error("after removal of {0}: {1}: unmatched requirement {2}".format(package, pkg0, expression))
+                                LOGGER.error("after unload of {0}: {1}: unmatched requirement {2}".format(package, pkg0, expression))
                             raise RemovePackageError("cannot unload package {0}: would leave {1}".format(
                                 package,
                                 plural_string('unmatched requirement', len(unmatched_requirements))))
