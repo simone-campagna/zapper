@@ -623,116 +623,100 @@ Change the current session""",
             complete_function=manager.complete_session_config_keys)
 
     ### Package subparser
-    parser_package = top_level_subparsers.add_parser("package",
+    parser_package_show_available_packages = top_level_subparsers.add_parser("avail",
+        aliases=[],
+        parents=[common_parser, package_format_parser],
+        formatter_class=Formatter,
+        help="list available packages")
+
+    parser_package_show_available_packages.add_argument("package_labels",
+        default=[],
+        nargs='*',
+        help='package labels')
+    parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)
+
+    parser_package_show_loaded_packages = top_level_subparsers.add_parser("list",
+        aliases=[],
+        parents=[common_parser, package_format_parser],
+        formatter_class=Formatter,
+        help="list loaded packages")
+    parser_package_show_loaded_packages.set_defaults(function=manager.show_loaded_packages)
+
+    parser_package_show_package = top_level_subparsers.add_parser("show",
         aliases=[],
         parents=[common_parser],
         formatter_class=Formatter,
-        help="package management")
+        help="show package content")
+    parser_package_show_package.add_argument("package_label",
+        help="package label")
+    parser_package_show_package.set_defaults(function=manager.show_package)
 
-    package_subparsers = parser_package.add_subparsers(
-        description="Package subcommand.")
-
-    for subparsers in top_level_subparsers, package_subparsers:
-        parser_package_show_available_packages = subparsers.add_parser("avail",
-            aliases=[],
-            parents=[common_parser, package_format_parser],
-            formatter_class=Formatter,
-            help="list available packages")
-
-        parser_package_show_available_packages.add_argument("package_labels",
-            default=[],
-            nargs='*',
-            help='package labels')
-        parser_package_show_available_packages.set_defaults(function=manager.show_available_packages)
-
-        parser_package_show_loaded_packages = subparsers.add_parser("list",
-            aliases=[],
-            parents=[common_parser, package_format_parser],
-            formatter_class=Formatter,
-            help="list loaded packages")
-        parser_package_show_loaded_packages.set_defaults(function=manager.show_loaded_packages)
-
-        parser_package_show_package = subparsers.add_parser("show",
-            aliases=[],
-            parents=[common_parser],
-            formatter_class=Formatter,
-            help="show package content")
-        parser_package_show_package.add_argument("package_label",
-            help="package label")
-        parser_package_show_package.set_defaults(function=manager.show_package)
-    
-        parser_package_load = subparsers.add_parser("load",
-            parents=[common_parser],
-            formatter_class=Formatter,
-            help="add packages to current session",
-            epilog="""\
+    parser_package_load = top_level_subparsers.add_parser("load",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="add packages to current session",
+        epilog="""\
 [Resolution aggressivity level]:
   > 0: missing requirements are searched in available packages
   > 1: missing requirements are searched in defined packages
 """)
-        parser_package_load.set_defaults(function=manager.load_package_labels)
-    
-        parser_package_unload = subparsers.add_parser("unload",
-            aliases=[],
-            parents=[common_parser],
-            formatter_class=Formatter,
-            help="remove packages from current session",
-            epilog="""\
+    parser_package_load.set_defaults(function=manager.load_package_labels)
+
+    parser_package_unload = top_level_subparsers.add_parser("unload",
+        aliases=[],
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="remove packages from current session",
+        epilog="""\
 [Resolution aggressivity level]:
   > 0: packages with unsatisfied requirements after removal will be
        automatically removed
 """)
-        parser_package_unload.set_defaults(function=manager.unload_package_labels)
+    parser_package_unload.set_defaults(function=manager.unload_package_labels)
 
-        parser_package_clear = subparsers.add_parser("clear",
-            parents=[common_parser],
-            formatter_class=Formatter,
-            help="unload all loaded packages from current session")
-        parser_package_clear.set_defaults(function=manager.clear_packages)
+    parser_package_clear = top_level_subparsers.add_parser("clear",
+        parents=[common_parser],
+        formatter_class=Formatter,
+        help="unload all loaded packages from current session")
+    parser_package_clear.set_defaults(function=manager.clear_packages)
 
-        for key, subparser in ('load', parser_package_load), ('unload', parser_package_unload):
-            subparser.add_argument("package_labels",
-                type=str,
-                nargs='+',
-                default=None,
-                help="package name")
-            subparser.add_argument("--resolve", "-r",
-                dest="resolution_level",
-                action="count",
-                default=manager.get_config_key('resolution_level'),
-                help="automatically resolve missing requirements (repeat to increase aggressivity level)")
-            subparser.add_argument("--subpackages", "-s",
-                dest="subpackages",
-                action="store_true",
-                default=manager.get_config_key('subpackages'),
-                help="automatically {0} all suite's packages".format(key))
-         
-        for subparser_name, subparser in ('load', parser_package_load), ('unload', parser_package_unload), ('clear', parser_package_clear):
-            subparser.add_argument("--simulate",
-                dest="simulate",
-                action="store_true",
-                default=False,
-                help="show only changes")
+    for key, subparser in ('load', parser_package_load), ('unload', parser_package_unload):
+        subparser.add_argument("package_labels",
+            type=str,
+            nargs='+',
+            default=None,
+            help="package name")
+        subparser.add_argument("--resolve", "-r",
+            dest="resolution_level",
+            action="count",
+            default=manager.get_config_key('resolution_level'),
+            help="automatically resolve missing requirements (repeat to increase aggressivity level)")
+        subparser.add_argument("--subpackages", "-s",
+            dest="subpackages",
+            action="store_true",
+            default=manager.get_config_key('subpackages'),
+            help="automatically {0} all suite's packages".format(key))
+     
+    for subparser_name, subparser in ('load', parser_package_load), ('unload', parser_package_unload), ('clear', parser_package_clear):
+        subparser.add_argument("--simulate",
+            dest="simulate",
+            action="store_true",
+            default=False,
+            help="show only changes")
 
-            subparser.add_argument("--sticky", "-S",
-                dest="sticky",
-                action="store_true",
-                default=False,
-                help="{0} sticky packages".format(subparser_name))
+        subparser.add_argument("--sticky", "-S",
+            dest="sticky",
+            action="store_true",
+            default=False,
+            help="{0} sticky packages".format(subparser_name))
 
-        for parser in (parser_package_load, parser_package_show_package):
-            parser.set_defaults(complete_function=manager.complete_available_packages, complete_add_arguments=['dummy'])
+    for parser in (parser_package_load, parser_package_show_package):
+        parser.set_defaults(complete_function=manager.complete_available_packages, complete_add_arguments=['dummy'])
 
-        for parser in (parser_package_unload, ):
-            parser.set_defaults(complete_function=manager.complete_loaded_packages, complete_add_arguments=['dummy'])
+    for parser in (parser_package_unload, ):
+        parser.set_defaults(complete_function=manager.complete_loaded_packages, complete_add_arguments=['dummy'])
 
-    ### other subparsers
-#    parser_init = top_level_subparsers.add_parser("init",
-#        aliases=[],
-#        parents=[common_parser],
-#        help="init modules to current session")
-#    parser_init.set_defaults(function=manager.init)
-
+### No more parsers!
 
     try:
         autocomplete_monkey_patch(top_level_parser)
