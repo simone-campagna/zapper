@@ -50,10 +50,8 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    LOADED_PACKAGE_FORMAT_FULL =     "{__ordinal__:>3d}) {abbreviated_kind}{is_sticky} {category} {full_package} {tags}"
-    LOADED_PACKAGE_FORMAT_SHORT =    "{__ordinal__:>3d}) {abbreviated_kind}{is_sticky} {category} {full_suite} {package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_FULL =  "{__ordinal__:>3d}) {abbreviated_kind}{is_loaded}{is_conflicting} {category} {full_package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT_SHORT = "{__ordinal__:>3d}) {abbreviated_kind}{is_loaded}{is_conflicting} {category} {full_suite} {package} {tags}"
+    LOADED_PACKAGE_FORMAT =     "{__ordinal__:>3d}) {is_sticky} {category} {full_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT =  "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
     PACKAGE_HEADER_DICT = collections.OrderedDict((
         ('__ordinal__',      '#'),
         ('category',         'CATEGORY'),
@@ -93,7 +91,6 @@ class Session(object):
         self._sticky_packages = set()
         self._modules = {}
         self._dry_run = False
-        self._show_full_label = False
         self._package_format = None
         self._available_package_format = None
         self._loaded_package_format = None
@@ -123,21 +120,12 @@ class Session(object):
         assert isinstance(version_defaults, collections.Mapping)
         self._version_defaults = version_defaults.copy()
 
-    def set_show_full_label(self, value):
-        self._show_full_label = value
-
-    def get_show_full_label(self):
-        return self._show_full_label
-
-    show_full_label = property(get_show_full_label, set_show_full_label)
-
     def set_package_formats(self, *, available=None, loaded=None, generic=None):
         self._available_package_format = available
         self._loaded_package_format = loaded
 
-    def set_package_formatting(self, package_format, show_full_label):
+    def set_package_formatting(self, package_format):
         self._package_format = package_format
-        self._show_full_label = show_full_label
 
     def set_package_dir_format(self, package_dir_format):
         self._package_dir_format = package_dir_format
@@ -803,20 +791,16 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             return self._package_format
         elif self._available_package_format:
             return self._available_package_format
-        elif self._show_full_label:
-            return self.AVAILABLE_PACKAGE_FORMAT_FULL
         else:
-            return self.AVAILABLE_PACKAGE_FORMAT_SHORT
+            return self.AVAILABLE_PACKAGE_FORMAT
 
     def get_loaded_package_format(self):
         if self._package_format:
             return self._package_format
         elif self._loaded_package_format:
             return self._loaded_package_format
-        elif self._show_full_label:
-            return self.LOADED_PACKAGE_FORMAT_FULL
         else:
-            return self.LOADED_PACKAGE_FORMAT_SHORT
+            return self.LOADED_PACKAGE_FORMAT
 
     def set_package_sort_keys(self, sort_keys):
         if sort_keys is None:

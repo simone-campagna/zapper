@@ -154,11 +154,6 @@ def create_top_level_parser(manager):
         default=False,
         help="do not apply changes")
 
-    common_parser.add_argument("--full-label", "-f",
-        action="store_true",
-        default=manager.get_config_key('full_label'),
-        help="show full package labels")
-
     common_parser.add_argument("--show-header",
         dest='show_header',
         action="store_true",
@@ -762,7 +757,6 @@ def zapper_main():
     manager.set_dry_run(args.dry_run)
     manager.set_show_header(args.show_header)
     manager.set_show_translation(args.show_translation)
-    manager.set_show_full_label(args.full_label)
     manager.set_package_format(args.package_format)
     manager.set_package_dir_format(args.package_dir_format)
     manager.set_session_format(args.session_format)

@@ -81,6 +81,7 @@ class Manager(object):
         ('root',        'ROOT'),
         ('description', 'DESCRIPTION'),
     ))
+    DEFAULT_SESSION_SORT_KEYS = SortKeys('', SESSION_HEADER_DICT, 'session')
     DEFAULT_CONFIG = collections.OrderedDict((
         ('quiet', False),
         ('verbose', False),
@@ -89,13 +90,13 @@ class Manager(object):
         ('subpackages', False),
         ('full_label', False),
         ('directories', ''),
-        ('available_package_format', None),
-        ('loaded_package_format', None),
-        ('available_session_format', None),
-        ('package_dir_format', None),
-        ('package_sort_keys', None),
-        ('package_dir_sort_keys', None),
-        ('session_sort_keys', None),
+        ('available_package_format', Session.AVAILABLE_PACKAGE_FORMAT),
+        ('loaded_package_format', Session.LOADED_PACKAGE_FORMAT),
+        ('available_session_format', DEFAULT_SESSION_FORMAT),
+        ('package_dir_format', Session.PACKAGE_DIR_FORMAT),
+        ('package_sort_keys', Session.DEFAULT_PACKAGE_SORT_KEYS),
+        ('package_dir_sort_keys', Session.DEFAULT_PACKAGE_DIR_SORT_KEYS),
+        ('session_sort_keys', DEFAULT_SESSION_SORT_KEYS),
         ('resolution_level', 0),
         ('filter_packages', None),
         ('show_header', True),
@@ -144,7 +145,6 @@ class Manager(object):
         DEFAULT_LABEL:  DEFAULT_CONFIG,
         CURRENT_LABEL:  DEFAULT_CONFIG,
     }
-    DEFAULT_SESSION_SORT_KEYS = SortKeys('', SESSION_HEADER_DICT, 'session')
     SESSION_NAME_INVALID_CHARS = ':/<>'
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
@@ -179,7 +179,6 @@ class Manager(object):
 
         self._dry_run = False
 
-        self._show_full_label = False
         self._available_package_format = None
         self._loaded_package_format = None
         self._available_session_format = None
@@ -283,9 +282,6 @@ class Manager(object):
 
     def is_admin(self):
         return self.user == self.admin_user
-
-    def set_show_full_label(self, value):
-        self._show_full_label = value
 
     def set_package_format(self, value):
         self._package_format = Session.PackageFormat(value)
@@ -1039,7 +1035,7 @@ class Manager(object):
             loaded=self.get_config_key('loaded_package_format'))
 
         package_format = self._package_format
-        self.session.set_package_formatting(self._package_format, self._show_full_label)
+        self.session.set_package_formatting(self._package_format)
 
         package_dir_format = self._package_dir_format
         if package_dir_format is None:

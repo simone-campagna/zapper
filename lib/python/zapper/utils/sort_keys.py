@@ -38,6 +38,9 @@ class SortKeys(object):
         for sign, key in reversed(self.keys):
             list_of_dicts.sort(key=lambda x: x.get(key, ''), reverse=self.REVERSE[sign])
 
+    def __repr__(self):
+        return "{}({})".format(self.__class__.__name__, str(self))
+
     def __str__(self):
         keys = []
         for sign, key in self.keys:
@@ -45,4 +48,4 @@ class SortKeys(object):
                 keys.append('-{}'.format(key))
             else:
                 keys.append(key)
-        return "{}({})".format(self.__class__.__name__, ":".join(keys))
+        return ":".join(keys)
