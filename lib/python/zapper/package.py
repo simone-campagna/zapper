@@ -80,31 +80,20 @@ class Package(ListRegister, Transition):
              suffix = '/' + self._version
         else:
              suffix = ''
+        self._label = self._name + suffix
         if self._suite is self:
              self._full_name = self._name
+             self._labels = ()
         else:
              self._full_name = "{0}{1}{2}".format(self._suite._full_label, self.SUITE_SEPARATOR, self._name)
+             self._labels = self._suite._labels + (self._label, )
         self._full_label = self._full_name + suffix
-        self._label = self._name + suffix
-#        if self._suite is self:
-#            self._label = ""
-#            self._full_label = ""
-#            self._full_name = ""
-#        else:
-#            suite_label = self._suite._full_label
-#            if suite_label:
-#                self._full_name = "{0}::{1}".format(suite_label, self._name)
-#            else:
-#                self._full_name = self._name
-#            if self._version:
-#                self._label = "{0}/{1}".format(self._name, self._version)
-#                self._full_label = "{0}/{1}".format(self._full_name, self._label)
-#            else:
-#                self._label = self._name
-#                self._full_label = self._full_name
         self.register()
         if product_conflict:
             self.conflicts(NAME == self._name)
+
+    def labels(self):
+        return self._labels
 
     def kind(self):
         return "package"
