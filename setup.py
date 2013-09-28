@@ -174,6 +174,7 @@ setup(
         (shell_setup_subdir, shell_setup_files),
         ('etc/zapper/packages', []),
         ('shared/zapper/examples/wiki/packages', glob.glob('examples/wiki/packages/*.py')),
+        ('shared/zapper/examples/wiki2/packages', glob.glob('examples/wiki2/packages/*.py')),
     ],
     cmdclass = {
         'install_data': subst_install_data,

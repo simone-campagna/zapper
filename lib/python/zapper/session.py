@@ -348,7 +348,7 @@ class Session(object):
         if labels: 
             for sub_package in sub_packages:
                 if isinstance(sub_package, Suite):
-                    result = self._get_suite_packages(sub_package, labels)
+                    result = self._get_suite_packages(sub_package, list(labels))
         else:
             result.extend(sub_packages)
         #print("package_label={!r}, result={}".format(package_label, '|'.join(str(p) for p in result)))
