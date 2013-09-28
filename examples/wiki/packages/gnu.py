@@ -7,8 +7,7 @@ ylib = Product('ylib', 'library')
 zlib = Product('zlib', 'library')
 
 for version in '4.1.2', '4.5.2', '4.7.0':
-    version_name = version.replace('.', '_')
-    gnu_version = Suite(version_name, NULL_VERSION, suite=gnu)
+    gnu_version = Suite(version, NULL_VERSION, suite=gnu)
     gnu_version.add_conflicting_tag('gnu-suite')
 
     ylib_1_0 = Package(ylib, '1.0', suite=gnu_version)

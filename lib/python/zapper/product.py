@@ -26,7 +26,7 @@ from .category import Category
 from .registry import UniqueRegister
 
 class Product(UniqueRegister):
-    RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9]*")
+    RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9\.]*")
     def __new__(cls, name, category, *, short_description=None, long_description=None):
         name_registry = cls.registry('name')
         #print("***", cls, repr(name), name in name_registry, name_registry)

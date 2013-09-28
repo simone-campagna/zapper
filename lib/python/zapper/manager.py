@@ -919,13 +919,25 @@ class Manager(object):
                 l.append(session_name)
         print(' '.join(l))
 
+    def _complete_suite(self, suite, base, lst):
+        if not isinstance(suite, Suite):
+            return
+        if base:
+            prefix = base + Package.SUITE_SEPARATOR + suite.label
+        else:
+            prefix = suite.label
+        for package in suite.packages():
+            lst.append(prefix + Package.SUITE_SEPARATOR + package.label)
+            self._complete_suite(package, prefix, lst)
+        
     def _complete_packages(self, packages):
-        l = []
+        lst = []
         for package in packages:
             #sys.stderr.write("package: {!r} ".format(package))
-            l.append(package.label)
-            l.append(package.full_label)
-        print(' '.join(l))
+            lst.append(package.label)
+            lst.append(package.full_label)
+            self._complete_suite(package, '', lst)
+        print(' '.join(lst))
 
     def complete_available_packages(self, *ignore_p_args, **ignore_n_args):
         self._complete_packages(self.session.available_packages())
@@ -933,7 +945,7 @@ class Manager(object):
 
     def complete_loaded_packages(self, *ignore_p_args, **ignore_n_args):
         self._complete_packages(self.session.loaded_packages())
-        print(' '.join(package.name for package in self.session.loaded_packages()))
+        #print(' '.join(package.name for package in self.session.loaded_packages()))
 
     def complete_package_directories(self, *ignore_p_args, **ignore_n_args):
         print(' '.join(self.session.get_package_directories()))

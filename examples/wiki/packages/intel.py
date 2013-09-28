@@ -8,8 +8,7 @@ zlib = Product('zlib', 'library')
 zmodel = Product('zmodel', 'application')
 
 for version in '11.0', '12.1':
-    version_name = version.replace('.', '_')
-    intel_version = Suite(version_name, NULL_VERSION, suite=intel)
+    intel_version = Suite(version, NULL_VERSION, suite=intel)
     intel_version.add_conflicting_tag('intel-suite')
 
     ylib_1_0 = Package(ylib, '1.0', suite=intel_version)
