@@ -80,16 +80,16 @@ class Package(ListRegister, Transition):
         self._tags = set()
         self._suite.add_package(self)
         if self._version:
-             suffix = self.VERSION_SEPARATOR + self._version
+            suffix = self.VERSION_SEPARATOR + self._version
         else:
-             suffix = ''
+            suffix = ''
         self._label = self._name + suffix
         if self._suite is self:
-             self._full_name = self._name
-             self._labels = ()
+            self._full_name = self._name
+            self._labels = ('', )
         else:
-             self._full_name = "{0}{1}{2}".format(self._suite._full_label, self.SUITE_SEPARATOR, self._name)
-             self._labels = self._suite._labels + (self._label, )
+            self._full_name = "{0}{1}{2}".format(self._suite._full_label, self.SUITE_SEPARATOR, self._name)
+            self._labels = self._suite._labels + (self._label, )
         self._full_label = self._full_name + suffix
         self.register()
         if product_conflict:
