@@ -1,6 +1,6 @@
 from zapper.package_file import *
 
-intel = Suite('intel', NULL_VERSION)
+intel = Suite('intel_compiler', NULL_VERSION)
 intel.add_conflicting_tag('compiler-suite')
 
 ylib = Product('ylib', 'library')
@@ -8,7 +8,7 @@ zlib = Product('zlib', 'library')
 zmodel = Product('zmodel', 'application')
 
 for version in '11.0', '12.1':
-    intel_version = Suite(version, NULL_VERSION, suite=intel)
+    intel_version = Suite('intel', version, suite=intel)
     intel_version.add_conflicting_tag('intel-suite')
 
     ylib_1_0 = Package(ylib, '1.0', suite=intel_version)

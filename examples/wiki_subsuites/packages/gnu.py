@@ -1,13 +1,13 @@
 from zapper.package_file import *
 
-gnu = Suite('gnu', NULL_VERSION)
+gnu = Suite('gnu_compiler', NULL_VERSION)
 gnu.add_conflicting_tag('compiler-suite')
 
 ylib = Product('ylib', 'library')
 zlib = Product('zlib', 'library')
 
 for version in '4.1.2', '4.5.2', '4.7.0':
-    gnu_version = Suite(version, NULL_VERSION, suite=gnu)
+    gnu_version = Suite('gnu', version, suite=gnu)
     gnu_version.add_conflicting_tag('gnu-suite')
 
     ylib_1_0 = Package(ylib, '1.0', suite=gnu_version)

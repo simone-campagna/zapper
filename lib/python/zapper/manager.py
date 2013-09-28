@@ -101,6 +101,7 @@ class Manager(object):
         ('resolution_level', 0),
         ('filter_packages', None),
         ('show_header', True),
+        ('show_header_if_empty', False),
         ('show_translation', False),
         ('default_session', DEFAULT_SESSION_LAST),
         ('default_packages', []),
@@ -125,6 +126,7 @@ class Manager(object):
         resolution_level=int,
         filter_packages=_expression,
         show_header=_bool,
+        show_header_if_empty=_bool,
         show_translation=_bool,
         default_session=str,
         default_packages=_list,
@@ -186,6 +188,7 @@ class Manager(object):
         self._package_format = None
         self._package_dir_format = None
         self._show_header = True
+        self._show_header_if_empty = False
         self._show_translation = True
 
         self._package_sort_keys = None
@@ -254,8 +257,9 @@ class Manager(object):
     def set_dry_run(self, dry_run):
         self._dry_run = bool(dry_run)
 
-    def set_show_header(self, show_header):
+    def set_show_header(self, show_header, show_header_if_empty):
         self._show_header = show_header
+        self._show_header_if_empty = show_header_if_empty
 
     def set_show_translation(self, show_translation):
         self._show_translation = show_translation
@@ -355,8 +359,7 @@ class Manager(object):
             package_option_from_dict = {}
             self._update_package_option(option, label, package_option, package_option_dict, package_option_from_dict)
             package_option = package_option_dict
-        #print(self._show_header)
-        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header)
+        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header, show_header_if_empty=show_header_if_empty)
         t.set_column_title(from_label='FROM_CONFIG', key=option.upper())
         if package_option_from is None:
             package_option_from = {}
@@ -554,7 +557,7 @@ class Manager(object):
             config_from_dict = {}
             self._update_config(label, config, config_dict, config_from_dict)
             config = config_dict
-        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header)
+        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header, show_header_if_empty=self._show_header_if_empty)
         t.set_column_title(from_label='FROM_CONFIG')
 
         for key in keys:
@@ -1002,7 +1005,7 @@ class Manager(object):
         
         sort_keys.sort(rows)
 
-        t = Table(session_format, show_header=self._show_header)
+        t = Table(session_format, show_header=self._show_header, show_header_if_empty=self._show_header_if_empty)
         for row_d in rows:
             t.add_row(**row_d)
         t.set_column_title(**self.SESSION_HEADER_DICT)
@@ -1070,7 +1073,7 @@ class Manager(object):
         self.session.set_package_sort_keys(self._package_sort_keys)
         self.session.set_package_dir_sort_keys(self._package_dir_sort_keys)
 
-        self.session.set_show_header(self._show_header)
+        self.session.set_show_header(self._show_header, self._show_header_if_empty)
 
         filter_packages = self.config['filter_packages']
         if isinstance(filter_packages, Expression):

@@ -51,7 +51,7 @@ class Suite(Package):
         super().show_content()
         show_table("Packages", self.packages())
 
-    def kind(self):
+    def package_type(self):
         return "suite"
 
 class _RootSuite(Suite):

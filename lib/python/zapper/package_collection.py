@@ -45,7 +45,10 @@ class PackageCollection(collections.OrderedDict):
         package_full_label = package.full_label
         if package_full_label in self and self[package_full_label] is not package:
             #raise SessionError("package {0} hides {1}".format(package.full_label, self[package_full_label].full_label))
-            LOGGER.warning("package {0} hides {1}".format(package.full_label, self[package_full_label].full_label))
+            LOGGER.warning("package {} from {}/{} hides {} from {}/{}".format(
+                package.full_label, package.package_dir, package.package_file, 
+                self[package_full_label].full_label, self[package_full_label].package_dir, self[package_full_label].package_file))
+            assert False
         self[package_full_label] = package
 
     def remove_package(self, package):

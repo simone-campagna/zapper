@@ -50,16 +50,16 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    LOADED_PACKAGE_FORMAT =     "{__ordinal__:>3d}) {is_sticky} {category} {full_package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT =  "{__ordinal__:>3d}) {is_loaded}{is_conflicting} {category} {full_package} {tags}"
+    LOADED_PACKAGE_FORMAT =     "{__ordinal__:>3d}) {abbreviated_type}{is_sticky} {category} {full_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT =  "{__ordinal__:>3d}) {abbreviated_type}{is_loaded}{is_conflicting} {category} {full_package} {tags}"
     PACKAGE_HEADER_DICT = collections.OrderedDict((
         ('__ordinal__',      '#'),
         ('category',         'CATEGORY'),
-        ('abbreviated_kind', 'K'),
+        ('abbreviated_type', 'T'),
         ('is_sticky',        'S'),
         ('is_loaded',        'L'),
         ('is_conflicting',   'C'),
-        ('kind',             'KIND'),
+        ('type',             'TYPE'),
         ('version',          'VERSION'),
         ('product',          'PRODUCT'),
         ('package',          'PACKAGE'),
@@ -87,6 +87,7 @@ class Session(object):
         self._defined_packages = PackageCollection()
         self._available_packages = PackageCollection()
         self._show_header = True
+        self._show_header_if_empty = True
         self._orig_sticky_packages = set()
         self._sticky_packages = set()
         self._modules = {}
@@ -113,8 +114,9 @@ class Session(object):
         if self.session_read_only:
             raise SessionError("cannot change read-only session {}".format(self.session_name))
 
-    def set_show_header(self, show_header):
+    def set_show_header(self, show_header, show_header_if_empty):
         self._show_header = show_header
+        self._show_header_if_empty = show_header_if_empty
 
     def set_version_defaults(self, version_defaults):
         assert isinstance(version_defaults, collections.Mapping)
@@ -180,6 +182,7 @@ class Session(object):
         return tuple(self._package_directories)
 
     def set_defined_packages(self, *, loaded_package_directories):
+        self._defined_packages.clear()
         for package_dir in self._package_directories:
             if loaded_package_directories and package_dir in loaded_package_directories:
                 continue
@@ -190,7 +193,11 @@ class Session(object):
     def set_available_packages(self):
         self._available_packages.clear()
         for suite in self._loaded_suites.values():
+            if not suite.package_dir in self._package_directories:
+                continue
             for package in suite.packages():
+                if not package.package_dir in self._package_directories:
+                    continue
                 self._available_packages.add_package(package)
 
     @classmethod
@@ -630,7 +637,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 for pkg0, expression, pkg_lst in matched_requirements:
                     package_dependencies[pkg0].add(pkg_lst[-1])
 
-                conflicts = package.match_conflicts(self._loaded_packages.values())
+                conflicts = package.match_conflicts(simulated_loaded_packages)
                 if conflicts:
                     for pkg0, expression, pkg1 in conflicts:
                         LOGGER.error("{0}: expression {1} conflicts with {2}".format(pkg0, expression, pkg1))
@@ -683,6 +690,8 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
     def _add_suite(self, suite):
         self._loaded_suites.add_package(suite)
         for package in suite.packages():
+            if not package.package_dir in self._package_directories:
+                continue
             self._available_packages.add_package(package)
 
     def unload_package_labels(self, package_labels, resolution_level=0, subpackages=False, sticky=False, simulate=False):
@@ -815,11 +824,11 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             return symbol_False
 
     def _package_info(self, package):
-        kind = package.kind()
+        package_type = package.package_type()
         return {
             'category':         package.category,
-            'kind':             kind,
-            'abbreviated_kind': kind[0],
+            'type':             package_type,
+            'abbreviated_type': package_type[0],
             'is_sticky':        self._mark(self.is_sticky(package), 's', ' '),
             'is_loaded':        self._mark(self.is_loaded(package), 'l', ' '),
             'is_conflicting':   self._mark(self.is_conflicting(package), 'c', ' '),
@@ -892,7 +901,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
         if not show_title:
             title = None
 
-        t = Table(package_format, show_header=self._show_header, title=title)
+        t = Table(package_format, show_header=self._show_header, show_header_if_empty=self._show_header_if_empty, title=title)
         t.set_column_title(**self.PACKAGE_HEADER_DICT)
         for package_info in package_infos:
             t.add_row(**package_info)
@@ -941,7 +950,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             title = "Package directories"
         else:
             title = None
-        t = Table(package_dir_format, show_header=self._show_header, title=title)
+        t = Table(package_dir_format, show_header=self._show_header, show_header_if_empty=self._show_header_if_empty, title=title)
         t.set_column_title(**self.PACKAGE_DIR_HEADER_DICT)
         for row_d in rows:
             t.add_row(**row_d)
@@ -976,9 +985,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             dry_run = self._dry_run
         self.translate(translator)
         if not dry_run:
-            #print("-" * 70)
             translator.translate(stream)
-            #print("-" * 70)
         if translation_filename:
             translator.translate_remove_filename(stream, translation_filename)
 

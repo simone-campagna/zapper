@@ -98,7 +98,7 @@ class Package(ListRegister, Transition):
     def labels(self):
         return self._labels
 
-    def kind(self):
+    def package_type(self):
         return "package"
 
     @property

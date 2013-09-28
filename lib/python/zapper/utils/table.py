@@ -70,10 +70,12 @@ class Table(object):
             separator='',
             min_ordinal_length=3,
             max_row_length=70,
-            show_header=True):
+            show_header=True,
+            show_header_if_empty=True):
         self.max_row_length = max_row_length
         self.min_ordinal_length = min_ordinal_length
         self.show_header = show_header
+        self.show_header_if_empty = show_header_if_empty
         self.separator = separator
         self._columns = collections.OrderedDict()
         self._set_format(row_format)
@@ -215,7 +217,7 @@ class Table(object):
         if self._title:
             yield self._title
         table = []
-        if self.show_header:
+        if self.show_header_if_empty or (self.show_header and self._rows):
             table.append(self._make_header())
         for row in self._rows:
             table.append(row)

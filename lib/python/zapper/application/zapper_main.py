@@ -158,13 +158,25 @@ def create_top_level_parser(manager):
         dest='show_header',
         action="store_true",
         default=manager.get_config_key('show_header'),
-        help="show header in tables")
+        help="show header for non-empty tables")
 
     common_parser.add_argument("--hide-header",
         dest='show_header',
         action="store_false",
         default=manager.get_config_key('show_header'),
-        help="do not show header in tables")
+        help="do not show header for non-empty tables")
+
+    common_parser.add_argument("--show-header-if-empty",
+        dest='show_header_if_empty',
+        action="store_true",
+        default=manager.get_config_key('show_header_if_empty'),
+        help="show header for empty tables")
+
+    common_parser.add_argument("--hide-header-if-empty",
+        dest='show_header_if_empty',
+        action="store_false",
+        default=manager.get_config_key('show_header_if_empty'),
+        help="show header for empty tables")
 
     common_parser.add_argument("--show-translation",
         dest='show_translation',
@@ -755,7 +767,7 @@ def zapper_main():
         trace=args.trace,
     )
     manager.set_dry_run(args.dry_run)
-    manager.set_show_header(args.show_header)
+    manager.set_show_header(args.show_header, args.show_header_if_empty)
     manager.set_show_translation(args.show_translation)
     manager.set_package_format(args.package_format)
     manager.set_package_dir_format(args.package_dir_format)
@@ -776,7 +788,7 @@ def zapper_main():
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
     for key in {'function', 'quiet', 'verbose', 'debug', 'trace', 'full_label',
-                'dry_run', 'show_header', 'show_translation',
+                'dry_run', 'show_header', 'show_header_if_empty', 'show_translation',
                 'package_format', 'session_format', 'package_dir_format',
                 'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys',
                 'complete_function', 'complete_add_arguments'}:
