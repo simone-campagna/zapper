@@ -325,7 +325,7 @@ class Session(object):
         return cls(session_root)
         
     def get_packages(self, package_label, package_list):
-        l = package_label.split('/', 1)
+        l = package_label.split(Package.VERSION_SEPARATOR, 1)
         package_name = l[0]
         if Package.SUITE_SEPARATOR in package_name:
             name_attr = 'full_name'

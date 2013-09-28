@@ -18,6 +18,7 @@
 __author__ = 'Simone Campagna'
 
 import os
+import re
 import sys
 import glob
 import shutil
@@ -145,7 +146,7 @@ class Manager(object):
         DEFAULT_LABEL:  DEFAULT_CONFIG,
         CURRENT_LABEL:  DEFAULT_CONFIG,
     }
-    SESSION_NAME_INVALID_CHARS = ':/<>'
+    RE_VALID_SESSION = re.compile("[a-zA-Z_][a-zA-Z_0-9]+")
     def __init__(self):
         user_home_dir = os.path.expanduser('~')
         self.user = getpass.getuser()
@@ -233,9 +234,11 @@ class Manager(object):
 
     @classmethod
     def SessionName(cls, session_name):
-        invalid_chars = set(session_name).intersection(cls.SESSION_NAME_INVALID_CHARS)
-        if invalid_chars:
-            raise SessionError("invalid session name {!r}: invalid chars {!r}".format(session_name, ''.join(invalid_chars)))
+        if not cls.RE_VALID_SESSION.match(session_name):
+            raise ValueError("invalid session name {!r}".format(session_name))
+        #invalid_chars = set(session_name).intersection(cls.SESSION_NAME_INVALID_CHARS)
+        #if invalid_chars:
+        #    raise SessionError("invalid session name {!r}: invalid chars {!r}".format(session_name, ''.join(invalid_chars)))
         return session_name
 
     @classmethod

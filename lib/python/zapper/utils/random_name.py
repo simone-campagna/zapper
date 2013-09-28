@@ -24,7 +24,7 @@ import os
 class RandomNameSequence(object):
     def __init__(self, width=8, characters=None, seed=None):
         if characters is None:
-            characters = "abcdefghijklmnopqrstuvwxyz0123456789_"
+            characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
         self.width = width
         self.characters = characters
         self.random = random.Random(seed)

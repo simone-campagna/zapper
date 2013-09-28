@@ -19,13 +19,14 @@ __author__ = 'Simone Campagna'
 
 __all__ = ['Product']
 
+import re
 import abc
 
 from .category import Category
 from .registry import UniqueRegister
 
 class Product(UniqueRegister):
-    INVALID_CHARACTERS = '.:'
+    RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9]*")
     def __new__(cls, name, category, *, short_description=None, long_description=None):
         name_registry = cls.registry('name')
         #print("***", cls, repr(name), name in name_registry, name_registry)
@@ -37,15 +38,17 @@ class Product(UniqueRegister):
                 if val is not None and getattr(instance, key) != val:
                     raise ValueError("invalid value {} = {!r} for existing product {}".format(key, val, name))
         else:
+            if not cls.RE_VALID_NAME.match(name):
+                raise ValueError("invalid product name {!r}".format(name))
             if short_description is None:
                 short_description = ""
             if long_description is None:
                 long_description = ""
             if not isinstance(name, str):
                 name = str(name)
-            for ch in cls.INVALID_CHARACTERS:
-                if ch in name:
-                    raise ValueError("invalid package name {0}: cannot contain {1!r}".format(name, cls.INVALID_CHARACTERS))
+            #for ch in cls.INVALID_CHARACTERS:
+            #    if ch in name:
+            #        raise ValueError("invalid package name {0}: cannot contain {1!r}".format(name, cls.INVALID_CHARACTERS))
             instance = super().__new__(cls)
             if not isinstance(category, Category):
                 category = Category(category)

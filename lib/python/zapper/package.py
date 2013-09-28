@@ -17,6 +17,7 @@
 
 __author__ = 'Simone Campagna'
 
+import re
 import abc
 import collections
 
@@ -40,7 +41,9 @@ class Package(ListRegister, Transition):
     __package_file__ = None
     __package_module__ = None
     __registry__ = None
-    SUITE_SEPARATOR = '.'
+    SUITE_SEPARATOR = '/'
+    VERSION_SEPARATOR = '-'
+    RE_VALID_NAME = re.compile("[a-zA-Z_]\w*")
     def __init__(self, product, version, *, short_description=None, long_description=None, product_conflict=True, suite=None):
         super().__init__()
         if isinstance(product, str):
@@ -77,7 +80,7 @@ class Package(ListRegister, Transition):
         self._tags = set()
         self._suite.add_package(self)
         if self._version:
-             suffix = '/' + self._version
+             suffix = self.VERSION_SEPARATOR + self._version
         else:
              suffix = ''
         self._label = self._name + suffix
