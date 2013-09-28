@@ -725,7 +725,7 @@ Change the current session""",
             default=False,
             help="{0} sticky packages".format(subparser_name))
 
-    for parser in (parser_package_load, parser_package_show_package):
+    for parser in (parser_package_load, parser_package_show_package, parser_package_show_available_packages):
         parser.set_defaults(complete_function=manager.complete_available_packages, complete_add_arguments=['dummy'])
 
     for parser in (parser_package_unload, ):

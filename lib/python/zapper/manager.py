@@ -919,10 +919,20 @@ class Manager(object):
                 l.append(session_name)
         print(' '.join(l))
 
+    def _complete_packages(self, packages):
+        l = []
+        for package in packages:
+            #sys.stderr.write("package: {!r} ".format(package))
+            l.append(package.label)
+            l.append(package.full_label)
+        print(' '.join(l))
+
     def complete_available_packages(self, *ignore_p_args, **ignore_n_args):
-        print(' '.join(package.name for package in self.session.available_packages()))
+        self._complete_packages(self.session.available_packages())
+        #print(' '.join(package.name for package in self.session.available_packages()))
 
     def complete_loaded_packages(self, *ignore_p_args, **ignore_n_args):
+        self._complete_packages(self.session.loaded_packages())
         print(' '.join(package.name for package in self.session.loaded_packages()))
 
     def complete_package_directories(self, *ignore_p_args, **ignore_n_args):
