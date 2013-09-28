@@ -50,12 +50,12 @@ class Session(object):
     SESSION_TYPE_TEMPORARY = 'temporary'
     SESSION_TYPE_PERSISTENT = 'persistent'
     SESSION_TYPES = [SESSION_TYPE_PERSISTENT, SESSION_TYPE_TEMPORARY]
-    LOADED_PACKAGE_FORMAT =     "{__ordinal__:>3d}) {abbreviated_type}{is_sticky} {category} {full_package} {tags}"
-    AVAILABLE_PACKAGE_FORMAT =  "{__ordinal__:>3d}) {abbreviated_type}{is_loaded}{is_conflicting} {category} {full_package} {tags}"
+    LOADED_PACKAGE_FORMAT =     "{__ordinal__:>3d}) {abbr_type}{is_sticky} {category} {abs_package} {tags}"
+    AVAILABLE_PACKAGE_FORMAT =  "{__ordinal__:>3d}) {abbr_type}{is_loaded}{is_conflicting} {category} {abs_package} {tags}"
     PACKAGE_HEADER_DICT = collections.OrderedDict((
         ('__ordinal__',      '#'),
         ('category',         'CATEGORY'),
-        ('abbreviated_type', 'T'),
+        ('abbr_type',        'T'),
         ('is_sticky',        'S'),
         ('is_loaded',        'L'),
         ('is_conflicting',   'C'),
@@ -63,9 +63,9 @@ class Session(object):
         ('version',          'VERSION'),
         ('product',          'PRODUCT'),
         ('package',          'PACKAGE'),
-        ('full_package',     'PACKAGE'),
+        ('abs_package',      'PACKAGE'),
         ('suite',            'SUITE'),
-        ('full_suite',       'SUITE'),
+        ('abs_suite',        'SUITE'),
         ('tags',             'TAGS'),
         ('package_dir',      'PACKAGE_DIR'),
         ('package_file',     'PACKAGE_FILE'),
@@ -379,26 +379,6 @@ class Session(object):
         LOGGER.debug("get_package({!r}) : packages={}".format(package_label, [str(p) for p in packages]))
         return packages
 
-    def _get_packages_OLD(self, package_label, package_list):
-        l = package_label.split(Package.VERSION_SEPARATOR, 1)
-        package_name = l[0]
-        if Package.SUITE_SEPARATOR in package_name:
-            name_attr = 'full_name'
-        else:
-            name_attr = 'name'
-        if len(l) > 1:
-            package_version = l[1]
-        else:
-            package_version = None
-        match_operator = get_version_operator(package_version)
-        packages = []
-        #print('|'.join(str(package) for package in package_list))
-        for package in package_list:
-            if getattr(package, name_attr) == package_name and match_operator(package.version):
-                packages.append(package)
-        LOGGER.debug("get_package({!r}) : packages={}".format(package_label, [str(p) for p in packages]))
-        return packages
-
     def get_package(self, package_label, package_list):
         packages = self.get_packages(package_label, package_list)
         if packages:
@@ -409,24 +389,24 @@ class Session(object):
 
     def _choose_package(self, packages):
         name_dict = {}
-        full_name_dict = {}
-        full_name_match_level = 0
+        absolute_name_dict = {}
+        absolute_name_match_level = 0
         name_match_level = 1
         no_match_level = 2
         matches = []
         for package in packages:
-            full_name = package.full_name
-            if not full_name in full_name_dict:
-                default_version = self._version_defaults.get(full_name, None)
+            absolute_name = package.absolute_name
+            if not absolute_name in absolute_name_dict:
+                default_version = self._version_defaults.get(absolute_name, None)
                 if default_version is None:
-                    full_name_dict[full_name] = None
+                    absolute_name_dict[absolute_name] = None
                 else:
-                    full_name_dict[full_name] = get_version_operator(default_version)
-            full_name_operator = full_name_dict[full_name]
-            #print("full name {0} operator: {1}".format(full_name, full_name_operator))
-            if full_name_operator is not None and full_name_operator(package.version):
-                LOGGER.debug("found full name matching version {0}".format(package))
-                matches.append((full_name_match_level, package))
+                    absolute_name_dict[absolute_name] = get_version_operator(default_version)
+            absolute_name_operator = absolute_name_dict[absolute_name]
+            #print("absolute name {0} operator: {1}".format(absolute_name, absolute_name_operator))
+            if absolute_name_operator is not None and absolute_name_operator(package.version):
+                LOGGER.debug("found absolute name matching version {0}".format(package))
+                matches.append((absolute_name_match_level, package))
                 continue
             name = package.name
             if not name in name_dict:
@@ -532,7 +512,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                     continue
                     #LOGGER.error("package {0} not found".format(package_label))
                     #raise PackageNotFoundError("package {0} not found".format(package_label))
-                package_label = package.full_label
+                package_label = package.absolute_label
 #                if package_label in self._loaded_packages:
 #                    LOGGER.info("package {0} already loaded".format(package_label))
 #                    continue
@@ -566,7 +546,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
     def _unloaded_packages(self, packages):
         unloaded_packages = []
         for package in packages:
-            package_label = package.full_label
+            package_label = package.absolute_label
             if package_label in self._loaded_packages:
                 LOGGER.info("package {0} already loaded".format(package_label))
                 continue
@@ -584,7 +564,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             loaded_packages = self.load_packages(packages, resolution_level=resolution_level, simulate=simulate, info=info)
             if sticky:
                 all_packages = set(required_packages).union(loaded_packages)
-                self._sticky_packages.update(package.full_label for package in all_packages)
+                self._sticky_packages.update(package.absolute_label for package in all_packages)
         
     def load_packages(self, packages, resolution_level=0, simulate=False, info=True):
         package_dependencies = collections.defaultdict(set)
@@ -596,7 +576,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             simulated_loaded_packages = list(sequences.unique(list(self._loaded_packages.values()) + packages))
             automatically_loaded_packages = []
             for package_index, package in enumerate(packages):
-                package_label = package.full_label
+                package_label = package.absolute_label
                 matched_requirements, unmatched_requirements = package.match_requirements(simulated_loaded_packages)
                 if unmatched_requirements and resolution_level > 0:
                     # search in available_packages:
@@ -677,7 +657,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             if simulate:
                 continue
             package.apply(self)
-            self._loaded_packages[package.full_label] = package
+            self._loaded_packages[package.absolute_label] = package
             if isinstance(package, Suite):
                 self._add_suite(package)
 
@@ -702,7 +682,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             if package is None:
                 LOGGER.error("package {0} not loaded".format(package_label))
                 raise PackageNotFoundError("package {0} not loaded".format(package_label))
-            package_label = package.full_label
+            package_label = package.absolute_label
             if package_label in self._loaded_packages:
                 if sticky:
                     LOGGER.info("package {0} is sticky, it will not be unloaded".format(package_label))
@@ -769,10 +749,10 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             if simulate:
                 continue
             package.revert(self)
-            del self._loaded_packages[package.full_label]
+            del self._loaded_packages[package.absolute_label]
             if isinstance(package, Suite):
                 self._remove_suite(package)
-            self._sticky_packages.discard(package.full_label)
+            self._sticky_packages.discard(package.absolute_label)
             
     def _remove_suite(self, suite):
         self._loaded_suites.remove_package(suite)
@@ -785,7 +765,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
         if not sticky:
             lst = []
             for package in packages_to_unload:
-                if package.full_label in self._sticky_packages:
+                if package.absolute_label in self._sticky_packages:
                     LOGGER.info("sticky package {0} will not be unloaded".format(package))
                     continue
                 lst.append(package)
@@ -806,10 +786,10 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
     
     
     def is_sticky(self, package):
-        return package.full_label in self._sticky_packages
+        return package.absolute_label in self._sticky_packages
 
     def is_loaded(self, package):
-        return package.full_label in self._loaded_packages
+        return package.absolute_label in self._loaded_packages
 
     def is_conflicting(self, package):
         if package.match_conflicts(self._loaded_packages.values()):
@@ -828,16 +808,16 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
         return {
             'category':         package.category,
             'type':             package_type,
-            'abbreviated_type': package_type[0],
+            'abbr_type':        package_type[0],
             'is_sticky':        self._mark(self.is_sticky(package), 's', ' '),
             'is_loaded':        self._mark(self.is_loaded(package), 'l', ' '),
             'is_conflicting':   self._mark(self.is_conflicting(package), 'c', ' '),
             'product':          package.name,
             'version':          package.version,
             'package':          package.label,
-            'full_package':     package.full_label,
+            'abs_package':      package.absolute_label,
             'suite':            package.suite.label,
-            'full_suite':       package.suite.full_label,
+            'abs_suite':        package.suite.absolute_label,
             'tags':             ', '.join(str(tag) for tag in package.tags),
             'package_dir':      package.package_dir,
             'package_file':     package.package_file,
@@ -1003,7 +983,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
         for package in self._loaded_packages.values():
             d = self._normpath(package._package_dir)
             if not d in dirs:
-                orphans.add(package.full_label)
+                orphans.add(package.absolute_label)
         if orphans:
             LOGGER.error("cannot set directories={!r}: will leave {} orphan packages: {}".format(directories, len(orphans), list_to_string(orphans)))
             return False

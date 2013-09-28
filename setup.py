@@ -173,6 +173,7 @@ setup(
         ('etc/zapper', glob.glob('etc/zapper/*.config')),
         (shell_setup_subdir, shell_setup_files),
         ('etc/zapper/packages', []),
+        ('shared/zapper/examples/wiki_example/packages', glob.glob('examples/wiki_example/packages/*.py')),
         ('shared/zapper/examples/wiki_base/packages', glob.glob('examples/wiki_base/packages/*.py')),
         ('shared/zapper/examples/wiki_simple_suite/packages', glob.glob('examples/wiki_simple_suite/packages/*.py')),
         ('shared/zapper/examples/wiki_suites/packages', glob.glob('examples/wiki_suites/packages/*.py')),

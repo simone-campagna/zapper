@@ -89,7 +89,6 @@ class Manager(object):
         ('debug', False),
         ('trace', False),
         ('subpackages', False),
-        ('full_label', False),
         ('directories', ''),
         ('available_package_format', Session.AVAILABLE_PACKAGE_FORMAT),
         ('loaded_package_format', Session.LOADED_PACKAGE_FORMAT),
@@ -114,7 +113,6 @@ class Manager(object):
         debug=_bool,
         trace=_bool,
         subpackages=_bool,
-        full_label=_bool,
         directories=_list,
         available_package_format=Session.PackageFormat,
         loaded_package_format=Session.PackageFormat,
@@ -938,7 +936,7 @@ class Manager(object):
         for package in packages:
             #sys.stderr.write("package: {!r} ".format(package))
             lst.append(package.label)
-            lst.append(package.full_label)
+            lst.append(package.absolute_label)
             self._complete_suite(package, '', lst)
         print(' '.join(lst))
 

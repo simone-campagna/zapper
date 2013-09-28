@@ -85,12 +85,12 @@ class Package(ListRegister, Transition):
             suffix = ''
         self._label = self._name + suffix
         if self._suite is self:
-            self._full_name = self._name
+            self._absolute_name = self._name
             self._labels = ('', )
         else:
-            self._full_name = "{0}{1}{2}".format(self._suite._full_label, self.SUITE_SEPARATOR, self._name)
+            self._absolute_name = "{0}{1}{2}".format(self._suite._absolute_label, self.SUITE_SEPARATOR, self._name)
             self._labels = self._suite._labels + (self._label, )
-        self._full_label = self._full_name + suffix
+        self._absolute_label = self._absolute_name + suffix
         self.register()
         if product_conflict:
             self.conflicts(NAME == self._name)
@@ -118,12 +118,12 @@ class Package(ListRegister, Transition):
         return self._label
 
     @property
-    def full_label(self):
-        return self._full_label
+    def absolute_label(self):
+        return self._absolute_label
 
     @property
-    def full_name(self):
-        return self._full_name
+    def absolute_name(self):
+        return self._absolute_name
 
     @property
     def suite(self):
@@ -202,14 +202,14 @@ class Package(ListRegister, Transition):
 
     def show_content(self):
         show_title("{0} {1}".format(self.__class__.__name__, self._label))
-        PRINT("name       : {0}".format(self._name))
-        PRINT("version    : {0}".format(self._version))
-        PRINT("category   : {0}".format(self._category))
-        PRINT("suite      : {0}".format(self._suite._full_label))
-        PRINT("full label : {0}".format(self._full_label))
-        PRINT("directory  : {0}".format(self._package_dir))
-        PRINT("file       : {0}".format(self._package_file))
-        PRINT("module     : {0}".format(self._package_module))
+        PRINT("name           : {0}".format(self._name))
+        PRINT("version        : {0}".format(self._version))
+        PRINT("category       : {0}".format(self._category))
+        PRINT("suite          : {0}".format(self._suite._absolute_label))
+        PRINT("absolute label : {0}".format(self._absolute_label))
+        PRINT("directory      : {0}".format(self._package_dir))
+        PRINT("file           : {0}".format(self._package_file))
+        PRINT("module         : {0}".format(self._package_module))
         show_table("Transitions", self.get_transitions())
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())
@@ -369,5 +369,5 @@ class Package(ListRegister, Transition):
         return "{0}(name={1!r}, version={2!r}, category={3!r})".format(self.__class__.__name__, self._name, self._version, self._category)
 
     def __str__(self):
-        return self.full_label
+        return self.absolute_label
 

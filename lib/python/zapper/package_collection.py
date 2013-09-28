@@ -25,33 +25,33 @@ from .utils.debug import LOGGER
 class PackageCollection(collections.OrderedDict):
     def __init__(self):
         super().__init__(self)
-        self._changed_package_full_labels = []
+        self._changed_package_absolute_labels = []
 
     def is_changed(self):
-        return bool(self._changed_package_full_labels)
+        return bool(self._changed_package_absolute_labels)
 
-    def __setitem__(self, package_full_label, package):
-        old_package = super().get(package_full_label, None)
+    def __setitem__(self, package_absolute_label, package):
+        old_package = super().get(package_absolute_label, None)
         if old_package != package:
-            self._changed_package_full_labels.append(package_full_label)
-        super().__setitem__(package_full_label, package)
+            self._changed_package_absolute_labels.append(package_absolute_label)
+        super().__setitem__(package_absolute_label, package)
        
-    def __delitem__(self, package_full_label):
-        if package_full_label in self:
-            self._changed_package_full_labels.append(package_full_label)
-            super().__delitem__(package_full_label)
+    def __delitem__(self, package_absolute_label):
+        if package_absolute_label in self:
+            self._changed_package_absolute_labels.append(package_absolute_label)
+            super().__delitem__(package_absolute_label)
 
     def add_package(self, package):
-        package_full_label = package.full_label
-        if package_full_label in self and self[package_full_label] is not package:
-            #raise SessionError("package {0} hides {1}".format(package.full_label, self[package_full_label].full_label))
+        package_absolute_label = package.absolute_label
+        if package_absolute_label in self and self[package_absolute_label] is not package:
+            #raise SessionError("package {0} hides {1}".format(package.absolute_label, self[package_absolute_label].absolute_label))
             LOGGER.warning("package {} from {}/{} hides {} from {}/{}".format(
-                package.full_label, package.package_dir, package.package_file, 
-                self[package_full_label].full_label, self[package_full_label].package_dir, self[package_full_label].package_file))
+                package.absolute_label, package.package_dir, package.package_file, 
+                self[package_absolute_label].absolute_label, self[package_absolute_label].package_dir, self[package_absolute_label].package_file))
             assert False
-        self[package_full_label] = package
+        self[package_absolute_label] = package
 
     def remove_package(self, package):
-        package_full_label = package.full_label
-        del self[package_full_label]
+        package_absolute_label = package.absolute_label
+        del self[package_absolute_label]
 

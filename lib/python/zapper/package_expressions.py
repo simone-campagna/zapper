@@ -24,9 +24,9 @@ from .expression import Expression, AttributeGetter, InstanceGetter, MethodCalle
 
 __all__ = ['Package',
            'NAME',
-           'FULL_NAME',
+           'ABSOLUTE_NAME',
            'LABEL',
-           'FULL_LABEL',
+           'ABSOLUTE_LABEL',
            'VERSION',
            'CATEGORY',
            'PACKAGE',
@@ -34,9 +34,9 @@ __all__ = ['Package',
            'ALL_EXPRESSIONS']
 
 NAME = AttributeGetter('name', 'NAME')
-FULL_NAME = AttributeGetter('full_name', 'FULL_NAME')
+ABSOLUTE_NAME = AttributeGetter('absolute_name', 'ABSOLUTE_NAME')
 LABEL = AttributeGetter('label', 'LABEL')
-FULL_LABEL = AttributeGetter('full_label', 'FULL_LABEL')
+ABSOLUTE_LABEL = AttributeGetter('absolute_label', 'ABSOLUTE_LABEL')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
 PACKAGE = InstanceGetter('PACKAGE')
@@ -46,9 +46,9 @@ def HAS_TAG(tag):
 
 ALL_EXPRESSIONS = {
     'NAME': NAME,
-    'FULL_NAME': FULL_NAME,
+    'ABSOLUTE_NAME': ABSOLUTE_NAME,
     'LABEL': LABEL,
-    'FULL_LABEL': FULL_LABEL,
+    'ABSOLUTE_LABEL': ABSOLUTE_LABEL,
     'VERSION': VERSION,
     'CATEGORY': CATEGORY,
     'PACKAGE': PACKAGE,

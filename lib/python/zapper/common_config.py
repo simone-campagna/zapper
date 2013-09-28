@@ -25,7 +25,6 @@ COMMON_CONFIG = {
     'debug': '',
     'trace': '',
     'subpackages': '',
-    'full_label': '',
     'directories': '',
     'available_package_format': '',
     'available_session_format': '',
