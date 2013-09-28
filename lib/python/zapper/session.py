@@ -325,6 +325,54 @@ class Session(object):
         return cls(session_root)
         
     def get_packages(self, package_label, package_list):
+        labels = package_label.split(Package.SUITE_SEPARATOR)
+        packages = []
+        sub_label = labels.pop(0)
+        sub_packages = self._get_packages_from_label(sub_label, package_list)
+        #print("label={!r}, sub_label={!r}, labels={}, sub_packages={}".format(package_label, sub_label, labels, sub_packages))
+        for sub_package in sub_packages:
+            if labels:
+                if isinstance(sub_package, Suite):
+                    packages.extend(self._get_suite_packages(sub_package, labels))
+            else:
+                packages.append(sub_package)
+        return packages
+
+    def _get_suite_packages(self, suite, labels):
+        assert isinstance(suite, Suite), suite
+        #print("@@@", repr(suite), '|'.join(str(p) for p in suite.packages()), labels)
+        package_label = labels.pop(0)
+        sub_packages = self._get_packages_from_label(package_label, suite.packages())
+        #print("--> package_label={!r} labels={}, sub_packages={}".format(package_label, labels, '|'.join(str(p) for p in sub_packages)))
+        result = []
+        if labels: 
+            for sub_package in sub_packages:
+                if isinstance(sub_package, Suite):
+                    result = self._get_suite_packages(sub_package, labels)
+        else:
+            result.extend(sub_packages)
+        #print("package_label={!r}, result={}".format(package_label, '|'.join(str(p) for p in result)))
+        return result
+
+    def _get_packages_from_label(self, package_label, package_list):
+        if package_label == ROOT.label:
+            return [ROOT]
+        l = package_label.split(Package.VERSION_SEPARATOR, 1)
+        package_name = l[0]
+        if len(l) > 1:
+            package_version = l[1]
+        else:
+            package_version = None
+        #print("### package_label={!r} package_name={!r} package_version={!r}".format(package_label, package_name, package_version))
+        match_operator = get_version_operator(package_version)
+        packages = []
+        for package in package_list:
+            if package.name == package_name and match_operator(package.version):
+                packages.append(package)
+        LOGGER.debug("get_package({!r}) : packages={}".format(package_label, [str(p) for p in packages]))
+        return packages
+
+    def _get_packages_OLD(self, package_label, package_list):
         l = package_label.split(Package.VERSION_SEPARATOR, 1)
         package_name = l[0]
         if Package.SUITE_SEPARATOR in package_name:
@@ -337,10 +385,11 @@ class Session(object):
             package_version = None
         match_operator = get_version_operator(package_version)
         packages = []
+        #print('|'.join(str(package) for package in package_list))
         for package in package_list:
             if getattr(package, name_attr) == package_name and match_operator(package.version):
                 packages.append(package)
-        LOGGER.debug("get_package({0!r}) : packages={1}".format(package_label, [str(p) for p in packages]))
+        LOGGER.debug("get_package({!r}) : packages={}".format(package_label, [str(p) for p in packages]))
         return packages
 
     def get_package(self, package_label, package_list):
