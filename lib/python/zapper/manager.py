@@ -209,7 +209,7 @@ class Manager(object):
 
         self.persistent_sessions_dir = self.get_config_key('persistent_sessions_dir')
         self.temporary_sessions_dir = self.get_config_key('temporary_sessions_dir')
-        print("persistent_sessions_dir={!r}, temporary_sessions_dir={!r}".format(self.persistent_sessions_dir, self.temporary_sessions_dir))
+        #print("persistent_sessions_dir={!r}, temporary_sessions_dir={!r}".format(self.persistent_sessions_dir, self.temporary_sessions_dir))
         for d in self.user_package_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
             if not os.path.lexists(d):
                 os.makedirs(d)

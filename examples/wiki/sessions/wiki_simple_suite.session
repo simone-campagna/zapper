@@ -1,0 +1,34 @@
+[version_defaults]
+
+[session]
+creation_time = 20130928 14:39:21
+type = persistent
+name = wiki_simple_suite
+
+[config]
+verbose = 
+trace = 
+package_sort_keys = 
+available_session_format = 
+resolution_level = 
+filter_packages = 
+show_header = 
+available_package_format = 
+description = 
+read_only = False
+subpackages = 
+package_dir_sort_keys = 
+session_sort_keys = 
+directories = @ZAPPER_HOME_DIR@/shared/zapper/examples/wiki_simple_suite/packages
+quiet = 
+package_dir_format = 
+full_label = 
+debug = 
+loaded_package_format = 
+show_translation = 
+show_header_if_empty = 
+
+[packages]
+sticky_packages = 
+loaded_packages = 
+
