@@ -17,11 +17,28 @@
 
 __author__ = 'Simone Campagna'
 
-from .manager import Manager
-from .session import Session
-from .utils.debug import PRINT
+import sys
+
+from ..manager import Manager
+from ..session import Session
+from ..category import Category
+from ..tag import Tag
+from ..utils.debug import PRINT
 
 class Helper(object):
+    ORDERED_TOPICS = (
+        'general',
+        'available_package_format',
+        'loaded_package_format',
+        'package_sort_keys',
+        'package_dir_format',
+        'package_dir_sort_keys',
+        'available_session_format',
+        'session_sort_keys',
+        'default_session',
+        'categories',
+        'tags',
+    )
     def __init__(self, manager):
         self.manager = manager
 
@@ -110,6 +127,18 @@ Available topics:
 {}
 """.format('\n'.join("  {}".format(topic) for topic in self.iter_topics()))
 
+    def help_categories(self):
+        return """\
+Available categories:
+{}
+""".format('\n'.join("  {!r}".format(category) for category in Category.categories()))
+
+    def help_tags(self):
+        return """\
+Currently defined tags:
+{}
+""".format('\n'.join("  {!r}".format(tag) for tag in Tag.tags()))
+
     def show_topic(self, topic):
         attr_name = "help_{}".format(topic)
         if not hasattr(self, attr_name):
@@ -118,10 +147,24 @@ Available topics:
         PRINT(getattr(self, attr_name)())
 
 
-    def iter_topics(self):
+    def iter_unordered_topics(self):
         for attr_name in dir(self):
             if attr_name.startswith('help_') and callable(getattr(self, attr_name)):
                 yield attr_name[len('help_'):]
 
     def get_topics(self):
-        return list(self.iter_topics())
+        topics = list(self.iter_unordered_topics())
+        def _key(topic):
+            try:
+                return self.ORDERED_TOPICS.index(topic)
+            except ValueError:
+                return sys.maxsize
+        topics.sort(key=_key)
+        return topics
+
+    def iter_topics(self):
+        for topic in self.get_topics():
+            yield topic
+
+    def complete_help_topics(self, *ignore_p_args, **ignore_n_args):
+        print(' '.join(self.iter_topics()))

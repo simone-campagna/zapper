@@ -42,8 +42,8 @@ import sys
 import argparse
 import collections
 
+from .helper import Helper
 from ..manager import Manager
-from ..helper import Helper
 from ..errors import SessionConfigError
 from ..utils.debug import set_quiet, set_verbose, set_debug, LOGGER
 from ..utils.trace import set_trace, trace
@@ -254,6 +254,7 @@ Change the current session""",
         formatter_class=Formatter,
         help="help")
     parser_help.set_defaults(function=helper.show_topic)
+    parser_help.set_defaults(complete_function=helper.complete_help_topics)
 
     parser_help.add_argument('topic',
         nargs='?',

@@ -25,6 +25,10 @@ class Tag(str):
         return super().__new__(cls, value)
 
     @classmethod
+    def tags(cls):
+        return tuple(cls.__tags__)
+
+    @classmethod
     def add_tag(cls, tag):
         if not tag in cls.__tags__:
             cls.__tags__.add(tag)
