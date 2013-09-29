@@ -496,8 +496,9 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 
     def store(self):
         self.check_read_only()
+        sticky_packages = self._sticky_packages.intersection(self._loaded_packages.keys())
         self.session_config['packages']['loaded_packages'] = ':'.join(self._loaded_packages.keys())
-        self.session_config['packages']['sticky_packages'] = ':'.join(self._sticky_packages)
+        self.session_config['packages']['sticky_packages'] = ':'.join(sticky_packages)
         if not self._dry_run:
             self.session_config.store()
         
