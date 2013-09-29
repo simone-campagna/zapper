@@ -290,7 +290,8 @@ class Session(object):
                 os.open(session_config_file, os.O_CREAT | os.O_EXCL)
             except OSError as e:
                 # file already exists
-                LOGGER.warning("file {0} already exists - {1} discarded".format(session_config_file, session_name))
+                LOGGER.warning("cannot create config file {}: {}: {}".format(session_config_file, e.__class__.__name__, e))
+                LOGGER.warning("file {} already exists - {} discarded".format(session_config_file, session_name))
                 continue
             return session_root
             
