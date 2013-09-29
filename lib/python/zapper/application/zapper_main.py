@@ -286,7 +286,7 @@ Change the current session""",
         parser_completion.add_argument(
             "filename",
             type=str,
-            default=os.path.join(manager.user_rc_dir, 'completion.{}'.format(manager.translation_name)),
+            default=os.path.join(manager.USER_RC_DIR, 'completion.{}'.format(manager.translation_name)),
             nargs='?',
             help="output filename")
 

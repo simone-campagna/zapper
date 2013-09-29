@@ -63,8 +63,24 @@ def _expand(s):
 class Manager(object):
     RC_DIR_NAME = '.zapper'
     TEMP_DIR_PREFIX = 'zapper'
+    TMPDIR = os.environ.get("TMPDIR", "/tmp")
+    USER = getpass.getuser()
+    ADMIN_USER = get_admin_user()
+    USER_HOME_DIR = os.path.expanduser('~')
+    USER_RC_DIR = os.path.join(USER_HOME_DIR, RC_DIR_NAME)
+    USER_TEMP_DIR = os.path.join(TMPDIR, "{0}-{1}".format(TEMP_DIR_PREFIX, USER))
+
     SESSIONS_DIR_NAME = 'sessions'
     PACKAGES_DIR_NAME = 'packages'
+
+    PERSISTENT_SESSIONS_DIR = os.path.join(USER_RC_DIR, SESSIONS_DIR_NAME)
+    TEMPORARY_SESSIONS_DIR = os.path.join(TMPDIR, SESSIONS_DIR_NAME)
+
+    SESSIONS_DIR = {
+        Session.SESSION_TYPE_PERSISTENT : PERSISTENT_SESSIONS_DIR,
+        Session.SESSION_TYPE_TEMPORARY : TEMPORARY_SESSIONS_DIR,
+    }
+
     LOADED_PACKAGES_VARNAME = "ZAPPER_LOADED_PACKAGES"
     USER_CONFIG_FILE = 'user.config'
     DEFAULT_SESSION_FORMAT = '{__ordinal__:>3d}) {is_current} {type} {name} {description}'
@@ -90,6 +106,8 @@ class Manager(object):
         ('trace', False),
         ('subpackages', False),
         ('directories', ''),
+        ('persistent_sessions_dir', PERSISTENT_SESSIONS_DIR),
+        ('temporary_sessions_dir', TEMPORARY_SESSIONS_DIR),
         ('available_package_format', Session.AVAILABLE_PACKAGE_FORMAT),
         ('loaded_package_format', Session.LOADED_PACKAGE_FORMAT),
         ('available_session_format', DEFAULT_SESSION_FORMAT),
@@ -114,6 +132,8 @@ class Manager(object):
         trace=_bool,
         subpackages=_bool,
         directories=_list,
+        persistent_sessions_dir=str,
+        temporary_sessions_dir=str,
         available_package_format=Session.PackageFormat,
         loaded_package_format=Session.PackageFormat,
         available_session_format=str,
@@ -148,11 +168,7 @@ class Manager(object):
     }
     RE_VALID_SESSION = re.compile("[a-zA-Z_][a-zA-Z_0-9]+")
     def __init__(self):
-        user_home_dir = os.path.expanduser('~')
-        self.user = getpass.getuser()
-        self.admin_user = get_admin_user()
-        self.user_rc_dir = os.path.join(user_home_dir, self.RC_DIR_NAME)
-        self.user_package_dir = os.path.join(self.user_rc_dir, self.PACKAGES_DIR_NAME)
+        self.user_package_dir = os.path.join(self.USER_RC_DIR, self.PACKAGES_DIR_NAME)
         zapper_home_dir = get_home_dir()
         if zapper_home_dir and os.path.lexists(zapper_home_dir):
             host_etc_dir = os.path.join(zapper_home_dir, 'etc', 'zapper')
@@ -162,20 +178,11 @@ class Manager(object):
         else:
             self.host_package_dir = None
             self.host_config = HostConfig()
-        tmpdir = os.environ.get("TMPDIR", "/tmp")
-        self.tmp_dir = os.path.join(tmpdir, "{0}-{1}".format(self.TEMP_DIR_PREFIX, self.user))
-        self.persistent_sessions_dir = os.path.join(self.user_rc_dir, self.SESSIONS_DIR_NAME)
-        self.temporary_sessions_dir = os.path.join(self.tmp_dir, self.SESSIONS_DIR_NAME)
-        self.sessions_dir = {
-            Session.SESSION_TYPE_PERSISTENT : self.persistent_sessions_dir,
-            Session.SESSION_TYPE_TEMPORARY : self.temporary_sessions_dir,
-        }
-        for d in self.user_package_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
-            if not os.path.lexists(d):
-                os.makedirs(d)
-        self._session = None
+        #tmpdir = os.environ.get("TMPDIR", "/tmp")
+        #self.persistent_sessions_dir = os.path.join(self.USER_RC_DIR, self.SESSIONS_DIR_NAME)
+        #self.temporary_sessions_dir = os.path.join(self.tmp_dir, self.SESSIONS_DIR_NAME)
 
-        user_config_file = os.path.join(self.user_rc_dir, self.USER_CONFIG_FILE)
+        user_config_file = os.path.join(self.USER_RC_DIR, self.USER_CONFIG_FILE)
         self.user_config = UserConfig(user_config_file)
 
         self._dry_run = False
@@ -200,6 +207,14 @@ class Manager(object):
             dirs = filter(lambda x: x is not None, [self.host_package_dir, self.user_package_dir])
             self.host_config['config']['directories'] = list_to_string(dirs)
 
+        self.persistent_sessions_dir = self.get_config_key('persistent_sessions_dir')
+        self.temporary_sessions_dir = self.get_config_key('temporary_sessions_dir')
+        print("persistent_sessions_dir={!r}, temporary_sessions_dir={!r}".format(self.persistent_sessions_dir, self.temporary_sessions_dir))
+        for d in self.user_package_dir, self.persistent_sessions_dir, self.temporary_sessions_dir:
+            if not os.path.lexists(d):
+                os.makedirs(d)
+
+        self._session = None
         self.package_options = {}
         self.package_options_from = {}
         self.load_user_package_option('version_defaults')
@@ -285,8 +300,9 @@ class Manager(object):
         else:
             return self._session_sort_keys
 
-    def is_admin(self):
-        return self.user == self.admin_user
+    @classmethod
+    def is_admin(cls):
+        return cls.USER == cls.ADMIN_USER
 
     def set_package_format(self, value):
         self._package_format = Session.PackageFormat(value)
@@ -399,7 +415,7 @@ class Manager(object):
 
     def set_host_package_option(self, option, key_values):
         if not self.is_admin():
-            raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.user, option))
+            raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.USER, option))
         if self._set_generic_package_option(option, 'host', self.host_config[option], key_values) and not self._dry_run:
             self.host_config.store()
 
@@ -425,7 +441,7 @@ class Manager(object):
 
     def reset_host_package_option(self, option, keys):
         if not self.is_admin():
-            raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.user, option))
+            raise SessionAuthError("user {0}: not authorized to change host option {1}".format(self.USER, option))
         if self._reset_generic_package_option(option, 'host', self.host_config[option], keys) and not self._dry_run:
             self.host_config.store()
 
@@ -607,7 +623,7 @@ class Manager(object):
 
     def set_host_config(self, key_values):
         if not self.is_admin():
-            raise SessionAuthError("user {0}: not authorized to change host config".format(self.user))
+            raise SessionAuthError("user {0}: not authorized to change host config".format(self.USER))
         if self._set_generic_config('host', self.host_config['config'], key_values) and not self._dry_run:
             self.host_config.store()
 
@@ -633,7 +649,7 @@ class Manager(object):
 
     def reset_host_config(self, keys):
         if not self.is_admin():
-            raise SessionAuthError("user {0}: not authorized to change host config".format(self.user))
+            raise SessionAuthError("user {0}: not authorized to change host config".format(self.USER))
         if self._reset_generic_config('host', self.host_config['config'], keys) and not self._dry_run:
             self.host_config.store()
 

@@ -43,6 +43,8 @@ COMMON_CONFIG = {
 USER_HOST_CONFIG = COMMON_CONFIG.copy()
 USER_HOST_CONFIG['default_session'] = ''
 USER_HOST_CONFIG['default_packages'] = ''
+USER_HOST_CONFIG['persistent_sessions_dir'] = ''
+USER_HOST_CONFIG['temporary_sessions_dir'] = ''
 
 VERSION_DEFAULTS = {
 }
