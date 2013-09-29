@@ -179,6 +179,7 @@ setup(
         ('shared/zapper/examples/wiki_simple_suite/packages', glob.glob('examples/wiki_simple_suite/packages/*.py')),
         ('shared/zapper/examples/wiki_suites/packages', glob.glob('examples/wiki_suites/packages/*.py')),
         ('shared/zapper/examples/wiki_subsuites/packages', glob.glob('examples/wiki_subsuites/packages/*.py')),
+        ('shared/zapper/examples/wiki_models/packages', glob.glob('examples/wiki_models/packages/*.py')),
     ],
     cmdclass = {
         'install_data': subst_install_data,

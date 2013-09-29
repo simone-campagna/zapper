@@ -495,8 +495,7 @@ class Manager(object):
         if key in self.EXPAND_KEYS:
             value = _expand(value)
         if action == '=':
-            if current_value != value:
-                new_value = str(value)
+            new_value = value
         else:
             if action == '+=':
                 add = True

@@ -126,7 +126,7 @@ def create_top_level_parser(manager):
     common_parser.add_argument("--version", "-V",
         action="version",
         version=get_version(),
-        help="set verbose on")
+        help="show zapper version")
 
     common_parser.add_argument("--verbose", "-v",
         action="store_true",
@@ -458,6 +458,7 @@ Change the current session""",
 
     for subparser in (parser_session_create, parser_session_new):
         subparser.add_argument("--description",
+            metavar='D',
             default='',
             help="session description")
 
