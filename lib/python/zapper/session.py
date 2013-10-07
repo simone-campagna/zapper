@@ -156,6 +156,10 @@ class Session(object):
                 Package.set_package_dir(package_dir)
                 try:
                     module = self._load_module(module_path)
+                except Exception as e:
+                    trace()
+                    LOGGER.warning("cannot impot package file {!r}: {}: {}".format(module_path, e.__class__.__name__, e))
+                    continue
                 finally:
                     Package.unset_package_dir()
                 self._modules[module_path] = module
