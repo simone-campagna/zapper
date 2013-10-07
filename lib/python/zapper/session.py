@@ -454,7 +454,7 @@ class Session(object):
     def available_packages(self):
         return self._available_packages.values()
 
-    def unload_environment_packages(self):
+    def unload_environment_packages(self, *, ignore_errors=True):
         """unload_environment_packages() -> list of previously loaded packages
 Remove all the previously loaded packages (from environment variable
 $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages""" 
@@ -465,7 +465,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
         loaded_package_labels = loaded_package_labels_string.split(':')
 
         # loading necessary suites
-        for packages in self.iterdep(loaded_package_labels):
+        for packages in self.iterdep(loaded_package_labels, ignore_errors=ignore_errors):
             for package in packages:
                 if isinstance(package, Suite):
                     self._add_suite(package)
@@ -489,7 +489,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
 
     def initialize_loaded_packages(self, packages_list):
         self._add_suite(ROOT)
-        env_loaded_packages = set(self.unload_environment_packages())
+        env_loaded_packages = set(self.unload_environment_packages(ignore_errors=True))
         self.unload_all_loaded_packages()
         self.load_package_labels(packages_list, ignore_errors=True, info=False)
         loaded_packages = set(self.loaded_packages())
@@ -562,7 +562,6 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
     def load_package_labels(self, package_labels, *, resolution_level=0, subpackages=False, sticky=False, simulate=False, ignore_errors=False, info=True):
         self.check_read_only()
         for packages in self.iterdep(package_labels, ignore_errors=ignore_errors):
-            #print(packages)
             if subpackages:
                 packages = self._get_subpackages(packages)
             required_packages = packages
