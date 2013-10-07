@@ -23,6 +23,9 @@ __all__ = ['Transition',
            'PrependPath',
            'AppendPath',
            'RemovePath',
+           'PrependList',
+           'AppendList',
+           'RemoveList',
 ]
 
 import abc
