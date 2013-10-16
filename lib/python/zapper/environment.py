@@ -114,8 +114,8 @@ class Environment(dict):
         return os.path.normpath(os.path.expanduser(var_value))
 
     def var_set(self, var_name, var_value):
-        assert isinstance(var_name, str)
-        assert isinstance(var_value, str)
+        assert isinstance(var_name, str), "{!r} of type {}".format(var_name, type(var_name))
+        assert isinstance(var_value, str), "{!r} of type {}".format(var_value, type(var_value))
         self[var_name] = var_value
 
     def var_unset(self, var_name):

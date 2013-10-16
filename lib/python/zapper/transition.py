@@ -161,13 +161,15 @@ class RemoveList(EnvListTransition):
     def apply(self, session):
         cache_var_name = self._cache_var_name()
         cache_var_value = session.environment.var_get(self.var_name)
+        if cache_var_value is None:
+            cache_var_value = ""
         session.environment.var_set(cache_var_name, cache_var_value)
         session.environment.list_remove(self.var_name, self.var_value, self.separator)
         
     def revert(self, session):
         cache_var_name = self._cache_var_name()
         cache_var_value = session.environment.var_get(cache_var_name)
-        if cache_var_value is not None:
+        if cache_var_value:
             session.environment.var_unset(cache_var_name)
             session.environment.list_insert(self.var_name, self.var_value, cache_var_value, self.separator)
 
@@ -176,13 +178,15 @@ class RemovePath(EnvListTransition):
     def apply(self, session):
         cache_var_name = self._cache_var_name()
         cache_var_value = session.environment.var_get(self.var_name)
+        if cache_var_value is None:
+            cache_var_value = ""
         session.environment.var_set(cache_var_name, cache_var_value)
         session.environment.path_remove(self.var_name, self.var_value, self.separator)
         
     def revert(self, session):
         cache_var_name = self._cache_var_name()
         cache_var_value = session.environment.var_get(cache_var_name)
-        if cache_var_value is not None:
+        if cache_var_value:
             session.environment.path_insert(self.var_name, self.var_value, cache_var_value, self.separator)
             session.environment.var_unset(cache_var_name)
 
