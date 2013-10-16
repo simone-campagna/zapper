@@ -1,0 +1,347 @@
+#!/bin/bash
+
+source $INSTALL_DIR/zapper/0.1/etc/profile.d/zapper.bash
+
+zapper session load test_commands
+zapper clear
+
+typeset -i NUM_TESTS=0
+TEST_INDICES=' '
+
+CURRENT_TEST=""
+
+typeset -i NUM_FAILED=0
+typeset -i NUM_DONE=0
+function add_test {
+    typeset _failue="$1"
+    typeset _reason="$2"
+    TEST_FAILURES[NUM_TESTS]="$_failure"
+    TEST_MESSAGES[NUM_TESTS]="$_reason"
+    TESTS[NUM_TESTS]="$CURRENT_TEST"
+    TEST_INDICES="$TEST_INDICES$NUM_TESTS "
+    NUM_TESTS=$(( $NUM_TESTS + 1 ))
+    if $_failure ; then
+        NUM_FAILED=$(( $NUM_FAILED + 1 ))
+    else
+        NUM_DONE=$(( $NUM_DONE + 1 ))
+    fi
+}
+
+function test_set {
+    CURRENT_TEST="$1"
+}
+
+function log {
+    typeset _failure="$1"
+    typeset _reason="$2"
+    add_test "$_failure" "$_reason"
+    if $_failure ; then
+        echo "[${NUM_TESTS}] ${CURRENT_TEST}: !!! $_reason" 1>&2
+    else
+        echo "[${NUM_TESTS}] ${CURRENT_TEST}: ... $_reason" 1>&2
+    fi
+}
+
+function _test_var_defined {
+    typeset _var_name="$1"
+    typeset _test_def="$2"
+    typeset _failure=false
+    typeset _reason
+    typeset _part0
+    typeset _part1
+    if [[ $(env | grep -c "^${_var_name}=") -eq 0 ]] ; then
+        _part0="not defined"
+        if $_test_def ; then
+            _failure=true
+            _part1="defined"
+        fi
+    else
+        _part0="defined"
+        if ! $_test_def ; then
+            _failure=true
+            _part1="not defined"
+        fi
+    fi
+    _reason="var \$$_var_name is $_part0"
+    if $_failure ; then
+        _reason="$_reason, it should be $_part1"
+    else
+        _reason="$_reason as expected"
+    fi
+    log "$_failure" "$_reason"
+}
+
+function TEST_VAR_DEF {
+    _test_var_defined "$1" true
+}
+
+function TEST_VAR_UNDEF {
+    _test_var_defined "$1" false
+}
+
+function _test_var_value {
+    typeset _var_name="$1"
+    typeset _expected_var_value="$2"
+    typeset _eq="$3"
+    typeset _failure=false
+    typeset _op0
+    typeset _op1
+    typeset _var_value
+    #env | grep "^${_var_name}="
+    eval "_var_value=\"\${${_var_name}}\""
+    if [[ "$_expected_var_value" == "$_var_value" ]] ; then
+        _op0="=="
+        if ! $_eq ; then
+            _failure=true
+        fi
+    else
+        _op0="!="
+        if $_eq ; then
+            _failure=true
+        fi
+    fi
+    if $_eq ; then
+        _op1="=="
+    else
+        _op1="!="
+    fi
+
+    _reason="\$${_var_name}='${_var_value}' $_op0 '${_expected_var_value}'"
+    if $_failure ; then
+        _reason="$_reason, it should be $_op1"
+    else
+        _reason="$_reason as expected"
+    fi
+    log "$_failure" "$_reason"
+}
+
+function test_var_eq {
+    _test_var_value "$1" "$2" true
+}
+
+function test_var_ne {
+    _test_var_value "$1" "$2" false
+}
+
+function _test_list_contains {
+    typeset _var_name="$1"
+    typeset _item="$2"
+    typeset _transform="$3"
+    typeset _contains="$4"
+    typeset _separator="${5:-:}"
+    typeset _failure=false
+    typeset _op0
+    typeset _op1
+    typeset _var_value
+    typeset _var_tmp
+    typeset _read_item
+    #echo "_item=<$_item> _transform=<$_transform>"
+    _item=$($_transform $_item)
+    #echo "_item=<$_item>"
+    #env | grep "^${_var_name}="
+    eval "_var_value=\"\${${_var_name}}\""
+    typeset _var_tmp="$_var_value"
+    typeset -i _matches=0
+    while [[ $_var_tmp != '' ]] ; do
+        _read_item=$(echo "$_var_tmp" | cut -d"$_separator" -f1)
+        _read_item=$($_transform "$_read_item")
+        if [[ $_read_item == "$_item" ]] ; then
+            _matches=$(( $_matches + 1 ))
+        fi
+        if [[ $(echo "$_var_tmp" | grep -Fc "$_separator") -eq 0 ]] ; then
+            _var_tmp=""
+        else
+            _var_tmp=$(echo "$_var_tmp" | cut -d"$_separator" -f2-)
+        fi
+    done
+    if [[ $_matches -eq 0 ]] ; then
+        _op0="do not contains"
+        if $_contains ; then
+            _failure=true
+        fi
+    else
+        if [[ $_matches -eq 1 ]] ; then
+            _op0="contains"
+            if ! $_contains ; then
+                _failure=true
+            fi
+        else
+            _op0="contains #${_matches} entries"
+            if $_contains ; then
+                _failure=true
+            fi
+        fi
+    fi
+    if $_eq ; then
+        _op1="contain"
+    else
+        _op1="not contain"
+    fi
+
+    _reason="\$${_var_name}='${_var_value}' $_op0 '${_item}'"
+    if $_failure ; then
+        _reason="$_reason, it should $_op1"
+    else
+        _reason="$_reason as expected"
+    fi
+    log "$_failure" "$_reason"
+}
+
+function _transform_identity {
+    echo "$1"
+}
+
+function _transform_path {
+    echo "$1" | sed -e 's%//*%/%g' -e 's%/$%%g'
+}
+
+function TEST_LIST_CONTAINS {
+    _test_list_contains "$1" "$2" _transform_identity true "${3:-:}"
+}
+
+function TEST_LIST_DO_NOT_CONTAIN {
+    _test_list_contains "$1" "$2" _transform_identity false "${3:-:}"
+}
+
+function PATH_LIST_CONTAINS {
+    _test_list_contains "$1" "$2" _transform_path true "${3:-:}"
+}
+
+function TEST_PATH_DO_NOT_CONTAIN {
+    _test_list_contains "$1" "$2" _transform_path false "${3:-:}"
+}
+
+################################################################################
+echo "### Testing var_set..."
+test_set "var_set"
+
+unset TEST_VAR_SET
+
+TEST_VAR_UNDEF "TEST_VAR_SET"
+
+zapper load /test_var_set-1
+
+test_var_eq "TEST_VAR_SET" "TEST_VAR_VALUE"
+
+zapper unload /test_var_set-1
+
+TEST_VAR_UNDEF "TEST_VAR_SET"
+
+export TEST_VAR_SET='_my_value_'
+
+test_var_eq "TEST_VAR_SET" "_my_value_"
+
+zapper load /test_var_set-1
+
+test_var_eq "TEST_VAR_SET" "TEST_VAR_VALUE"
+
+zapper unload /test_var_set-1
+
+test_var_eq "TEST_VAR_SET" "_my_value_"
+
+################################################################################
+echo "### Testing var_unset..."
+test_set "var_unset"
+
+unset TEST_VAR_UNSET
+
+TEST_VAR_UNDEF "TEST_VAR_UNSET"
+
+zapper load /test_var_unset-1
+
+TEST_VAR_UNDEF "TEST_VAR_UNSET"
+
+zapper unload /test_var_unset-1
+
+TEST_VAR_UNDEF "TEST_VAR_UNSET"
+
+export TEST_VAR_UNSET='_my_value_'
+
+test_var_eq "TEST_VAR_UNSET" "_my_value_"
+
+zapper load /test_var_unset-1
+
+TEST_VAR_UNDEF "TEST_VAR_UNSET"
+
+zapper unload /test_var_unset-1
+
+TEST_VAR_DEF "TEST_VAR_UNSET"
+test_var_eq "TEST_VAR_UNSET" "_my_value_"
+
+################################################################################
+echo "### Testing list_prepend"
+test_set "list_prepend"
+
+unset TEST_LIST_PREPEND
+
+TEST_VAR_UNDEF "TEST_LIST_PREPEND"
+
+zapper load /test_list_prepend-1
+
+TEST_VAR_DEF "TEST_LIST_PREPEND"
+TEST_LIST_CONTAINS "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
+test_var_eq "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
+
+zapper unload /test_list_prepend-1
+
+test_var_eq "TEST_LIST_PREPEND" ""
+
+export TEST_LIST_PREPEND="it1:it2"
+
+zapper load /test_list_prepend-1
+
+TEST_VAR_DEF "TEST_LIST_PREPEND"
+TEST_LIST_CONTAINS "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
+test_var_eq "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM:it1:it2"
+
+zapper unload /test_list_prepend-1
+
+TEST_LIST_DO_NOT_CONTAIN "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
+test_var_eq "it1:it2"
+
+
+unset TEST_LIST_PREPEND
+
+################################################################################
+echo "### Testing list_append"
+test_set "list_append"
+
+unset TEST_LIST_APPEND
+
+TEST_VAR_UNDEF "TEST_LIST_APPEND"
+
+zapper load /test_list_append-1
+
+TEST_VAR_DEF "TEST_LIST_APPEND"
+TEST_LIST_CONTAINS "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
+test_var_eq "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
+
+zapper unload /test_list_append-1
+
+test_var_eq "TEST_LIST_APPEND" ""
+
+export TEST_LIST_APPEND="it1:it2"
+
+zapper load /test_list_append-1
+
+TEST_VAR_DEF "TEST_LIST_APPEND"
+TEST_LIST_CONTAINS "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
+test_var_eq "TEST_LIST_APPEND" "it1:it2:TEST_LIST_APPEND_ITEM"
+
+zapper unload /test_list_append-1
+
+TEST_LIST_DO_NOT_CONTAIN "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
+test_var_eq "it1:it2"
+
+
+unset TEST_LIST_APPEND
+
+################################################################################
+echo "### Exiting..."
+stats="${NUM_TESTS} run, ${NUM_DONE} successfully completed, ${NUM_FAILED} failed"
+if [[ $NUM_FAILED -ne 0 ]] ; then
+    echo "ERR: $stats" 1>&2
+    exit 1
+else
+    echo "$stats"
+fi

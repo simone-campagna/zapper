@@ -59,7 +59,10 @@ class Environment(dict):
         return self.get(var_name, None)
 
     def _var_split(self, transform, var_name, separator):
-        return (transform(item) for item in self.get(var_name, '').split(separator))
+        for item in self.get(var_name, '').split(separator):
+            item = transform(item)
+            if item:
+                yield item
 
     def _var_split_uniq(self, transform, var_name, var_value, separator):
         for item in self._var_split(transform, var_name, separator):
