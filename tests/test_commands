@@ -4,8 +4,12 @@ source "@ZAPPER_HOME_DIR@/etc/profile.d/zapper.bash"
 
 SESSION_NAME='test_commands'
 
+function _zapper {
+    zapper -t "$@"
+}
+
 tmpf=/tmp/${USER}.sessions.$$
-zapper session avail --session-format '{is_current}/{name}' --hide-header > "$tmpf" 2>&1
+_zapper session avail --session-format '{is_current}/{name}' --hide-header > "$tmpf" 2>&1
 session_current=""
 session_exists=false
 while read line ; do
@@ -22,14 +26,14 @@ done < "$tmpf"
 
 if [[ "$session_current" != "$SESSION_NAME" ]] ; then
     if ! $session_exists ; then
-        zapper session create "$SESSION_NAME"
+        _zapper session create "$SESSION_NAME"
     fi
-    zapper session load "$SESSION_NAME" || exit 1
+    _zapper session load "$SESSION_NAME" || exit 1
 fi
-zapper session config set directories="@ZAPPER_HOME_DIR@/shared/zapper/examples/test_commands/packages"
-zapper clear --sticky
-zapper session info
-zapper session config show
+_zapper session config set directories="@ZAPPER_HOME_DIR@/shared/zapper/examples/test_commands/packages"
+_zapper clear --sticky
+_zapper session info
+_zapper session config show
 
 typeset -i NUM_TESTS=0
 TEST_INDICES=' '
@@ -245,11 +249,11 @@ unset TEST_VAR_SET
 
 TEST_VAR_UNDEF "TEST_VAR_SET"
 
-zapper load /test_var_set-1
+_zapper load /test_var_set-1
 
 TEST_VAR_EQ "TEST_VAR_SET" "TEST_VAR_VALUE"
 
-zapper unload /test_var_set-1
+_zapper unload /test_var_set-1
 
 TEST_VAR_UNDEF "TEST_VAR_SET"
 
@@ -257,11 +261,11 @@ export TEST_VAR_SET='_my_value_'
 
 TEST_VAR_EQ "TEST_VAR_SET" "_my_value_"
 
-zapper load /test_var_set-1
+_zapper load /test_var_set-1
 
 TEST_VAR_EQ "TEST_VAR_SET" "TEST_VAR_VALUE"
 
-zapper unload /test_var_set-1
+_zapper unload /test_var_set-1
 
 TEST_VAR_EQ "TEST_VAR_SET" "_my_value_"
 
@@ -273,11 +277,11 @@ unset TEST_VAR_UNSET
 
 TEST_VAR_UNDEF "TEST_VAR_UNSET"
 
-zapper load /test_var_unset-1
+_zapper load /test_var_unset-1
 
 TEST_VAR_UNDEF "TEST_VAR_UNSET"
 
-zapper unload /test_var_unset-1
+_zapper unload /test_var_unset-1
 
 TEST_VAR_UNDEF "TEST_VAR_UNSET"
 
@@ -285,11 +289,11 @@ export TEST_VAR_UNSET='_my_value_'
 
 TEST_VAR_EQ "TEST_VAR_UNSET" "_my_value_"
 
-zapper load /test_var_unset-1
+_zapper load /test_var_unset-1
 
 TEST_VAR_UNDEF "TEST_VAR_UNSET"
 
-zapper unload /test_var_unset-1
+_zapper unload /test_var_unset-1
 
 TEST_VAR_DEF "TEST_VAR_UNSET"
 TEST_VAR_EQ "TEST_VAR_UNSET" "_my_value_"
@@ -302,25 +306,25 @@ unset TEST_LIST_PREPEND
 
 TEST_VAR_UNDEF "TEST_LIST_PREPEND"
 
-zapper load /test_list_prepend-1
+_zapper load /test_list_prepend-1
 
 TEST_VAR_DEF "TEST_LIST_PREPEND"
 TEST_LIST_CONTAINS "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
 TEST_VAR_EQ "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
 
-zapper unload /test_list_prepend-1
+_zapper unload /test_list_prepend-1
 
 TEST_VAR_EQ "TEST_LIST_PREPEND" ""
 
 export TEST_LIST_PREPEND="it1:it2"
 
-zapper load /test_list_prepend-1
+_zapper load /test_list_prepend-1
 
 TEST_VAR_DEF "TEST_LIST_PREPEND"
 TEST_LIST_CONTAINS "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
 TEST_VAR_EQ "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM:it1:it2"
 
-zapper unload /test_list_prepend-1
+_zapper unload /test_list_prepend-1
 
 TEST_LIST_DO_NOT_CONTAIN "TEST_LIST_PREPEND" "TEST_LIST_PREPEND_ITEM"
 TEST_VAR_EQ "it1:it2"
@@ -336,25 +340,25 @@ unset TEST_LIST_APPEND
 
 TEST_VAR_UNDEF "TEST_LIST_APPEND"
 
-zapper load /test_list_append-1
+_zapper load /test_list_append-1
 
 TEST_VAR_DEF "TEST_LIST_APPEND"
 TEST_LIST_CONTAINS "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
 TEST_VAR_EQ "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
 
-zapper unload /test_list_append-1
+_zapper unload /test_list_append-1
 
-TEST_VAR_EQ "TEST_LIST_APPEND" ""
+TEST_VAR_UNDEF "TEST_LIST_APPEND"
 
 export TEST_LIST_APPEND="it1:it2"
 
-zapper load /test_list_append-1
+_zapper load /test_list_append-1
 
 TEST_VAR_DEF "TEST_LIST_APPEND"
 TEST_LIST_CONTAINS "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
 TEST_VAR_EQ "TEST_LIST_APPEND" "it1:it2:TEST_LIST_APPEND_ITEM"
 
-zapper unload /test_list_append-1
+_zapper unload /test_list_append-1
 
 TEST_LIST_DO_NOT_CONTAIN "TEST_LIST_APPEND" "TEST_LIST_APPEND_ITEM"
 TEST_VAR_EQ "it1:it2"
@@ -370,25 +374,25 @@ unset TEST_LIST_REMOVE
 
 TEST_VAR_UNDEF "TEST_LIST_REMOVE"
 
-zapper load /test_list_remove-1
+_zapper load /test_list_remove-1
 
-TEST_VAR_DEF "TEST_LIST_REMOVE"
-TEST_LIST_DO_NOT_CONTAIN "TEST_LIST_REMOVE" "TEST_LIST_REMOVE_ITEM"
-TEST_VAR_EQ "TEST_LIST_REMOVE" ""
+TEST_VAR_UNDEF "TEST_LIST_REMOVE"
+#TEST_LIST_DO_NOT_CONTAIN "TEST_LIST_REMOVE" "TEST_LIST_REMOVE_ITEM"
+#TEST_VAR_EQ "TEST_LIST_REMOVE" ""
 
-zapper unload /test_list_remove-1
+_zapper unload /test_list_remove-1
 
-TEST_VAR_EQ "TEST_LIST_REMOVE" ""
+TEST_VAR_UNDEF "TEST_LIST_REMOVE"
 
 export TEST_LIST_REMOVE="it1:TEST_LIST_REMOVE_ITEM:it2"
 
-zapper load /test_list_remove-1
+_zapper load /test_list_remove-1
 
 TEST_VAR_DEF "TEST_LIST_REMOVE"
 TEST_LIST_DO_NOT_CONTAIN "TEST_LIST_REMOVE" "TEST_LIST_REMOVE_ITEM"
 TEST_VAR_EQ "TEST_LIST_REMOVE" "it1:it2"
 
-zapper unload /test_list_remove-1
+_zapper unload /test_list_remove-1
 
 TEST_LIST_CONTAINS "TEST_LIST_REMOVE" "TEST_LIST_REMOVE_ITEM"
 TEST_VAR_EQ "it1:TEST_LIST_REMOVE_ITEM:it2"

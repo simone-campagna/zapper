@@ -124,69 +124,111 @@ class UnsetEnv(EnvVarTransition):
             session.environment.var_unset(cache_var_name)
             session.environment.var_set(self.var_name, cache_var_value)
 
-class PrependList(EnvListTransition):
-    __label__ = 'list_prepend'
+class _AddToList(EnvListTransition):
+    @abc.abstractmethod
+    def function_apply(self, session):
+        pass
+
+    @abc.abstractmethod
+    def function_revert(self, session):
+        pass
+
     def apply(self, session):
+        cache_var_value = session.environment.var_get(self.var_name)
+        if cache_var_value is not None:
+            cache_var_name = self._cache_var_name()
+            session.environment.var_set(cache_var_name, cache_var_value)
+        self.function_apply(session)
+
+    def revert(self, session):
+        self.function_revert(session)
+        current_value = session.environment.var_get(self.var_name)
+        #print("DBG: <{}>".format(current_value))
+        if not current_value:
+            cache_var_name = self._cache_var_name()
+            cache_var_value = session.environment.var_get(cache_var_name)
+            if not cache_var_value:
+                session.environment.var_unset(self.var_name)
+        
+class PrependList(_AddToList):
+    __label__ = 'list_prepend'
+    def function_apply(self, session):
         session.environment.list_prepend(self.var_name, self.var_value, self.separator)
         
-    def revert(self, session):
+    def function_revert(self, session):
         session.environment.list_remove(self.var_name, self.var_value, self.separator)
 
-class PrependPath(EnvListTransition):
+class PrependPath(_AddToList):
     __label__ = 'path_prepend'
-    def apply(self, session):
+    def function_apply(self, session):
         session.environment.path_prepend(self.var_name, self.var_value, self.separator)
         
-    def revert(self, session):
+    def function_revert(self, session):
         session.environment.path_remove(self.var_name, self.var_value, self.separator)
 
-class AppendList(EnvListTransition):
+class AppendList(_AddToList):
     __label__ = 'list_append'
-    def apply(self, session):
+    def function_apply(self, session):
         session.environment.list_append(self.var_name, self.var_value, self.separator)
         
-    def revert(self, session):
+    def function_revert(self, session):
         session.environment.list_remove(self.var_name, self.var_value, self.separator)
 
-class AppendPath(EnvListTransition):
+class AppendPath(_AddToList):
     __label__ = 'path_append'
-    def apply(self, session):
+    def function_apply(self, session):
         session.environment.path_append(self.var_name, self.var_value, self.separator)
         
-    def revert(self, session):
+    def function_revert(self, session):
         session.environment.path_remove(self.var_name, self.var_value, self.separator)
 
-class RemoveList(EnvListTransition):
+class _RemoveFromList(EnvListTransition):
+    @abc.abstractmethod
+    def function_apply(self, session):
+        pass
+
+    @abc.abstractmethod
+    def function_revert(self, session):
+        pass
+
+    @abc.abstractmethod
+    def function_contains(self, session):
+        pass
+
+    def apply(self, session):
+        if self.function_contains(session):
+            cache_var_name = self._cache_var_name()
+            cache_var_value = session.environment.var_get(self.var_name)
+            session.environment.var_set(cache_var_name, cache_var_value)
+            self.function_apply(session)
+
+    def revert(self, session):
+        cache_var_name = self._cache_var_name()
+        cache_var_value = session.environment.var_get(cache_var_name)
+        if cache_var_value is not None:
+            self.function_revert(session, cache_var_value)
+
+class RemoveList(_RemoveFromList):
     __label__ = 'list_remove'
-    def apply(self, session):
-        cache_var_name = self._cache_var_name()
-        cache_var_value = session.environment.var_get(self.var_name)
-        if cache_var_value is None:
-            cache_var_value = ""
-        session.environment.var_set(cache_var_name, cache_var_value)
+    def function_apply(self, session):
         session.environment.list_remove(self.var_name, self.var_value, self.separator)
-        
-    def revert(self, session):
-        cache_var_name = self._cache_var_name()
-        cache_var_value = session.environment.var_get(cache_var_name)
-        if cache_var_value:
-            session.environment.var_unset(cache_var_name)
-            session.environment.list_insert(self.var_name, self.var_value, cache_var_value, self.separator)
 
-class RemovePath(EnvListTransition):
+    def function_revert(self, session, cache_var_value):
+        session.environment.list_insert(self.var_name, self.var_value, cache_var_value, self.separator)
+
+    def function_contains(self, session):
+        return session.environment.list_contains(self.var_name, self.var_value, self.separator)
+
+class RemovePath(_RemoveFromList):
     __label__ = 'path_remove'
-    def apply(self, session):
-        cache_var_name = self._cache_var_name()
-        cache_var_value = session.environment.var_get(self.var_name)
-        if cache_var_value is None:
-            cache_var_value = ""
-        session.environment.var_set(cache_var_name, cache_var_value)
+    def function_apply(self, session):
         session.environment.path_remove(self.var_name, self.var_value, self.separator)
-        
-    def revert(self, session):
-        cache_var_name = self._cache_var_name()
-        cache_var_value = session.environment.var_get(cache_var_name)
-        if cache_var_value:
-            session.environment.path_insert(self.var_name, self.var_value, cache_var_value, self.separator)
-            session.environment.var_unset(cache_var_name)
+
+    def function_revert(self, session, cache_var_value):
+        session.environment.path_insert(self.var_name, self.var_value, cache_var_value, self.separator)
+
+    def function_contains(self, session):
+        return session.environment.list_contains(self.var_name, self.var_value, self.separator)
+
+
 

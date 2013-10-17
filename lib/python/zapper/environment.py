@@ -107,6 +107,10 @@ class Environment(dict):
         l = list(self._var_split_uniq(transform, var_name, var_value, separator))
         self[var_name] = separator.join(l)
   
+    def _list_contains(self, transform, var_name, var_value, separator=':'):
+        l = list(self._var_split(transform, var_name, separator))
+        return transform(var_value) in l
+  
     def IDENTITY(self, var_value):
         return var_value
 
@@ -145,3 +149,9 @@ class Environment(dict):
 
     def path_remove(self, var_name, var_value, separator=None):
         self._list_remove(self.NORMPATH, var_name, var_value, separator)
+
+    def list_contains(self, var_name, var_value, separator=None):
+        return self._list_contains(self.IDENTITY, var_name, var_value, separator)
+
+    def path_contains(self, var_name, var_value, separator=None):
+        return self._list_contains(self.NORMPATH, var_name, var_value, separator)
