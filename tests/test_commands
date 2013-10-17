@@ -1,9 +1,35 @@
 #!/bin/bash
 
-source $INSTALL_DIR/zapper/0.1/etc/profile.d/zapper.bash
+source "@ZAPPER_HOME_DIR@/etc/profile.d/zapper.bash"
 
-zapper session load test_commands
-zapper clear
+SESSION_NAME='test_commands'
+
+tmpf=/tmp/${USER}.sessions.$$
+zapper session avail --session-format '{is_current}/{name}' --hide-header > "$tmpf" 2>&1
+session_current=""
+session_exists=false
+while read line ; do
+    session_is_current=$(echo "$line" | cut -d/ -f1)
+    session_name=$(echo "$line" | cut -d/ -f2-)
+    if [[ "$session_is_current" == "*" ]] ; then
+        session_current="$session_name"
+    fi
+    if [[ "$session_name" == "$SESSION_NAME" ]] ; then
+        session_exists=true
+        break
+    fi
+done < "$tmpf"
+
+if [[ "$session_current" != "$SESSION_NAME" ]] ; then
+    if ! $session_exists ; then
+        zapper session create "$SESSION_NAME"
+    fi
+    zapper session load "$SESSION_NAME" || exit 1
+fi
+zapper session config set directories="@ZAPPER_HOME_DIR@/shared/zapper/examples/test_commands/packages"
+zapper clear --sticky
+zapper session info
+zapper session config show
 
 typeset -i NUM_TESTS=0
 TEST_INDICES=' '
