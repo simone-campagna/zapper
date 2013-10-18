@@ -105,8 +105,11 @@ class Session(object):
         self._deleted = False # if True, session will be deleted in finalize()
 
     def delete(self):
-        self.clear(sticky=True)
-        self._deleted = True
+        if self.is_read_only():
+            LOGGER.error("cannot delete read-only session {!r}".format(self.session_name))
+        else:
+            self.clear(sticky=True)
+            self._deleted = True
 
     def set_dry_run(self, dry_run):
         self._dry_run = bool(dry_run)
@@ -332,13 +335,21 @@ class Session(object):
         session_config.store()
     
     @classmethod
-    def delete_session_root(cls, session_root, session_name=None):
+    def delete_session_root(cls, session_root, session_name=None, *, force=False):
         if session_name is None:
             session_name = os.path.basename(session_root)
-        LOGGER.info("deleting session {0}...".format(session_name))
+        LOGGER.info("deleting session {!r}...".format(session_name))
         session_config_file = cls.get_session_config_file(session_root)
         if not os.path.lexists(session_config_file):
-            LOGGER.error("cannot delete session {0}: it does not exists".format(session_name))
+            LOGGER.error("cannot delete session {!r}: it does not exists".format(session_name))
+        session_config = cls.get_session_config(session_config_file)
+        session_read_only = string_to_bool(session_config['config']['read_only'])
+        if session_read_only:
+            if force:
+                LOGGER.warning("you are deleting read-only session {!r}".format(session_name))
+            else:
+                LOGGER.error("cannot delete read-only session {!r}".format(session_name))
+                return
         os.remove(session_config_file)
 
     @classmethod
@@ -690,7 +701,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 if not self._dry_run:
                     self.store()
         if self._deleted:
-            self.delete_session_root(self.session_root, self.session_name)
+            self.delete_session_root(self.session_root, self.session_name, force=self._force)
         
     def _add_suite(self, suite):
         self._loaded_suites.add_package(suite)
