@@ -267,7 +267,12 @@ class Session(object):
         self.session_type = self.session_config['session']['type']
         self.session_description = self.session_config['config']['description']
         self.session_read_only = False
-        current_session_read_only = string_to_bool(self.session_config['config']['read_only'])
+        current_session_read_only_string = self.session_config['config']['read_only']
+        if current_session_read_only_string:
+            current_session_read_only = string_to_bool(current_session_read_only_string)
+        else:
+            current_session_read_only = False
+        
         self.session_creation_time = self.session_config['session']['creation_time']
         package_directories_string = self.session_config['config']['directories']
         if package_directories_string:
