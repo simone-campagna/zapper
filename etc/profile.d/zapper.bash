@@ -1,6 +1,5 @@
-ZAPPER_HOME_DIR="@ZAPPER_HOME_DIR@"
-ZAPPER_RC_DIR="$HOME/@ZAPPER_RC_DIR_NAME@"
-PYTHON_EXECUTABLE="@PYTHON_EXECUTABLE@"
+export ZAPPER_HOME_DIR="@ZAPPER_HOME_DIR@"
+export ZAPPER_RC_DIR="$HOME/@ZAPPER_RC_DIR_NAME@"
 ZAPPER_REQUIRED_COMPLETION_VERSION="@ZAPPER_COMPLETION_VERSION@"
 
 function zapper {
@@ -17,6 +16,8 @@ function zapper {
         . "$_filename"
     fi
 }
+
+export -f zapper
 
 # set bash completion file:
 bash_completion_file="${ZAPPER_RC_DIR}/completion.bash"
