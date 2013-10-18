@@ -92,6 +92,7 @@ class Session(object):
         self._sticky_packages = set()
         self._modules = {}
         self._dry_run = False
+        self._force = False
         self._package_format = None
         self._available_package_format = None
         self._loaded_package_format = None
@@ -110,15 +111,26 @@ class Session(object):
     def set_dry_run(self, dry_run):
         self._dry_run = bool(dry_run)
 
+    def set_force(self, force):
+        self._force = bool(force)
+
     def new_session(self, session_root):
         session = Session(session_root, load=False)
         session.load(session_root, load_packages=True, loaded_package_directories=self._package_directories)
         #self._environment.var_set("ZAPPER_SESSION", self.session_root)
         return session
 
+    def is_read_only(self):
+        return self.session_read_only and not self._force
+
     def check_read_only(self):
         if self.session_read_only:
-            raise SessionError("cannot change read-only session {}".format(self.session_name))
+            if self._force:
+                if not getattr(self, '__changing_read_only_message', None):
+                    LOGGER.warning("you are changing read-only session {!r}".format(self.session_name))
+                    setattr(self, '__changing_read_only_message', True)
+            else:
+                raise SessionError("cannot change read-only session {}".format(self.session_name))
 
     def set_show_header(self, show_header, show_header_if_empty):
         self._show_header = show_header
@@ -673,7 +685,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 self._add_suite(package)
 
     def finalize(self):
-        if not self.session_read_only:
+        if not self.is_read_only():
             if self._loaded_packages.is_changed() or self._orig_sticky_packages != self._sticky_packages:
                 if not self._dry_run:
                     self.store()

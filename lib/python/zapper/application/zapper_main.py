@@ -154,6 +154,12 @@ def create_top_level_parser(manager):
         default=False,
         help="do not apply changes")
 
+    common_parser.add_argument("--force", "-f",
+        dest="force",
+        action="store_true",
+        default=False,
+        help="allow changes to read-only sessions")
+
     common_parser.add_argument("--show-header",
         dest='show_header',
         action="store_true",
@@ -776,6 +782,7 @@ def zapper_main():
         trace=args.trace,
     )
     manager.set_dry_run(args.dry_run)
+    manager.set_force(args.force)
     manager.set_show_header(args.show_header, args.show_header_if_empty)
     manager.set_show_translation(args.show_translation)
     manager.set_package_format(args.package_format)
@@ -797,7 +804,7 @@ def zapper_main():
     p_args = args._get_args()
     n_args = dict(args._get_kwargs())
     for key in {'function', 'quiet', 'verbose', 'debug', 'trace', 'full_label',
-                'dry_run', 'show_header', 'show_header_if_empty', 'show_translation',
+                'dry_run', 'force', 'show_header', 'show_header_if_empty', 'show_translation',
                 'package_format', 'session_format', 'package_dir_format',
                 'package_sort_keys', 'package_dir_sort_keys', 'session_sort_keys',
                 'complete_function', 'complete_add_arguments'}:

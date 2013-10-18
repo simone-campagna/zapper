@@ -186,6 +186,7 @@ class Manager(object):
         self.user_config = UserConfig(user_config_file)
 
         self._dry_run = False
+        self._force = False
 
         self._available_package_format = None
         self._loaded_package_format = None
@@ -269,6 +270,9 @@ class Manager(object):
 
     def set_dry_run(self, dry_run):
         self._dry_run = bool(dry_run)
+
+    def set_force(self, force):
+        self._force = bool(force)
 
     def set_show_header(self, show_header, show_header_if_empty):
         self._show_header = show_header
@@ -1073,6 +1077,7 @@ class Manager(object):
                 self.new_session()
 
         self.session.set_dry_run(self._dry_run)
+        self.session.set_force(self._force)
 
         self.session.set_package_formats(
             available=self.get_config_key('available_package_format'),
