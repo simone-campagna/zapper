@@ -101,6 +101,11 @@ class Session(object):
         self._version_defaults = {}
         if load:
             self.load(session_root)
+        self._deleted = False # if True, session will be deleted in finalize()
+
+    def delete(self):
+        self.clear(sticky=True)
+        self._deleted = True
 
     def set_dry_run(self, dry_run):
         self._dry_run = bool(dry_run)
@@ -108,6 +113,7 @@ class Session(object):
     def new_session(self, session_root):
         session = Session(session_root, load=False)
         session.load(session_root, load_packages=True, loaded_package_directories=self._package_directories)
+        #self._environment.var_set("ZAPPER_SESSION", self.session_root)
         return session
 
     def check_read_only(self):
@@ -671,6 +677,8 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             if self._loaded_packages.is_changed() or self._orig_sticky_packages != self._sticky_packages:
                 if not self._dry_run:
                     self.store()
+        if self._deleted:
+            self.delete_session_root(self.session_root, self.session_name)
         
     def _add_suite(self, suite):
         self._loaded_suites.add_package(suite)
@@ -961,9 +969,12 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             elif var_value != orig_var_value:
                 # set
                 translator.var_set(var_name, var_value)
-        translator.var_set("ZAPPER_SESSION", self.session_root)
         loaded_packages = ':'.join(self._loaded_packages.keys())
         translator.var_set("ZAPPER_LOADED_PACKAGES", loaded_packages)
+        if self._deleted:
+            translator.var_unset("ZAPPER_SESSION")
+        else:
+            translator.var_set("ZAPPER_SESSION", self.session_root)
 
     def translate_stream(self, translator, stream=None, translation_filename=None, *, dry_run=None):
         if dry_run is None:

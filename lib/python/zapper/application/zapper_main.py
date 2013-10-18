@@ -462,10 +462,17 @@ Change the current session""",
             default='',
             help="session description")
 
-    for subparser in (parser_session_delete, parser_session_copy):
+    for subparser in (parser_session_copy, ):
         subparser.add_argument("session_name",
             type=manager.SessionName,
             nargs='+',
+            default=None,
+            help="session names")
+
+    for subparser in (parser_session_delete, ):
+        subparser.add_argument("session_name",
+            type=manager.SessionName,
+            nargs='*',
             default=None,
             help="session names")
 

@@ -845,6 +845,8 @@ class Manager(object):
             session_names = [session_name]
         else:
             session_names = session_name
+        if not session_names:
+            session_names = [self.session.session_name]
         for session_name in session_names:
             self.delete_session(session_name)
 
@@ -873,9 +875,10 @@ class Manager(object):
             session_name_pattern = self.session.session_name
         for session_root in self.get_sessions(session_name_pattern):
             if session_root == self.session.session_root:
-                LOGGER.warning("cannot delete current session {0}".format(self.session.session_name))
-                continue
-            Session.delete_session_root(session_root)
+                LOGGER.warning("you are deleting the current session {0}".format(self.session.session_name))
+                self.session.delete()
+            else:
+                Session.delete_session_root(session_root)
         
     def get_sessions(self, session_name_pattern, temporary=True, persistent=True):
         dl = []
