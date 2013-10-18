@@ -8,32 +8,13 @@ function _zapper {
     zapper -t "$@"
 }
 
-tmpf=/tmp/${USER}.sessions.$$
-_zapper session avail --session-format '{is_current}/{name}' --hide-header > "$tmpf" 2>&1
-session_current=""
-session_exists=false
-while read line ; do
-    session_is_current=$(echo "$line" | cut -d/ -f1)
-    session_name=$(echo "$line" | cut -d/ -f2-)
-    if [[ "$session_is_current" == "*" ]] ; then
-        session_current="$session_name"
-    fi
-    if [[ "$session_name" == "$SESSION_NAME" ]] ; then
-        session_exists=true
-        break
-    fi
-done < "$tmpf"
-
-if [[ "$session_current" != "$SESSION_NAME" ]] ; then
-    if ! $session_exists ; then
-        _zapper session create "$SESSION_NAME"
-    fi
-    _zapper session load "$SESSION_NAME" || exit 1
-fi
+_zapper session new
 _zapper session config set directories="@ZAPPER_HOME_DIR@/shared/zapper/examples/test_commands/packages"
 _zapper clear --sticky
 _zapper session info
 _zapper session config show
+
+trap "_zapper session delete" 0
 
 typeset -i NUM_TESTS=0
 TEST_INDICES=' '
@@ -409,3 +390,4 @@ if [[ $NUM_FAILED -ne 0 ]] ; then
 else
     echo "$stats"
 fi
+exit 1
