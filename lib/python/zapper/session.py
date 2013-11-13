@@ -27,6 +27,7 @@ import collections
 from .environment import Environment
 from .category import Category
 from .package import Package
+from .product import Product
 from .suite import Suite, ROOT
 from .version_operators import get_version_operator
 from .errors import *
@@ -104,6 +105,9 @@ class Session(object):
             self.load(session_root)
         self._deleted = False # if True, session will be deleted in finalize()
 
+    def sync(self):
+        pass
+
     def delete(self):
         if self.is_read_only():
             LOGGER.error("cannot delete read-only session {!r}".format(self.session_name))
@@ -175,6 +179,7 @@ class Session(object):
             module_path = self._normpath(module_path)
             if not module_path in self._modules:
                 Package.set_package_dir(package_dir)
+                Product.set_product_dir(package_dir)
                 try:
                     module = self._load_module(module_path)
                 except Exception as e:
@@ -183,6 +188,7 @@ class Session(object):
                     continue
                 finally:
                     Package.unset_package_dir()
+                    Product.unset_product_dir()
                 self._modules[module_path] = module
                 modules.append(module)
             else:
@@ -197,10 +203,12 @@ class Session(object):
         module_info = imp.find_module(module_name, sys_path)
         if module_info:
             Package.set_package_module(module_path, module_name)
+            Product.set_product_module(module_path, module_name)
             try:
                 module = imp.load_module(module_name, *module_info)
             finally:
                 Package.unset_package_module()
+                Product.unset_product_module()
         return module
 
     def get_package_directories(self):

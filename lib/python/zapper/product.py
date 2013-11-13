@@ -26,6 +26,9 @@ from .category import Category
 from .registry import UniqueRegister
 
 class Product(UniqueRegister):
+    __product_dir__ = None
+    __product_file__ = None
+    __product_module__ = None
     RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9\.]*")
     def __new__(cls, name, category, *, short_description=None, long_description=None):
         name_registry = cls.registry('name')
@@ -35,8 +38,10 @@ class Product(UniqueRegister):
             for key, val in (('category', category),
                              ('short_description', short_description),
                              ('long_description', long_description)):
-                if val is not None and getattr(instance, key) != val:
-                    raise ValueError("invalid value {} = {!r} for existing product {}".format(key, val, name))
+                existing_val = getattr(instance, key)
+                if val is not None and existing_val != val:
+                    raise ValueError("invalid {key!r} value {val!r} for existing product {product!r}: already defined as {existing_val!r} in {existing_filename!r}".format(
+                        key=key, val=val, product=name, existing_val=existing_val, existing_filename=instance.product_file))
         else:
             if not cls.RE_VALID_NAME.match(name):
                 raise ValueError("invalid product name {!r}".format(name))
@@ -57,7 +62,40 @@ class Product(UniqueRegister):
             instance.short_description = short_description
             instance.long_description = long_description
             instance.register()
+            instance._product_dir = cls.__product_dir__
+            instance._product_file = cls.__product_file__
+            instance._product_module = cls.__product_module__
         return instance
+
+    @classmethod
+    def set_product_dir(cls, product_dir):
+        cls.__product_dir__ = product_dir
+
+    @classmethod
+    def unset_product_dir(cls):
+        cls.__product_dir__ = None
+
+    @classmethod
+    def set_product_module(cls, product_file, product_module):
+        cls.__product_file__ = product_file
+        cls.__product_module__ = product_module
+
+    @classmethod
+    def unset_product_module(cls):
+        cls.__product_file__ = None
+        cls.__product_module__ = None
+
+    @property
+    def product_dir(self):
+        return self._product_dir
+
+    @property
+    def product_file(self):
+        return self._product_file
+
+    @property
+    def product_module(self):
+        return self._product_module
 
     @classmethod
     def get_product_names(cls):
