@@ -24,11 +24,9 @@ import abc
 
 from .category import Category
 from .registry import UniqueRegister
+from .parameters import PARAMETERS
 
 class Product(UniqueRegister):
-    __product_dir__ = None
-    __product_file__ = None
-    __product_module__ = None
     RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9\.]*")
     def __new__(cls, name, category, *, short_description=None, long_description=None):
         name_registry = cls.registry('name')
@@ -62,28 +60,10 @@ class Product(UniqueRegister):
             instance.short_description = short_description
             instance.long_description = long_description
             instance.register()
-            instance._product_dir = cls.__product_dir__
-            instance._product_file = cls.__product_file__
-            instance._product_module = cls.__product_module__
+            instance._product_dir = PARAMETERS.current_dir
+            instance._product_file = PARAMETERS.current_file
+            instance._product_module = PARAMETERS.current_module
         return instance
-
-    @classmethod
-    def set_product_dir(cls, product_dir):
-        cls.__product_dir__ = product_dir
-
-    @classmethod
-    def unset_product_dir(cls):
-        cls.__product_dir__ = None
-
-    @classmethod
-    def set_product_module(cls, product_file, product_module):
-        cls.__product_file__ = product_file
-        cls.__product_module__ = product_module
-
-    @classmethod
-    def unset_product_module(cls):
-        cls.__product_file__ = None
-        cls.__product_module__ = None
 
     @property
     def product_dir(self):

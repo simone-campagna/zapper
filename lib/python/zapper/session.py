@@ -26,6 +26,7 @@ import collections
 
 from .environment import Environment
 from .category import Category
+from .parameters import PARAMETERS
 from .package import Package
 from .product import Product
 from .suite import Suite, ROOT
@@ -178,8 +179,7 @@ class Session(object):
         for module_path in glob.glob(os.path.join(package_dir, self.MODULE_PATTERN)):
             module_path = self._normpath(module_path)
             if not module_path in self._modules:
-                Package.set_package_dir(package_dir)
-                Product.set_product_dir(package_dir)
+                PARAMETERS.set_current_dir(package_dir)
                 try:
                     module = self._load_module(module_path)
                 except Exception as e:
@@ -187,8 +187,7 @@ class Session(object):
                     LOGGER.warning("cannot impot package file {!r}: {}: {}".format(module_path, e.__class__.__name__, e))
                     continue
                 finally:
-                    Package.unset_package_dir()
-                    Product.unset_product_dir()
+                    PARAMETERS.unset_current_dir()
                 self._modules[module_path] = module
                 modules.append(module)
             else:
@@ -202,13 +201,11 @@ class Session(object):
         LOGGER.info("loading module {}".format(module_path))
         module_info = imp.find_module(module_name, sys_path)
         if module_info:
-            Package.set_package_module(module_path, module_name)
-            Product.set_product_module(module_path, module_name)
+            PARAMETERS.set_current_module_file(module_name, module_path)
             try:
                 module = imp.load_module(module_name, *module_info)
             finally:
-                Package.unset_package_module()
-                Product.unset_product_module()
+                PARAMETERS.unset_current_module_file()
         return module
 
     def get_package_directories(self):

@@ -24,6 +24,7 @@ import collections
 from .transition import *
 from .version import Version
 from .registry import ListRegister
+from .parameters import PARAMETERS
 from .product import Product
 from .package_expressions import NAME, PACKAGE, HAS_TAG
 from .tag import Tag
@@ -32,14 +33,12 @@ from .text import fill
 from .utils.table import show_table, show_title
 from .utils.debug import PRINT, LOGGER
 
+
 __all__ = ['Package']
 
 
 class Package(ListRegister, Transition):
     __version_factory__ = Version
-    __package_dir__ = None
-    __package_file__ = None
-    __package_module__ = None
     __registry__ = None
     SUITE_SEPARATOR = '/'
     VERSION_SEPARATOR = '-'
@@ -70,9 +69,9 @@ class Package(ListRegister, Transition):
             from .suite import Suite
             assert isinstance(suite, Suite)
         self._suite = suite
-        self._package_dir = self.__package_dir__
-        self._package_file = self.__package_file__
-        self._package_module = self.__package_module__
+        self._package_dir = PARAMETERS.current_dir
+        self._package_file = PARAMETERS.current_file
+        self._package_module = PARAMETERS.current_module
         self._transitions = []
         self._requirements = []
         self._preferences = []
@@ -94,6 +93,18 @@ class Package(ListRegister, Transition):
         self.register()
         if product_conflict:
             self.conflicts(NAME == self._name)
+
+    @property
+    def package_dir(self):
+        return self._package_dir
+
+    @property
+    def package_file(self):
+        return self._package_file
+
+    @property
+    def package_module(self):
+        return self._package_module
 
     def labels(self):
         return self._labels
@@ -131,36 +142,6 @@ class Package(ListRegister, Transition):
 
     def product(self):
         return self._product
-
-    @classmethod
-    def set_package_dir(cls, package_dir):
-        cls.__package_dir__ = package_dir
-
-    @classmethod
-    def unset_package_dir(cls):
-        cls.__package_dir__ = None
-
-    @classmethod
-    def set_package_module(cls, package_file, package_module):
-        cls.__package_file__ = package_file
-        cls.__package_module__ = package_module
-
-    @classmethod
-    def unset_package_module(cls):
-        cls.__package_file__ = None
-        cls.__package_module__ = None
-
-    @property
-    def package_dir(self):
-        return self._package_dir
-
-    @property
-    def package_file(self):
-        return self._package_file
-
-    @property
-    def package_module(self):
-        return self._package_module
 
     def get_transitions(self):
         for transition in self._transitions:
