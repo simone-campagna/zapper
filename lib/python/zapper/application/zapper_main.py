@@ -510,12 +510,12 @@ Change the current session""",
 
     ### Update
     for subparsers in session_subparsers, :
-        parser_update = subparsers.add_parser(
-            "update",
+        parser_sync = subparsers.add_parser(
+            "sync",
             parents=[common_parser],
             formatter_class=Formatter,
-            help="update current session")
-        parser_update.set_defaults(function=manager.update_session)
+            help="sync current session")
+        parser_sync.set_defaults(function=manager.sync_session)
 
     for option in package_options:
         parser_package_option_show = {}

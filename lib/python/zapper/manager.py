@@ -265,8 +265,8 @@ class Manager(object):
         else:
             return cls.SessionName(session_name)
 
-    def update_session(self):
-        pass
+    def sync_session(self):
+        self.session.sync()
 
     def set_dry_run(self, dry_run):
         self._dry_run = bool(dry_run)

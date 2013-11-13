@@ -42,5 +42,5 @@ unset bash_completion_file
 
 # zapper update
 export ZAPPER_QUIET_MODE=True
-zapper session update --quiet
+zapper session sync --quiet
 unset ZAPPER_QUIET_MODE
