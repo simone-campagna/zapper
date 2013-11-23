@@ -17,18 +17,36 @@
 
 __author__ = 'Simone Campagna'
 
-__all__ = ['Product']
+__all__ = ['PPCommonBase']
 
 import re
 import abc
 
+from .parameters import PARAMETERS
 from .expression import Expression, ConstExpression
 
-class ReqPrefConfBase(metaclass=abc.ABCMeta):
+class PPCommonBase(object):
     def __init__(self, *p_args, **n_args):
+        self._source_dir = PARAMETERS.current_dir
+        self._source_file = PARAMETERS.current_file
+        self._source_module = PARAMETERS.current_module
         self._requirements = []
         self._preferences = []
         self._conflicts = []
+        #self._transitions = []
+
+    @property
+    def source_dir(self):
+        return self._source_dir
+
+    @property
+    def source_file(self):
+        return self._source_file
+
+    @property
+    def source_module(self):
+        return self._source_module
+
 
     def get_requirements(self):
         for requirement in self._requirements:
@@ -82,7 +100,7 @@ class ReqPrefConfBase(metaclass=abc.ABCMeta):
     def _create_expression(self, *expressions):
         result = None
         for e in expressions:
-            if isinstance(e, ReqPrefConfBase):
+            if isinstance(e, PPCommonBase):
                 expression = self.make_self_expression()
             elif isinstance(e, str):
                 expression = NAME == e

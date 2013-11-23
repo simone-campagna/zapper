@@ -24,11 +24,10 @@ import abc
 
 from .category import Category
 from .registry import UniqueRegister
-from .source_base import SourceBase
 from .package_expressions import PRODUCT, NAME
-from .req_pref_conf_base import ReqPrefConfBase
+from .pp_common_base import PPCommonBase
 
-class Product(UniqueRegister, SourceBase, ReqPrefConfBase):
+class Product(UniqueRegister, PPCommonBase):
     RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9\.]*")
     def __new__(cls, name, category, *, short_description=None, long_description=None, self_conflict=True):
         name_registry = cls.registry('name')
@@ -54,18 +53,21 @@ class Product(UniqueRegister, SourceBase, ReqPrefConfBase):
             #    if ch in name:
             #        raise ValueError("invalid package name {0}: cannot contain {1!r}".format(name, cls.INVALID_CHARACTERS))
             instance = super().__new__(cls)
-            ReqPrefConfBase.__init__(instance)
             if not isinstance(category, Category):
                 category = Category(category)
             instance._name = name
             instance._category = category
             instance.short_description = short_description
             instance.long_description = long_description
+            instance._self_conflict = self_conflict
             instance.register()
-            if self_conflict:
-                instance.conflicts(instance)
         return instance
 
+    def __init__(self, *p_args, **n_args):
+        super().__init__()
+        if self._self_conflict:
+            self.conflicts(self)
+    
     @classmethod
     def get_product_names(cls):
         return (product_name for product_name in cls.registry('name'))
@@ -112,5 +114,5 @@ class Product(UniqueRegister, SourceBase, ReqPrefConfBase):
         return "{0}(name={1!r}, category={3!r})".format(self.__class__.__name__, self._name, self._category)
 
     def __str__(self):
-        return self._name
+        return self._name + ":" + str(id(self))
 

@@ -24,8 +24,6 @@ import collections
 from .transition import *
 from .version import Version
 from .registry import ListRegister
-from .source_base import SourceBase
-from .req_pref_conf_base import ReqPrefConfBase
 from .product import Product
 from .package_expressions import NAME, PACKAGE, HAS_TAG
 from .tag import Tag
@@ -33,12 +31,13 @@ from .expression import Expression, ConstExpression
 from .text import fill
 from .utils.table import show_table, show_title
 from .utils.debug import PRINT, LOGGER
+from .pp_common_base import PPCommonBase
 
 
 __all__ = ['Package']
 
 
-class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
+class Package(ListRegister, PPCommonBase, Transition):
     __version_factory__ = Version
     __registry__ = None
     SUITE_SEPARATOR = '/'
@@ -46,8 +45,7 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
     RE_VALID_NAME = re.compile("[a-zA-Z_]\w*")
     def __init__(self, product, version, *, short_description=None, long_description=None, suite=None, inherit=True):
         super().__init__()
-        SourceBase.__init__(self)
-        ReqPrefConfBase.__init__(self)
+        PPCommonBase.__init__(self)
         if isinstance(product, str):
             product_name = product
             product = Product.get_product(product_name)
@@ -350,6 +348,7 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
             self.exec_post_unload_hook(session)
 
     def make_self_expression(self):
+        print("PACK", self.__class__, self)
         return PACKAGE == self
 
     def __repr__(self):
