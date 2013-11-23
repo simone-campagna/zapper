@@ -515,7 +515,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 LOGGER.warning("inconsistent environment: cannot unload unknown package {0!r}".format(loaded_package_label))
                 continue
             #LOGGER.info("unloading package {0}...".format(loaded_package))
-            loaded_package.revert(self)
+            loaded_package.unload(self, info=False)
             env_loaded_packages.append(loaded_package)
         del self._environment['ZAPPER_LOADED_PACKAGES']
         return env_loaded_packages
@@ -523,7 +523,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
     def unload_all_loaded_packages(self):
         for package_label, package in self._loaded_packages.items():
             LOGGER.info("unloading package {0}...".format(package_label))
-            package.revert(self)
+            package.unload(self)
         self._loaded_packages.clear()
 
     def initialize_loaded_packages(self, packages_list):
@@ -700,7 +700,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
                 LOGGER.info("{0}loading package {1}...".format(header, package))
             if simulate:
                 continue
-            package.apply(self)
+            package.load(self, info=info)
             self._loaded_packages[package.absolute_label] = package
             if isinstance(package, Suite):
                 self._add_suite(package)
@@ -794,7 +794,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             LOGGER.info("{0}unloading package {1}...".format(header, package))
             if simulate:
                 continue
-            package.revert(self)
+            package.unload(self)
             del self._loaded_packages[package.absolute_label]
             if isinstance(package, Suite):
                 self._remove_suite(package)

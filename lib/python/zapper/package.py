@@ -99,6 +99,10 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
             self._inherit_conflicts = inherit
         #if product_conflict:
         #    self.conflicts(NAME == self._name)
+        self.pre_load_hook = None
+        self.post_load_hook = None
+        self.pre_unload_hook = None
+        self.post_unload_hook = None
 
     def labels(self):
         return self._labels
@@ -290,15 +294,60 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
     def path_remove(self, var_name, var_value, separator=None):
         self.add_transition(RemovePath(var_name, var_value, separator))
 
+    def set_pre_load_hook(self, hook):
+        self.pre_load_hook = hook
+
+    def set_post_load_hook(self, hook):
+        self.post_load_hook = hook
+
+    def set_pre_unload_hook(self, hook):
+        self.pre_unload_hook = hook
+
+    def set_post_unload_hook(self, hook):
+        self.post_unload_hook = hook
+
+    def exec_hook(self, hook_name, hook, session):
+        if hook is not None:
+            try:
+                hook(self, session)
+            except Exception as e:
+                LOGGER.warning("{} hook failed: {}: {}".format(hook_name, e.__class__.__name__, e))
+
+    def exec_pre_load_hook(self, session):
+        self.exec_hook('pre_load', self.pre_load_hook, session)
+
+    def exec_post_load_hook(self, session):
+        self.exec_hook('post_load', self.post_load_hook, session)
+
+    def exec_pre_unload_hook(self, session):
+        self.exec_hook('pre_unload', self.pre_unload_hook, session)
+
+    def exec_post_unload_hook(self, session):
+        self.exec_hook('post_unload', self.post_unload_hook, session)
+
     def apply(self, session):
         LOGGER.debug("{0}[{1}]: applying...".format(self.__class__.__name__, self))
         for transition in self._transitions:
             transition.apply(session)
 
+    def load(self, session, *, info=True):
+        if info and self.pre_load_hook is not None:
+            self.exec_pre_load_hook(session)
+        self.apply(session)
+        if info and self.post_load_hook is not None:
+            self.exec_post_load_hook(session)
+
     def revert(self, session):
         LOGGER.debug("{0}[{1}]: reverting...".format(self.__class__.__name__, self))
         for transition in self._transitions:
             transition.revert(session)
+
+    def unload(self, session, *, info=True):
+        if info and self.pre_unload_hook is not None:
+            self.exec_pre_unload_hook(session)
+        self.revert(session)
+        if info and self.post_unload_hook is not None:
+            self.exec_post_unload_hook(session)
 
     def make_self_expression(self):
         return PACKAGE == self
