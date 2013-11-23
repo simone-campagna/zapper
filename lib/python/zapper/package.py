@@ -37,7 +37,7 @@ from .pp_common_base import PPCommonBase
 __all__ = ['Package']
 
 
-class Package(ListRegister, PPCommonBase, Transition):
+class Package(ListRegister, PPCommonBase):
     __version_factory__ = Version
     __registry__ = None
     SUITE_SEPARATOR = '/'
@@ -70,7 +70,6 @@ class Package(ListRegister, PPCommonBase, Transition):
             from .suite import Suite
             assert isinstance(suite, Suite)
         self._suite = suite
-        self._transitions = []
         self._tags = set()
         self._suite.add_package(self)
         if self._version:
@@ -90,11 +89,13 @@ class Package(ListRegister, PPCommonBase, Transition):
             self._inherit_requirements = inherit.get('requirements', True)
             self._inherit_preferences = inherit.get('preferences', True)
             self._inherit_conflicts = inherit.get('conflicts', True)
+            self._inherit_transitions = inherit.get('transitions', True)
         else:
             inherit = bool(inherit)
             self._inherit_requirements = inherit
             self._inherit_preferences = inherit
             self._inherit_conflicts = inherit
+            self._inherit_transitions = inherit
         #if product_conflict:
         #    self.conflicts(NAME == self._name)
         self.pre_load_hook = None
@@ -140,10 +141,6 @@ class Package(ListRegister, PPCommonBase, Transition):
     def product(self):
         return self._product
 
-    def get_transitions(self):
-        for transition in self._transitions:
-            yield transition
-
     def get_short_description(self):
         if self._short_description:
             return self._short_description
@@ -180,6 +177,13 @@ class Package(ListRegister, PPCommonBase, Transition):
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())
         show_table("Conflicts", self.get_conflicts())
+
+    def get_transitions(self):
+        if self._inherit_transitions:
+            for transition in self._product.get_transitions():
+                yield transition
+        for transition in super().get_transitions():
+            yield transition
 
     def get_requirements(self):
         if self._inherit_requirements:
@@ -264,34 +268,6 @@ class Package(ListRegister, PPCommonBase, Transition):
     def register(self):
         self.register_keys(package_dir=self.source_dir)
 
-    def add_transition(self, transition):
-        assert isinstance(transition, Transition)
-        self._transitions.append(transition)
-        
-    def var_set(self, var_name, var_value):
-        self.add_transition(SetEnv(var_name, var_value))
-
-    def var_unset(self, var_name):
-        self.add_transition(UnsetEnv(var_name))
-
-    def list_prepend(self, var_name, var_value, separator=None):
-        self.add_transition(PrependList(var_name, var_value, separator))
-
-    def path_prepend(self, var_name, var_value, separator=None):
-        self.add_transition(PrependPath(var_name, var_value, separator))
-
-    def list_append(self, var_name, var_value, separator=None):
-        self.add_transition(AppendList(var_name, var_value, separator))
-
-    def path_append(self, var_name, var_value, separator=None):
-        self.add_transition(AppendPath(var_name, var_value, separator))
-
-    def list_remove(self, var_name, var_value, separator=None):
-        self.add_transition(RemoveList(var_name, var_value, separator))
-
-    def path_remove(self, var_name, var_value, separator=None):
-        self.add_transition(RemovePath(var_name, var_value, separator))
-
     def set_pre_load_hook(self, hook):
         self.pre_load_hook = hook
 
@@ -323,22 +299,12 @@ class Package(ListRegister, PPCommonBase, Transition):
     def exec_post_unload_hook(self, session):
         self.exec_hook('post_unload', self.post_unload_hook, session)
 
-    def apply(self, session):
-        LOGGER.debug("{0}[{1}]: applying...".format(self.__class__.__name__, self))
-        for transition in self._transitions:
-            transition.apply(session)
-
     def load(self, session, *, info=True):
         if info and self.pre_load_hook is not None:
             self.exec_pre_load_hook(session)
         self.apply(session)
         if info and self.post_load_hook is not None:
             self.exec_post_load_hook(session)
-
-    def revert(self, session):
-        LOGGER.debug("{0}[{1}]: reverting...".format(self.__class__.__name__, self))
-        for transition in self._transitions:
-            transition.revert(session)
 
     def unload(self, session, *, info=True):
         if info and self.pre_unload_hook is not None:

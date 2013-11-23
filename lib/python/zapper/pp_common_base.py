@@ -22,10 +22,12 @@ __all__ = ['PPCommonBase']
 import re
 import abc
 
+from .transition import *
 from .parameters import PARAMETERS
 from .expression import Expression, ConstExpression
+from .utils.debug import LOGGER
 
-class PPCommonBase(object):
+class PPCommonBase(Transition):
     def __init__(self, *p_args, **n_args):
         self._source_dir = PARAMETERS.current_dir
         self._source_file = PARAMETERS.current_file
@@ -33,7 +35,7 @@ class PPCommonBase(object):
         self._requirements = []
         self._preferences = []
         self._conflicts = []
-        #self._transitions = []
+        self._transitions = []
 
     @property
     def source_dir(self):
@@ -113,4 +115,47 @@ class PPCommonBase(object):
             else:
                 result = result & expression
         return result
+
+    def get_transitions(self):
+        for transition in self._transitions:
+            yield transition
+
+    def add_transition(self, transition):
+        assert isinstance(transition, Transition)
+        self._transitions.append(transition)
+
+    def var_set(self, var_name, var_value):
+        self.add_transition(SetEnv(var_name, var_value))
+
+    def var_unset(self, var_name):
+        self.add_transition(UnsetEnv(var_name))
+
+    def list_prepend(self, var_name, var_value, separator=None):
+        self.add_transition(PrependList(var_name, var_value, separator))
+
+    def path_prepend(self, var_name, var_value, separator=None):
+        self.add_transition(PrependPath(var_name, var_value, separator))
+
+    def list_append(self, var_name, var_value, separator=None):
+        self.add_transition(AppendList(var_name, var_value, separator))
+
+    def path_append(self, var_name, var_value, separator=None):
+        self.add_transition(AppendPath(var_name, var_value, separator))
+
+    def list_remove(self, var_name, var_value, separator=None):
+        self.add_transition(RemoveList(var_name, var_value, separator))
+
+    def path_remove(self, var_name, var_value, separator=None):
+        self.add_transition(RemovePath(var_name, var_value, separator))
+
+    def apply(self, session):
+        LOGGER.debug("{0}[{1}]: applying...".format(self.__class__.__name__, self))
+        for transition in self.get_transitions():
+            transition.apply(session)
+
+    def revert(self, session):
+        LOGGER.debug("{0}[{1}]: reverting...".format(self.__class__.__name__, self))
+        for transition in self.get_transitions():
+            transition.revert(session)
+
 
