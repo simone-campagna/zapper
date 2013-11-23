@@ -25,6 +25,7 @@ from .transition import *
 from .version import Version
 from .registry import ListRegister
 from .source_base import SourceBase
+from .req_pref_conf_base import ReqPrefConfBase
 from .product import Product
 from .package_expressions import NAME, PACKAGE, HAS_TAG
 from .tag import Tag
@@ -37,7 +38,7 @@ from .utils.debug import PRINT, LOGGER
 __all__ = ['Package']
 
 
-class Package(ListRegister, SourceBase, Transition):
+class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
     __version_factory__ = Version
     __registry__ = None
     SUITE_SEPARATOR = '/'
@@ -45,6 +46,8 @@ class Package(ListRegister, SourceBase, Transition):
     RE_VALID_NAME = re.compile("[a-zA-Z_]\w*")
     def __init__(self, product, version, *, short_description=None, long_description=None, product_conflict=True, suite=None):
         super().__init__()
+        SourceBase.__init__(self)
+        ReqPrefConfBase.__init__(self)
         if isinstance(product, str):
             product_name = product
             product = Product.get_product(product_name)
@@ -70,9 +73,6 @@ class Package(ListRegister, SourceBase, Transition):
             assert isinstance(suite, Suite)
         self._suite = suite
         self._transitions = []
-        self._requirements = []
-        self._preferences = []
-        self._conflicts = []
         self._tags = set()
         self._suite.add_package(self)
         if self._version:
@@ -131,18 +131,6 @@ class Package(ListRegister, SourceBase, Transition):
     def get_transitions(self):
         for transition in self._transitions:
             yield transition
-
-    def get_requirements(self):
-        for requirement in self._requirements:
-            yield requirement
-
-    def get_preferences(self):
-        for preference in self._preferences:
-            yield preference
-
-    def get_conflicts(self):
-        for conflict in self._conflicts:
-            yield conflict
 
     def get_short_description(self):
         if self._short_description:
@@ -226,15 +214,6 @@ class Package(ListRegister, SourceBase, Transition):
                 result = result & expression
         return result
         
-    def requires(self, expression, *expressions):
-        self._requirements.append(self._create_expression(expression, *expressions))
-
-    def prefers(self, expression, *expressions):
-        self._preferences.append(self._create_expression(expression, *expressions))
-
-    def conflicts(self, expression, *expressions):
-        self._conflicts.append(self._create_expression(expression, *expressions))
-
     def match_expressions(self, packages, expressions):
         packages = tuple(packages)
         unmatched = []
@@ -258,30 +237,6 @@ class Package(ListRegister, SourceBase, Transition):
             matching_packages.sort(key=lambda package: package._version)
             matched.append((self, expression, matching_packages))
         return matched, unmatched
-
-    def match_requirements(self, packages):
-        return self.match_expressions(packages, self._requirements)
-
-    def match_preferences(self, packages):
-        return self.match_expressions(packages, self._preferences)
-
-    def match_conflicts(self, packages):
-        conflicts = self._match_conflicts(packages)
-        for package in packages:
-            conflicts.extend(package._match_conflicts([self]))
-        return conflicts
-        
-    def _match_conflicts(self, loaded_packages):
-        conflicts = []
-        for expression in self._conflicts:
-            for loaded_package in loaded_packages:
-                if loaded_package is self:
-                    # a package cannot conflicts with itself
-                    continue
-                expression.bind(loaded_package)
-                if expression.get_value():
-                    conflicts.append((self, expression, loaded_package))
-        return conflicts
 
     @classmethod
     def filter(cls, packages, expression):
