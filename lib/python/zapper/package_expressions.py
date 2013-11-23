@@ -30,6 +30,7 @@ __all__ = ['Package',
            'VERSION',
            'CATEGORY',
            'PACKAGE',
+           'PRODUCT',
            'HAS_TAG',
            'ALL_EXPRESSIONS']
 
@@ -40,6 +41,7 @@ ABSOLUTE_LABEL = AttributeGetter('absolute_label', 'ABSOLUTE_LABEL')
 VERSION = AttributeGetter('version', 'VERSION')
 CATEGORY = AttributeGetter('category', 'CATEGORY')
 PACKAGE = InstanceGetter('PACKAGE')
+PRODUCT = AttributeGetter('product', 'PRODUCT')
 
 def HAS_TAG(tag):
     return MethodCaller('has_tag', method_p_args=(tag, ), symbol='HAS_TAG({0!r})'.format(tag))
@@ -52,6 +54,7 @@ ALL_EXPRESSIONS = {
     'VERSION': VERSION,
     'CATEGORY': CATEGORY,
     'PACKAGE': PACKAGE,
+    'PRODUCT': PRODUCT,
     'HAS_TAG': HAS_TAG,
 }
 

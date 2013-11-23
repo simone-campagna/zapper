@@ -25,12 +25,13 @@ import abc
 from .category import Category
 from .registry import UniqueRegister
 from .source_base import SourceBase
+from .package_expressions import PRODUCT, NAME
+from .req_pref_conf_base import ReqPrefConfBase
 
-class Product(UniqueRegister, SourceBase):
+class Product(UniqueRegister, SourceBase, ReqPrefConfBase):
     RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9\.]*")
-    def __new__(cls, name, category, *, short_description=None, long_description=None):
+    def __new__(cls, name, category, *, short_description=None, long_description=None, self_conflict=True):
         name_registry = cls.registry('name')
-        #print("***", cls, repr(name), name in name_registry, name_registry)
         if name in name_registry:
             instance = name_registry[name]
             for key, val in (('category', category),
@@ -53,6 +54,7 @@ class Product(UniqueRegister, SourceBase):
             #    if ch in name:
             #        raise ValueError("invalid package name {0}: cannot contain {1!r}".format(name, cls.INVALID_CHARACTERS))
             instance = super().__new__(cls)
+            ReqPrefConfBase.__init__(instance)
             if not isinstance(category, Category):
                 category = Category(category)
             instance._name = name
@@ -60,6 +62,8 @@ class Product(UniqueRegister, SourceBase):
             instance.short_description = short_description
             instance.long_description = long_description
             instance.register()
+            if self_conflict:
+                instance.conflicts(instance)
         return instance
 
     @classmethod
@@ -98,6 +102,15 @@ class Product(UniqueRegister, SourceBase):
 
     long_description = property(get_long_description, set_long_description)
 
+    def make_self_expression(self):
+        return PRODUCT == self
+
     def register(self):
         self.register_keys(name=self._name)
+
+    def __repr__(self):
+        return "{0}(name={1!r}, category={3!r})".format(self.__class__.__name__, self._name, self._category)
+
+    def __str__(self):
+        return self._name
 

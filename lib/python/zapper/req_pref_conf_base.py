@@ -22,7 +22,9 @@ __all__ = ['Product']
 import re
 import abc
 
-class ReqPrefConfBase(object):
+from .expression import Expression, ConstExpression
+
+class ReqPrefConfBase(metaclass=abc.ABCMeta):
     def __init__(self, *p_args, **n_args):
         self._requirements = []
         self._preferences = []
@@ -50,10 +52,10 @@ class ReqPrefConfBase(object):
         self._conflicts.append(self._create_expression(expression, *expressions))
 
     def match_requirements(self, packages):
-        return self.match_expressions(packages, self._requirements)
+        return self.match_expressions(packages, tuple(self.get_requirements()))
 
     def match_preferences(self, packages):
-        return self.match_expressions(packages, self._preferences)
+        return self.match_expressions(packages, tuple(self.get_preferences()))
 
     def match_conflicts(self, packages):
         conflicts = self._match_conflicts(packages)
@@ -63,7 +65,7 @@ class ReqPrefConfBase(object):
 
     def _match_conflicts(self, loaded_packages):
         conflicts = []
-        for expression in self._conflicts:
+        for expression in self.get_conflicts():
             for loaded_package in loaded_packages:
                 if loaded_package is self:
                     # a package cannot conflicts with itself
@@ -73,4 +75,24 @@ class ReqPrefConfBase(object):
                     conflicts.append((self, expression, loaded_package))
         return conflicts
 
+    @abc.abstractmethod
+    def make_self_expression(self):
+        pass
+
+    def _create_expression(self, *expressions):
+        result = None
+        for e in expressions:
+            if isinstance(e, ReqPrefConfBase):
+                expression = self.make_self_expression()
+            elif isinstance(e, str):
+                expression = NAME == e
+            elif isinstance(e, Expression):
+                expression = e
+            else:
+                expression = ConstExpression(e)
+            if result is None:
+                result = expression
+            else:
+                result = result & expression
+        return result
 

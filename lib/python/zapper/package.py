@@ -44,7 +44,7 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
     SUITE_SEPARATOR = '/'
     VERSION_SEPARATOR = '-'
     RE_VALID_NAME = re.compile("[a-zA-Z_]\w*")
-    def __init__(self, product, version, *, short_description=None, long_description=None, product_conflict=True, suite=None):
+    def __init__(self, product, version, *, short_description=None, long_description=None, suite=None, inherit=True):
         super().__init__()
         SourceBase.__init__(self)
         ReqPrefConfBase.__init__(self)
@@ -88,8 +88,17 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
             self._labels = self._suite._labels + (self._label, )
         self._absolute_label = self._absolute_name + suffix
         self.register()
-        if product_conflict:
-            self.conflicts(NAME == self._name)
+        if isinstance(inherit, dict):
+            self._inherit_requirements = inherit.get('requirements', True)
+            self._inherit_preferences = inherit.get('preferences', True)
+            self._inherit_conflicts = inherit.get('conflicts', True)
+        else:
+            inherit = bool(inherit)
+            self._inherit_requirements = inherit
+            self._inherit_preferences = inherit
+            self._inherit_conflicts = inherit
+        #if product_conflict:
+        #    self.conflicts(NAME == self._name)
 
     def labels(self):
         return self._labels
@@ -125,6 +134,7 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
     def suite(self):
         return self._suite
 
+    @property
     def product(self):
         return self._product
 
@@ -169,6 +179,27 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
         show_table("Preferences", self.get_preferences())
         show_table("Conflicts", self.get_conflicts())
 
+    def get_requirements(self):
+        if self._inherit_requirements:
+            for requirement in self._product.get_requirements():
+                yield requirement
+        for requirement in super().get_requirements():
+            yield requirement
+        
+    def get_preferences(self):
+        if self._inherit_preferences:
+            for preference in self._product.get_preferences():
+                yield preference
+        for preference in super().get_preferences():
+            yield preference
+        
+    def get_conflicts(self):
+        if self._inherit_conflicts:
+            for conflict in self._product.get_conflicts():
+                yield conflict
+        for conflict in super().get_conflicts():
+            yield conflict
+        
     def show(self):
         self.show_content()
         if self.short_description:
@@ -197,23 +228,6 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
     def tags(self):
         return iter(self._tags)
 
-    def _create_expression(self, *expressions):
-        result = None
-        for e in expressions:
-            if isinstance(e, Package):
-                expression = PACKAGE == e
-            elif isinstance(e, str):
-                expression = NAME == e
-            elif isinstance(e, Expression):
-                expression = e
-            else:
-                expression = ConstExpression(e)
-            if result is None:
-                result = expression
-            else:
-                result = result & expression
-        return result
-        
     def match_expressions(self, packages, expressions):
         packages = tuple(packages)
         unmatched = []
@@ -229,7 +243,7 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
                 if expression.get_value():
                     #matched.append((self, expression, package))
                     #input("... {0} vs {1} [{2}]".format(self, package, expression))
-                    matched_d[(package.product(), expression)].append(package)
+                    matched_d[(package.product, expression)].append(package)
                     found = True
             if not found:
                 unmatched.append((self, expression))
@@ -285,6 +299,9 @@ class Package(ListRegister, SourceBase, ReqPrefConfBase, Transition):
         LOGGER.debug("{0}[{1}]: reverting...".format(self.__class__.__name__, self))
         for transition in self._transitions:
             transition.revert(session)
+
+    def make_self_expression(self):
+        return PACKAGE == self
 
     def __repr__(self):
         return "{0}(name={1!r}, version={2!r}, category={3!r})".format(self.__class__.__name__, self._name, self._version, self._category)
