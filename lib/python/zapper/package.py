@@ -24,7 +24,7 @@ import collections
 from .transition import *
 from .version import Version
 from .registry import ListRegister
-from .parameters import PARAMETERS
+from .source_base import SourceBase
 from .product import Product
 from .package_expressions import NAME, PACKAGE, HAS_TAG
 from .tag import Tag
@@ -37,7 +37,7 @@ from .utils.debug import PRINT, LOGGER
 __all__ = ['Package']
 
 
-class Package(ListRegister, Transition):
+class Package(ListRegister, SourceBase, Transition):
     __version_factory__ = Version
     __registry__ = None
     SUITE_SEPARATOR = '/'
@@ -69,9 +69,6 @@ class Package(ListRegister, Transition):
             from .suite import Suite
             assert isinstance(suite, Suite)
         self._suite = suite
-        self._package_dir = PARAMETERS.current_dir
-        self._package_file = PARAMETERS.current_file
-        self._package_module = PARAMETERS.current_module
         self._transitions = []
         self._requirements = []
         self._preferences = []
@@ -93,18 +90,6 @@ class Package(ListRegister, Transition):
         self.register()
         if product_conflict:
             self.conflicts(NAME == self._name)
-
-    @property
-    def package_dir(self):
-        return self._package_dir
-
-    @property
-    def package_file(self):
-        return self._package_file
-
-    @property
-    def package_module(self):
-        return self._package_module
 
     def labels(self):
         return self._labels
@@ -188,9 +173,9 @@ class Package(ListRegister, Transition):
         PRINT("category       : {0}".format(self._category))
         PRINT("suite          : {0}".format(self._suite._absolute_label))
         PRINT("absolute label : {0}".format(self._absolute_label))
-        PRINT("directory      : {0}".format(self._package_dir))
-        PRINT("file           : {0}".format(self._package_file))
-        PRINT("module         : {0}".format(self._package_module))
+        PRINT("directory      : {0}".format(self.source_dir))
+        PRINT("file           : {0}".format(self.source_file))
+        PRINT("module         : {0}".format(self.source_module))
         show_table("Transitions", self.get_transitions())
         show_table("Requirements", self.get_requirements())
         show_table("Preferences", self.get_preferences())
@@ -306,7 +291,7 @@ class Package(ListRegister, Transition):
                 yield package
  
     def register(self):
-        self.register_keys(package_dir=self._package_dir)
+        self.register_keys(package_dir=self.source_dir)
 
     def add_transition(self, transition):
         assert isinstance(transition, Transition)

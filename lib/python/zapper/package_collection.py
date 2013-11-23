@@ -43,11 +43,11 @@ class PackageCollection(collections.OrderedDict):
 
     def add_package(self, package):
         package_absolute_label = package.absolute_label
-        if package_absolute_label in self and self[package_absolute_label].package_file != package.package_file:
+        if package_absolute_label in self and self[package_absolute_label].source_file != package.source_file:
             #raise SessionError("package {0} hides {1}".format(package.absolute_label, self[package_absolute_label].absolute_label))
             LOGGER.warning("package {} from {}:{} hides {} from {}:{}".format(
-                package.absolute_label, package.package_dir, package.package_file, 
-                self[package_absolute_label].absolute_label, self[package_absolute_label].package_dir, self[package_absolute_label].package_file))
+                package.absolute_label, package.source_dir, package.source_file, 
+                self[package_absolute_label].absolute_label, self[package_absolute_label].source_dir, self[package_absolute_label].source_file))
             #assert False
         self[package_absolute_label] = package
 

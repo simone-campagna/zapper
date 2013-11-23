@@ -223,10 +223,10 @@ class Session(object):
     def set_available_packages(self):
         self._available_packages.clear()
         for suite in self._loaded_suites.values():
-            if not suite.package_dir in self._package_directories:
+            if not suite.source_dir in self._package_directories:
                 continue
             for package in suite.packages():
-                if not package.package_dir in self._package_directories:
+                if not package.source_dir in self._package_directories:
                     continue
                 self._available_packages.add_package(package)
 
@@ -716,7 +716,7 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
     def _add_suite(self, suite):
         self._loaded_suites.add_package(suite)
         for package in suite.packages():
-            if not package.package_dir in self._package_directories:
+            if not package.source_dir in self._package_directories:
                 continue
             self._available_packages.add_package(package)
 
@@ -865,9 +865,9 @@ $ZAPPER_LOADED_PACKAGES) and returns the list of unloaded packages"""
             'suite':            package.suite.label,
             'abs_suite':        package.suite.absolute_label,
             'tags':             ', '.join(str(tag) for tag in package.tags),
-            'package_dir':      package.package_dir,
-            'package_file':     package.package_file,
-            'package_module':   package.package_module,
+            'package_dir':      package.source_dir,
+            'package_file':     package.source_file,
+            'package_module':   package.source_module,
         }
 
     def get_available_package_format(self):

@@ -24,9 +24,9 @@ import abc
 
 from .category import Category
 from .registry import UniqueRegister
-from .parameters import PARAMETERS
+from .source_base import SourceBase
 
-class Product(UniqueRegister):
+class Product(UniqueRegister, SourceBase):
     RE_VALID_NAME = re.compile("|[a-zA-Z_][a-zA-z_0-9\.]*")
     def __new__(cls, name, category, *, short_description=None, long_description=None):
         name_registry = cls.registry('name')
@@ -39,7 +39,7 @@ class Product(UniqueRegister):
                 existing_val = getattr(instance, key)
                 if val is not None and existing_val != val:
                     raise ValueError("invalid {key!r} value {val!r} for existing product {product!r}: already defined as {existing_val!r} in {existing_filename!r}".format(
-                        key=key, val=val, product=name, existing_val=existing_val, existing_filename=instance.product_file))
+                        key=key, val=val, product=name, existing_val=existing_val, existing_filename=instance.source_file))
         else:
             if not cls.RE_VALID_NAME.match(name):
                 raise ValueError("invalid product name {!r}".format(name))
@@ -60,22 +60,7 @@ class Product(UniqueRegister):
             instance.short_description = short_description
             instance.long_description = long_description
             instance.register()
-            instance._product_dir = PARAMETERS.current_dir
-            instance._product_file = PARAMETERS.current_file
-            instance._product_module = PARAMETERS.current_module
         return instance
-
-    @property
-    def product_dir(self):
-        return self._product_dir
-
-    @property
-    def product_file(self):
-        return self._product_file
-
-    @property
-    def product_module(self):
-        return self._product_module
 
     @classmethod
     def get_product_names(cls):
