@@ -54,6 +54,7 @@ class Package(ListRegister, PPCommonBase):
         else:
             assert isinstance(product, Product)
         self._product = product
+        self._absolute_label = product.name
         if version is None:
             version = ''
         if not isinstance(version, Version):
@@ -314,7 +315,6 @@ class Package(ListRegister, PPCommonBase):
             self.exec_post_unload_hook(session)
 
     def make_self_expression(self):
-        print("PACK", self.__class__, self)
         return PACKAGE == self
 
     def __repr__(self):

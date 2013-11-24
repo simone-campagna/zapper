@@ -145,7 +145,7 @@ class Session(object):
         self._show_header_if_empty = show_header_if_empty
 
     def set_version_defaults(self, version_defaults):
-        assert isinstance(version_defaults, collections.Mapping)
+        assert isinstance(version_defaults, collections.Mapping), "version_defaults is not a Mapping: {}".format(version_defaults)
         self._version_defaults = version_defaults.copy()
 
     def set_package_formats(self, *, available=None, loaded=None, generic=None):
@@ -183,7 +183,7 @@ class Session(object):
                 try:
                     module = self._load_module(module_path)
                 except Exception as e:
-                    trace()
+                    trace(True)
                     LOGGER.warning("cannot impot package file {!r}: {}: {}".format(module_path, e.__class__.__name__, e))
                     continue
                 finally:

@@ -111,8 +111,8 @@ class Product(UniqueRegister, PPCommonBase):
         self.register_keys(name=self._name)
 
     def __repr__(self):
-        return "{0}(name={1!r}, category={3!r})".format(self.__class__.__name__, self._name, self._category)
+        return "{0}(name={1!r}, category={2!r})".format(self.__class__.__name__, self._name, self._category)
 
     def __str__(self):
-        return self._name + ":" + str(id(self))
+        return self._name
 

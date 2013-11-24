@@ -103,7 +103,7 @@ class PPCommonBase(Transition):
         result = None
         for e in expressions:
             if isinstance(e, PPCommonBase):
-                expression = self.make_self_expression()
+                expression = e.make_self_expression()
             elif isinstance(e, str):
                 expression = NAME == e
             elif isinstance(e, Expression):
