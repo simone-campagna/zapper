@@ -97,6 +97,10 @@ def create_manager():
         if not isinstance(exc_value, SessionConfigError):
             LOGGER.critical("Session is corrupted. Unset environment variable ZAPPER_SESSION and try again with a new session.")
         sys.exit(1)
+
+    if manager.translation_name is None:
+        LOGGER.critical("Translation is not defined. Zapper environment is not complete")
+        sys.exit(2)
     return manager
 
 def create_top_level_parser(manager):

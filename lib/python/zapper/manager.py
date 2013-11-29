@@ -805,6 +805,7 @@ class Manager(object):
         target_translator = os.environ.get("ZAPPER_TARGET_TRANSLATOR", None)
         self.translation_filename = None
         self.translator = None
+        self.translation_name = None
         if target_translator is None:
             return
         l = target_translator.split(':', 1)
