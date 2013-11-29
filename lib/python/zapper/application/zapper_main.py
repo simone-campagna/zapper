@@ -47,7 +47,7 @@ from ..manager import Manager
 from ..errors import SessionConfigError
 from ..utils.debug import set_quiet, set_verbose, set_debug, LOGGER
 from ..utils.trace import set_trace, trace
-from ..utils.install_data import set_home_dir, set_admin_user, set_version, get_version
+from ..utils.install_data import set_home_dir, set_admin_user, set_version, get_version, get_zapper_profile
 from ..utils.argparse_autocomplete import autocomplete_monkey_patch
 from ..utils.strings import string_to_bool
 
@@ -99,7 +99,7 @@ def create_manager():
         sys.exit(1)
 
     if manager.translation_name is None:
-        LOGGER.critical("Translation is not defined. Zapper environment is not complete")
+        LOGGER.critical("Translation is not defined. Zapper environment is not complete. Try sourcing {!r}".format(get_zapper_profile()))
         sys.exit(2)
     return manager
 

@@ -18,6 +18,8 @@
 
 __author__ = 'Simone Campagna'
 
+import os
+
 ZAPPER_HOME_DIR = None
 ZAPPER_ADMIN_USER = None
 ZAPPER_VERSION = None
@@ -43,4 +45,6 @@ def set_version(version):
 def get_version():
     return ZAPPER_VERSION
 
+def get_zapper_profile(shell_name="$SHELL"):
+    return os.path.join(ZAPPER_HOME_DIR, 'etc', 'profile.d', 'zapper.{}'.format(shell_name))
     
