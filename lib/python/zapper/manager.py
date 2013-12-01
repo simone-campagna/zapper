@@ -565,6 +565,20 @@ class Manager(object):
     def CHECK_session_directories(self, label, key, value):
         return self.session.check_directories(value)
 
+    def get_config(self, label, config, key, *, config_from=None):
+        if not isinstance(config, dict):
+            # convert configparser.SectionProxies -> dict
+            config_dict = {}
+            config_from_dict = {}
+            self._update_config(label, config, config_dict, config_from_dict)
+            config = config_dict
+        s_value = config[key]
+        if key in {'default_packages'}:
+            value = list_to_string(s_value)
+        else:
+            value = s_value
+        PRINT(repr(value))
+
     def show_config(self, label, config, keys, *, config_from=None):
         if not keys:
             keys = list(self.iter_config_keys(label))
@@ -604,6 +618,18 @@ class Manager(object):
 
     def show_current_config(self, keys):
         return self.show_config(self.CURRENT_LABEL, self.config, keys, config_from=self.config_from)
+
+    def get_host_config(self, key):
+        return self.get_config('host', self.host_config['config'], key)
+
+    def get_user_config(self, key):
+        return self.get_config('user', self.user_config['config'], key)
+
+    def get_session_config(self, key):
+        return self.get_config('session', self.session_config['config'], key)
+
+    def get_current_config(self, key):
+        return self.get_config(self.CURRENT_LABEL, self.config, key, config_from=self.config_from)
 
     def _set_generic_config(self, label, config, key_values):
         changed = False

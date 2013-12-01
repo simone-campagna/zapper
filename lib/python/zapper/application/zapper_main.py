@@ -598,14 +598,21 @@ Change the current session""",
 
 
     parser_config_show = {}
+    parser_config_get = {}
     for subparsers in (config_subparsers, host_config_subparsers, user_config_subparsers, session_config_subparsers):
         parser_config_show[subparsers] = subparsers.add_parser("show",
             parents=[common_parser],
             formatter_class=Formatter,
-            help="show current default values")
+            help="show current value")
         parser_config_show[subparsers].add_argument("keys",
             nargs='*',
             help="show keys")
+        parser_config_get[subparsers] = subparsers.add_parser("get",
+            parents=[common_parser],
+            formatter_class=Formatter,
+            help="get current value")
+        parser_config_get[subparsers].add_argument("key",
+            help="get key")
     
     parser_config_show[config_subparsers].set_defaults(
         function=manager.show_current_config,
@@ -619,6 +626,23 @@ Change the current session""",
     parser_config_show[session_config_subparsers].set_defaults(
         function=manager.show_session_config,
         complete_function=manager.complete_session_config_keys)
+
+    parser_config_get[config_subparsers].set_defaults(
+        function=manager.get_current_config,
+        complete_function=manager.complete_config_keys,
+        complete_add_arguments=['dummy'])
+    parser_config_get[host_config_subparsers].set_defaults(
+        function=manager.get_host_config,
+        complete_function=manager.complete_host_config_keys,
+        complete_add_arguments=['dummy'])
+    parser_config_get[user_config_subparsers].set_defaults(
+        function=manager.get_user_config,
+        complete_function=manager.complete_user_config_keys,
+        complete_add_arguments=['dummy'])
+    parser_config_get[session_config_subparsers].set_defaults(
+        function=manager.get_session_config,
+        complete_function=manager.complete_session_config_keys,
+        complete_add_arguments=['dummy'])
 
     parser_config_set = {}
     parser_config_reset = {}

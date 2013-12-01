@@ -23,7 +23,7 @@ import re
 import sys
 import argparse
 
-COMPLETION_VERSION = 1.0
+COMPLETION_VERSION = "1.1"
 
 class CompletionGenerator(object):
     RE_INVALID = re.compile(r"[^\w]")
