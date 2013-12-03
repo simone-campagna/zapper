@@ -377,7 +377,7 @@ class Manager(object):
             package_option_from_dict = {}
             self._update_package_option(option, label, package_option, package_option_dict, package_option_from_dict)
             package_option = package_option_dict
-        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header, show_header_if_empty=show_header_if_empty)
+        t = Table("{__ordinal__:>3d}) {from_label} {key} : {value}", show_header=self._show_header, show_header_if_empty=self._show_header_if_empty)
         t.set_column_title(from_label='FROM_CONFIG', key=option.upper())
         if package_option_from is None:
             package_option_from = {}
