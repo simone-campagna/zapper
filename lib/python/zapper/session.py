@@ -88,7 +88,8 @@ class Session(object):
         self._package_directories = []
         self._defined_packages = PackageCollection()
         self._available_packages = PackageCollection()
-        self._enable_default_version = False
+        self._enable_default_version = True
+        self._enable_relative_packages = True
         self._show_header = True
         self._show_header_if_empty = True
         self._orig_sticky_packages = set()
@@ -143,6 +144,9 @@ class Session(object):
 
     def set_enable_default_version(self, enable_default_version):
         self._enable_default_version = enable_default_version
+
+    def set_enable_relative_packages(self, enable_relative_packages):
+        self._enable_relative_packages = enable_relative_packages
 
     def set_show_header(self, show_header, show_header_if_empty):
         self._show_header = show_header
@@ -380,6 +384,9 @@ class Session(object):
         return cls(session_root)
         
     def get_packages(self, package_label, package_list):
+        if not (self._enable_relative_packages or package_label.startswith(Package.SUITE_SEPARATOR)):
+            LOGGER.warning("invalid package name {!r} (relative packages are not allowed)".format(package_label))
+            raise PackageNotFoundError("package {0} not found".format(package_label))
         labels = package_label.split(Package.SUITE_SEPARATOR)
         packages = []
         sub_label = labels.pop(0)
