@@ -44,7 +44,7 @@ from .utils.table import show_table, validate_format
 from .utils.debug import PRINT
 from .utils.trace import trace
 from .utils.sort_keys import SortKeys
-from .utils.strings import string_to_bool, bool_to_string, string_to_list, list_to_string
+from .utils.strings import string_to_bool, bool_to_string, string_to_list, list_to_string, string_to_set, set_to_string
 
 def _expression(s):
     if s is None:
@@ -117,6 +117,7 @@ class Manager(object):
         ('session_sort_keys', DEFAULT_SESSION_SORT_KEYS),
         ('enable_default_version', True),
         ('enable_relative_packages', True),
+        ('restricted_keys', ''),
         ('resolution_level', 0),
         ('filter_packages', None),
         ('show_header', True),
@@ -145,6 +146,7 @@ class Manager(object):
         session_sort_keys=str,
         enable_default_version=_bool,
         enable_relative_packages=_bool,
+        restricted_keys=_list,
         resolution_level=int,
         filter_packages=_expression,
         show_header=_bool,
@@ -191,6 +193,12 @@ class Manager(object):
 
         self._dry_run = False
         self._force = False
+
+        self._restricted_keys = {
+            'default': string_to_set(self.DEFAULT_CONFIG['restricted_keys']),
+            'host': set(),
+            'user': set(),
+        }
 
         self._enable_relative_packages = self.DEFAULT_CONFIG['enable_relative_packages']
         self._enable_default_version = self.DEFAULT_CONFIG['enable_default_version']
@@ -758,9 +766,23 @@ class Manager(object):
     def get_user_config_key(self, key):
         return self.get_config_key_from(key, (self.DEFAULT_LABEL, 'host', 'user'))
 
+    def _restrict(self, restricted_keys, config, label):
+        for key in restricted_keys:
+            val = config.pop(key, None)
+            if val is not None:
+                LOGGER.debug("removing key {}={!r} from {} config".format(key, val, label))
+        if 'restricted_keys' in config:
+            sub_restricted_keys = string_to_set(config['restricted_keys']).union(restricted_keys)
+            #config['restricted_keys'] = set_to_string(sub_restricted_keys)
+        else:
+            sub_restricted_keys = restricted_keys
+        return sub_restricted_keys
+
     def load_user_config(self):
         host_config = self.host_config['config']
+        self._restricted_keys['host'] = self._restrict(self._restricted_keys['default'], host_config, 'host')
         user_config = self.user_config['config']
+        self._restricted_keys['user'] = self._restrict(self._restricted_keys['host'], user_config, 'user')
         self.config = {}
         self.config_from = {}
         for from_label, from_config in (self.DEFAULT_LABEL, self.DEFAULT_CONFIG), ('host', host_config), ('user', user_config):
@@ -768,6 +790,7 @@ class Manager(object):
 
     def load_session_config(self):
         session_config = self.session_config['config']
+        self._restrict(self._restricted_keys['user'], session_config, 'session')
         self._update_config('session', session_config, self.config, self.config_from)
 
     def restore_session(self):

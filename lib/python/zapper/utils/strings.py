@@ -58,3 +58,8 @@ def string_to_list(s):
 
 def list_to_string(l):
     return ':'.join(l)
+
+def string_to_set(s):
+    return set(string_to_list(s))
+
+set_to_string = list_to_string

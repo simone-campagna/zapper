@@ -76,7 +76,7 @@ def create_manager():
         exc_type, exc_value, exc_traceback = sys.exc_info()
         trace(True)
         LOGGER.critical("{0}: {1}".format(exc_type.__name__, exc_value))
-        if not isinstance(e, SessionConfigError):
+        if not isinstance(exc_value, SessionConfigError):
             LOGGER.critical("Unrecoverable error\n")
         sys.exit(1)
 

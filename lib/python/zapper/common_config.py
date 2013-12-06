@@ -43,6 +43,7 @@ COMMON_CONFIG = {
 }
 
 USER_HOST_CONFIG = COMMON_CONFIG.copy()
+USER_HOST_CONFIG['restricted_keys'] = ''
 USER_HOST_CONFIG['default_session'] = ''
 USER_HOST_CONFIG['default_packages'] = ''
 USER_HOST_CONFIG['persistent_sessions_dir'] = ''
