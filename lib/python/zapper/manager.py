@@ -115,6 +115,7 @@ class Manager(object):
         ('package_sort_keys', Session.DEFAULT_PACKAGE_SORT_KEYS),
         ('package_dir_sort_keys', Session.DEFAULT_PACKAGE_DIR_SORT_KEYS),
         ('session_sort_keys', DEFAULT_SESSION_SORT_KEYS),
+        ('enable_default_version', True),
         ('resolution_level', 0),
         ('filter_packages', None),
         ('show_header', True),
@@ -141,6 +142,7 @@ class Manager(object):
         package_sort_keys=str,
         package_dir_sort_keys=str,
         session_sort_keys=str,
+        enable_default_version=_bool,
         resolution_level=int,
         filter_packages=_expression,
         show_header=_bool,
@@ -193,6 +195,7 @@ class Manager(object):
         self._available_session_format = None
         self._package_format = None
         self._package_dir_format = None
+        self._enable_default_version = self.DEFAULT_CONFIG['enable_default_version']
         self._show_header = True
         self._show_header_if_empty = False
         self._show_translation = True
@@ -1102,6 +1105,8 @@ class Manager(object):
                 return
             else:
                 self.new_session()
+
+        self.session.set_enable_default_version(self.get_config_key('enable_default_version'))
 
         self.session.set_dry_run(self._dry_run)
         self.session.set_force(self._force)

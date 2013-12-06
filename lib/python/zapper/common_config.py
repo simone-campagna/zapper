@@ -34,6 +34,7 @@ COMMON_CONFIG = {
     'package_dir_sort_keys': '',
     'session_sort_keys': '',
     'resolution_level': '',
+    'enable_default_version': '',
     'show_header': '',
     'show_header_if_empty': '',
     'show_translation': '',

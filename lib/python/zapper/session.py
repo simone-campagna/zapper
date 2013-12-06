@@ -88,6 +88,7 @@ class Session(object):
         self._package_directories = []
         self._defined_packages = PackageCollection()
         self._available_packages = PackageCollection()
+        self._enable_default_version = False
         self._show_header = True
         self._show_header_if_empty = True
         self._orig_sticky_packages = set()
@@ -139,6 +140,9 @@ class Session(object):
                     setattr(self, '__changing_read_only_message', True)
             else:
                 raise SessionError("cannot change read-only session {}".format(self.session_name))
+
+    def set_enable_default_version(self, enable_default_version):
+        self._enable_default_version = enable_default_version
 
     def set_show_header(self, show_header, show_header_if_empty):
         self._show_header = show_header
@@ -413,7 +417,11 @@ class Session(object):
         if len(l) > 1:
             package_version = l[1]
         else:
+            if not self._enable_default_version:
+                LOGGER.warning("invalid package name {} (default version is not allowed)".format(package_label))
+                raise PackageNotFoundError("package {0} not found".format(package_label))
             package_version = None
+
         #print("### package_label={!r} package_name={!r} package_version={!r}".format(package_label, package_name, package_version))
         match_operator = get_version_operator(package_version)
         packages = []
