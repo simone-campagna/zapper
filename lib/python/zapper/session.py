@@ -47,6 +47,7 @@ from .utils import sequences
 class Session(object):
     SESSION_SUFFIX = ".session"
     MODULE_PATTERN = "*.py"
+    PACKAGE_PATTERN = os.path.join("*", "__init__.py")
     TEMPORARY_SESSION_NAME_FORMAT = 'zap{name}'
     RANDOM_NAME_SEQUENCE = RandomNameSequence(width=8 - len(TEMPORARY_SESSION_NAME_FORMAT.format(name='')))
     SESSION_TYPE_TEMPORARY = 'temporary'
@@ -181,26 +182,36 @@ class Session(object):
     def _normpath(cls, path):
         return os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(path))))
 
-    def _load_modules(self, package_dir):
-        modules = []
+    def _load_package_dir(self, package_dir):
+        package_dirs = []
         LOGGER.info("loading modules from {}".format(package_dir))
+        module_files = []
         for module_path in glob.glob(os.path.join(package_dir, self.MODULE_PATTERN)):
             module_path = self._normpath(module_path)
-            if not module_path in self._modules:
-                PARAMETERS.set_current_dir(package_dir)
-                try:
-                    module = self._load_module(module_path)
-                except Exception as e:
-                    trace(True)
-                    LOGGER.warning("cannot impot package file {!r}: {}: {}".format(module_path, e.__class__.__name__, e))
-                    continue
-                finally:
-                    PARAMETERS.unset_current_dir()
+            module_files.append(module_path)
+        self._load_modules(package_dir, module_files)
+        package_dirs.append(package_dir)
+        for package_init in glob.glob(os.path.join(package_dir, self.PACKAGE_PATTERN)):
+            package_init = self._normpath(package_init)
+            self._load_modules(package_dir, [package_init])
+            package_dirs.extend(self._load_package_dir(os.path.dirname(package_init)))
+        return package_dirs
+
+    def _load_modules(self, package_dir, module_files):
+        PARAMETERS.set_current_dir(package_dir)
+        try:
+            for module_path in module_files:
+                module_path = self._normpath(module_path)
+                if not module_path in self._modules:
+                    try:
+                        module = self._load_module(module_path)
+                    except Exception as e:
+                        trace(True)
+                        LOGGER.warning("cannot impot package file {!r}: {}: {}".format(module_path, e.__class__.__name__, e))
+                        continue
                 self._modules[module_path] = module
-                modules.append(module)
-            else:
-                modules.append(self._modules[module_path])
-        return modules
+        finally:
+            PARAMETERS.unset_current_dir()
 
     def _load_module(self, module_path):
         package_dirname, module_basename = os.path.split(module_path)
@@ -221,12 +232,17 @@ class Session(object):
 
     def set_defined_packages(self, *, loaded_package_directories):
         self._defined_packages.clear()
+        all_package_directories = []
         for package_dir in self._package_directories:
             if loaded_package_directories and package_dir in loaded_package_directories:
                 continue
-            self._load_modules(package_dir)
-            for package in Package.registered_entry('package_dir', package_dir):
-                self._defined_packages.add_package(package)
+            p_dirs = self._load_package_dir(package_dir)
+            for p_dir in p_dirs:
+                #LOGGER.info("### ---> {}".format(p_dir))
+                for package in Package.registered_entry('package_dir', p_dir):
+                    self._defined_packages.add_package(package)
+            all_package_directories.extend(p_dirs)
+        self._package_directories = all_package_directories
 
     def set_available_packages(self):
         self._available_packages.clear()
