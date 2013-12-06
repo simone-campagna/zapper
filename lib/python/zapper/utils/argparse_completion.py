@@ -23,7 +23,7 @@ import re
 import sys
 import argparse
 
-COMPLETION_VERSION = "1.1"
+COMPLETION_VERSION = "1.2"
 
 class CompletionGenerator(object):
     RE_INVALID = re.compile(r"[^\w]")
@@ -66,7 +66,7 @@ class CompletionGenerator(object):
         self.complete(self.parser, [self.name])
         function = self.get_function_name([self.name])
         self.output_stream.write("""\
-complete -F {function} -o filenames {name}
+complete -F {function} {name}
 """.format(function=function, name=name))
 
     @classmethod
