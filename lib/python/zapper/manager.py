@@ -929,7 +929,7 @@ class Manager(object):
             if target_session_root is None:
                 LOGGER.error("session {0} already exists".format(target_session_name))
             else:
-                Session.copy(source_session_root, target_session_root)
+                Session.copy(source_session_name, source_session_root, target_session_root)
 
     def delete_session(self, session_name_pattern):
         if session_name_pattern is None:

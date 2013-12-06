@@ -261,12 +261,18 @@ class Session(object):
             session_config.write(f_out)
 
     @classmethod
-    def copy(cls, source_session_root, target_session_root):
+    def copy(cls, source_session_name, source_session_root, target_session_root):
         source_session_config_file = cls.get_session_config_file(source_session_root)
         source_session_config = cls.get_session_config(source_session_config_file)
         source_session_config['session']['name'] = os.path.basename(target_session_root)
         source_session_config['session']['type'] = cls.SESSION_TYPE_PERSISTENT
         source_session_config['session']['creation_time'] = SessionConfig.current_time()
+        source_session_description = source_session_config['config']['description']
+        if source_session_description:
+            source_session_description_s = ' - {}'.format(source_session_description)
+        else:
+            source_session_description_s = ''
+        source_session_config['config']['description'] = "Copied from session {}{}".format(source_session_name, source_session_description_s)
         target_session_config_file = cls.get_session_config_file(target_session_root)
         cls.write_session_config(source_session_config, target_session_config_file)
 
@@ -344,6 +350,7 @@ class Session(object):
         session_config = cls.get_session_config(session_config_file)
         session_config['session']['name'] = session_name
         session_config['session']['type'] = session_type
+        session_config['session']['creation_time'] = SessionConfig.current_time()
         session_config['config']['description'] = session_description
         package_directories = string_to_list(manager.get_user_config_key('directories'))
         package_directories = [cls._normpath(d) for d in package_directories]
