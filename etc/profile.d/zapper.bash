@@ -33,7 +33,9 @@ else
 fi
 unset ZAPPER_CURRENT_COMPLETION_VERSION
 if [[ ! -f ${bash_completion_file} ]] ; then
+    export ZAPPER_ENABLE_BASH_COMPLETION_OPTION=True
     zapper completion "$bash_completion_file"
+    unset ZAPPER_ENABLE_BASH_COMPLETION_OPTION
 fi
 if [[ -f ${bash_completion_file} ]] ; then
     . ${bash_completion_file}

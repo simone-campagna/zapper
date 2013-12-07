@@ -108,10 +108,8 @@ def create_top_level_parser(manager):
         def __init__(self, prog, indent_increment=2, max_help_position=27, width=None):
             super().__init__(prog, indent_increment, max_help_position, width)
 
-    enable_completion_option = manager.translation_name == 'bash'
-    #os.environ.get("ZAPPER_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
-
-    
+    #enable_completion_option = manager.translation_name == 'bash'
+    enable_completion_option = manager.translation_name == 'bash' and os.environ.get("ZAPPER_ENABLE_BASH_COMPLETION_OPTION", "").title() == "True"
 
     helper = Helper(manager)
 
@@ -284,6 +282,7 @@ Change the current session""",
             complete_add_arguments_name='complete_add_arguments',
             progname=os.path.basename(sys.argv[0]),
             activate_complete_function="ZAPPER_COMPLETE_FUNCTION=true ",
+            skip_keys=['completion'],
             )
             
     if enable_completion_option:
